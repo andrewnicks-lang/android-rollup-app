@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-v3';
+const CACHE_NAME = 'rollup-hub-v4';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -16,6 +16,10 @@ const CORE_ASSETS = [
   './apps/shd-div2-intel/app.js',
   './apps/shd-div2-intel/shd_solver_portable.js',
   './apps/shd-div2-intel/shd_storage_adapter.js',
+  './apps/csc-site-discovery/index.html',
+  './apps/csc-site-discovery/css/field_ui.css',
+  './apps/csc-site-discovery/js/discovery_storage_adapter.js',
+  './apps/csc-site-discovery/js/app.js',
   './apps/field-snap/index.html',
   './apps/bridge-lab/index.html'
 ];

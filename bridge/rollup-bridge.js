@@ -68,7 +68,7 @@
         role: 'admin',
         avatar: 'AN',
         badge: '👑 Admin • Mahomes Depot (#4)',
-        authorized_apps: ['gravity-agent-monitor', 'fantasy-manager', 'shd-div2-intel', 'field-snap', 'bridge-lab'],
+        authorized_apps: ['gravity-agent-monitor', 'fantasy-manager', 'csc-site-discovery', 'shd-div2-intel', 'field-snap', 'bridge-lab'],
         default_app_configs: {
           'fantasy-manager': {
             league_id: 945552,
@@ -116,7 +116,7 @@
         role: 'tester',
         avatar: 'FT',
         badge: '🔧 Field Utility Tester',
-        authorized_apps: ['field-snap'],
+        authorized_apps: ['field-snap', 'csc-site-discovery'],
         default_app_configs: {}
       }
     }

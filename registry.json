@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.0",
-    "updated_at": "2026-10-24T16:27:16.185957",
+    "updated_at": "2026-10-24T16:38:35.961888",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -22,7 +22,8 @@
             "fantasy-manager",
             "field-snap",
             "bridge-lab",
-            "shd-div2-intel"
+            "shd-div2-intel",
+            "csc-site-discovery"
           ],
           "default_app_configs": {
             "fantasy-manager": {
@@ -39,6 +40,10 @@
               "primary_workstation_url": "http://169.254.241.53:8765",
               "tailscale_workstation_url": "",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
+            },
+            "csc-site-discovery": {
+              "default_job_number": "CSC-26-4182",
+              "engineer_name": "Andrew Nicks \u2014 Control Service Company (CSC)"
             }
           }
         },
@@ -85,7 +90,8 @@
           "avatar": "FT",
           "badge": "\ud83d\udd27 Field Utility Tester",
           "authorized_apps": [
-            "field-snap"
+            "field-snap",
+            "csc-site-discovery"
           ],
           "default_app_configs": {}
         }
@@ -167,6 +173,40 @@
           "type": "number",
           "default": 60,
           "defaultForAdmin": 60
+        }
+      ]
+    },
+    {
+      "id": "csc-site-discovery",
+      "title": "CSC Site Discovery",
+      "subtitle": "HVAC/BAS Checklists, CLAHE Nameplate OCR, 150Hz Audio & 4-Layer Building Mapper",
+      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion: 7 Dynamic RFI-23-001..011 Checklists, 3-Slot Camera Burst w/ CLAHE Stamped-Metal Contrast & Serial Vintage Decoder, 150Hz Filtered Walk-Talk Audio, Video Laplacian Sharpness Mapper, Evacuation Map Pinning, Live GNSS+Compass, and Valve/VA/Labor Sizers.",
+      "icon": "\ud83e\udded",
+      "accent": "#0d9488",
+      "category": "Field & Productivity",
+      "version": "1.0.0",
+      "entry": "apps/csc-site-discovery/index.html",
+      "visibility": "restricted",
+      "offline_assets": [
+        "apps/csc-site-discovery/index.html",
+        "apps/csc-site-discovery/css/field_ui.css",
+        "apps/csc-site-discovery/js/discovery_storage_adapter.js",
+        "apps/csc-site-discovery/js/app.js"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "default_job_number",
+          "label": "Default CSC Job / Estimate Number",
+          "type": "text",
+          "default": "CSC-26-NEW",
+          "defaultForAdmin": "CSC-26-4182"
+        },
+        {
+          "key": "engineer_name",
+          "label": "Lead Engineer / Estimator Name",
+          "type": "text",
+          "default": "CSC Field Engineer",
+          "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ]
     },

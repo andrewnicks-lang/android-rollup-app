@@ -1,0 +1,10 @@
+{
+  "name": "CSC Site Discovery & Field Survey Companion",
+  "short_name": "CSC Discovery",
+  "description": "Offline-First HVAC Controls & Mechanical Equipment Field Discovery Companion for Control Service Company (CSC)",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0d9488",
+  "orientation": "any"
+}
