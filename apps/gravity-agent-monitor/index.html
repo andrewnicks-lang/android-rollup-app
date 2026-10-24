@@ -1153,14 +1153,22 @@
     }
 
     async function gravityFetch(urlOrPath, options = {}) {
+      const method = (options.method || 'GET').toUpperCase();
       const headers = Object.assign({}, options.headers || {});
-      const tok = getSidecarToken();
-      if (tok) headers['X-Gravity-Token'] = tok;
+      let finalUrl = urlOrPath;
+      if (method !== 'GET') {
+        const tok = getSidecarToken();
+        if (tok) {
+          headers['X-Gravity-Token'] = tok;
+          const sep = finalUrl.includes('?') ? '&' : '?';
+          finalUrl = `${finalUrl}${sep}token=${encodeURIComponent(tok)}`;
+        }
+      }
       const controller = new AbortController();
-      const timeoutMs = options.timeoutMs || 2400;
+      const timeoutMs = options.timeoutMs || 2800;
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        return await fetch(urlOrPath, Object.assign({}, options, { headers, signal: controller.signal }));
+        return await fetch(finalUrl, Object.assign({}, options, { headers, signal: controller.signal }));
       } finally {
         clearTimeout(timer);
       }
@@ -1173,6 +1181,11 @@
           localStorage.setItem('rollup::v1::hub::acl', aclRaw.replace(/http:\/\/169\.254\.[0-9.]+:8765/g, DEFAULT_ADMIN_LAN_URL));
         }
       } catch (e) {}
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.update().catch(() => {}));
+        }).catch(() => {});
+      }
       if (!window.RollupBridge) return;
       // Seed Admin Vault token if not yet set
       if (!window.RollupBridge.vault.getSecret('GRAVITY_SIDECAR_TOKEN', '')) {

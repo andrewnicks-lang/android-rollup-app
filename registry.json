@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.0",
-    "updated_at": "2026-10-24T16:38:47.321787",
+    "updated_at": "2026-10-24T17:01:46.037774",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -107,7 +107,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [

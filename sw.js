@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-v4';
+const CACHE_NAME = 'rollup-hub-v5';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -11,15 +11,6 @@ const CORE_ASSETS = [
   './apps/gravity-agent-monitor/index.html',
   './apps/fantasy-manager/index.html',
   './apps/fantasy-manager/data/league_945552.json',
-  './apps/shd-div2-intel/index.html',
-  './apps/shd-div2-intel/styles.css',
-  './apps/shd-div2-intel/app.js',
-  './apps/shd-div2-intel/shd_solver_portable.js',
-  './apps/shd-div2-intel/shd_storage_adapter.js',
-  './apps/csc-site-discovery/index.html',
-  './apps/csc-site-discovery/css/field_ui.css',
-  './apps/csc-site-discovery/js/discovery_storage_adapter.js',
-  './apps/csc-site-discovery/js/app.js',
   './apps/field-snap/index.html',
   './apps/bridge-lab/index.html'
 ];
@@ -42,8 +33,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Critical: Never intercept cross-origin requests (such as local workstation :8765 sidecar)
+  if (!event.request.url.startsWith(self.location.origin)) return;
+
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((networkResp) => {
         if (networkResp && networkResp.status === 200) {
           const clone = networkResp.clone();
@@ -51,6 +45,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResp;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(event.request, { ignoreSearch: true }))
   );
 });

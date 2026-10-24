@@ -449,10 +449,13 @@
             <div class="brand-sub" id="hdr-role-badge">Loading...</div>
           </div>
         </div>
-        <div class="user-pill" onclick="signOutHub()" title="Tap to Switch Google Account / Sign Out">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn-secondary" onclick="refreshOfflineCache()" title="Force pull latest code" style="padding:6px 9px;border-radius:99px;font-size:11px;border-color:#38bdf8;color:#38bdf8;">🔄 Update</button>
+          <div class="user-pill" onclick="signOutHub()" title="Tap to Switch Google Account / Sign Out">
           <div class="avatar-circle" id="hdr-user-avatar">AN</div>
           <div style="font-size:11px;font-weight:700;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="hdr-user-name">User</div>
           <span style="font-size:10px;color:#94a3b8;">↪</span>
+          </div>
         </div>
       </div>
       <input type="search" id="app-search-input" class="search-input" placeholder="🔍 Search your authorized mini-apps..." oninput="renderAppsDashboard()">
@@ -767,7 +770,7 @@ function renderAppsDashboard() {
               🧹 Data (${userKeysCount})
             </button>
           </div>
-          <a class="launch-btn" href="./${app.entry}">
+          <a class="launch-btn" href="./${app.entry}?v=${encodeURIComponent(app.version || Date.now())}">
             Launch App ➔
           </a>
         </div>
@@ -988,11 +991,18 @@ function saveVaultSecrets() {
 }
 
 async function refreshOfflineCache() {
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-  }
-  window.location.reload();
+  try {
+    localStorage.removeItem('rollup::v1::hub::acl');
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (e) {}
+  window.location.replace(window.location.pathname + '?sync=' + Date.now());
 }
 
 function renderHubApp() {

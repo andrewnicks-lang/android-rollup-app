@@ -6,7 +6,7 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "entry": "apps/gravity-agent-monitor/index.html",
   "visibility": "admin_only",
   "offline_assets": [
