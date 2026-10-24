@@ -1,0 +1,38 @@
+{
+  "id": "gravity-agent-monitor",
+  "title": "Gravity Agent Monitor",
+  "subtitle": "Live Antigravity Desktop Sidebar Replica, Trajectory & AgentAPI Bridge",
+  "description": "Real-time multi-workstation telemetry, bouncing/spinning/unread status indicators, Auxiliary Overview panel, and live 2-way prompt dispatch to DESKTOP-UHI3BO3 & Work PC.",
+  "icon": "\ud83d\udef0\ufe0f",
+  "accent": "#38bdf8",
+  "category": "Admin & Dev Tools",
+  "version": "1.2.0",
+  "entry": "apps/gravity-agent-monitor/index.html",
+  "visibility": "admin_only",
+  "offline_assets": [
+    "apps/gravity-agent-monitor/index.html"
+  ],
+  "userConfigSchema": [
+    {
+      "key": "primary_workstation_url",
+      "label": "Primary Workstation Sidecar URL (LAN)",
+      "type": "text",
+      "default": "http://169.254.241.53:8765",
+      "defaultForAdmin": "http://169.254.241.53:8765"
+    },
+    {
+      "key": "tailscale_workstation_url",
+      "label": "Tailscale Workstation URL (Optional)",
+      "type": "text",
+      "default": "",
+      "defaultForAdmin": ""
+    },
+    {
+      "key": "sidecar_token",
+      "label": "X-Gravity-Token Shared Secret",
+      "type": "text",
+      "default": "csc-gravity-admin-2026-x9f4k2",
+      "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
+    }
+  ]
+}

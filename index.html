@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070b14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+<title>RollupOS — Multi-User Mobile App Hub</title>
+<script src="./bridge/rollup-bridge.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg-amoled: #070b14;
+    --bg-card: #111827;
+    --bg-elev: #1e293b;
+    --border-subtle: #1f2937;
+    --border-active: #334155;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-blue: #38bdf8;
+    --accent-green: #4ade80;
+    --accent-amber: #fbbf24;
+    --accent-purple: #c084fc;
+    --accent-red: #f87171;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    padding: 0 0 92px 0;
+    background: var(--bg-amoled);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Google Sans', 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-x: hidden;
+  }
+  .hub-shell {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  /* Impersonation Preview Banner */
+  .imp-banner {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: linear-gradient(90deg, #7c2d12, #b45309);
+    color: #fef3c7;
+    padding: 8px 14px;
+    font-size: 11.5px;
+    font-weight: 700;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f59e0b;
+  }
+  /* Sticky Top Header */
+  .top-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(7, 11, 20, 0.94);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border-active);
+    padding: 12px 14px 10px 14px;
+  }
+  .hdr-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-box {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+  .brand-name {
+    font-size: 16.5px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+  .brand-sub {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+  }
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-active);
+    border-radius: 999px;
+    padding: 4px 10px 4px 6px;
+    cursor: pointer;
+  }
+  .avatar-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #0284c7;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Search & Filter Strip */
+  .search-input {
+    width: 100%;
+    margin-top: 10px;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #f8fafc;
+    font-size: 12.5px;
+  }
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 10px 14px 4px 14px;
+    scrollbar-width: none;
+  }
+  .filter-pill {
+    background: #111827;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .filter-pill.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+  }
+  /* App Launcher Cards */
+  .app-grid {
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .app-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 14px;
+    transition: transform 0.12s ease, border-color 0.15s ease;
+    position: relative;
+  }
+  .app-card:hover {
+    border-color: var(--border-active);
+  }
+  .app-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .app-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+    flex-shrink: 0;
+  }
+  .app-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .app-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+  }
+  .app-title {
+    font-size: 15.5px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+  .app-ver {
+    font-size: 10px;
+    font-weight: 700;
+    color: #38bdf8;
+    background: #0c4a6e;
+    padding: 2px 7px;
+    border-radius: 99px;
+  }
+  .app-sub {
+    font-size: 11.5px;
+    color: #93c5fd;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .app-desc {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .app-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #1f2937;
+    gap: 8px;
+  }
+  .badge-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .mini-badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #052e16;
+    color: #86efac;
+    border: 1px solid #166534;
+  }
+  .launch-btn {
+    background: #0284c7;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 7px 15px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* Admin Mode Cards */
+  .admin-section {
+    padding: 12px 14px;
+  }
+  .admin-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: 13px;
+    padding: 13px;
+    margin-bottom: 11px;
+  }
+  .user-perm-row {
+    background: #090d16;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 11px;
+    margin-top: 9px;
+  }
+  .perm-toggle-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .perm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #334155;
+    background: #111827;
+    color: #94a3b8;
+  }
+  .perm-chip.enabled {
+    background: #052e16;
+    border-color: #16a34a;
+    color: #4ade80;
+  }
+  .input-field {
+    width: 100%;
+    background: #090d16;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #f8fafc;
+    font-size: 12.5px;
+    margin-top: 6px;
+  }
+  .btn-primary {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 13px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .btn-secondary {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  /* Login View */
+  .login-wrap {
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px 16px;
+  }
+  .login-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: 18px;
+    padding: 22px 18px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  }
+  .google-acct-btn {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 11px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    color: #f8fafc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    text-align: left;
+  }
+  .google-acct-btn:hover {
+    border-color: #38bdf8;
+    background: #172554;
+  }
+  /* Bottom Nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(7, 11, 20, 0.96);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-active);
+    display: flex;
+    justify-content: space-around;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)) 4px;
+  }
+  .nav-item {
+    flex: 1;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 4px 2px;
+    cursor: pointer;
+  }
+  .nav-item.active { color: var(--accent-blue); }
+  .nav-icon { font-size: 17px; display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="hub-shell">
+  <!-- ADMIN IMPERSONATION PREVIEW BANNER -->
+  <div class="imp-banner" id="hub-imp-banner">
+    <span id="hub-imp-text">👁️ Admin Previewing as Tester</span>
+    <button onclick="exitImpersonation()" style="background:#070b14;color:#fbbf24;border:1px solid #fbbf24;border-radius:6px;padding:3px 9px;font-size:10.5px;font-weight:800;cursor:pointer;">Return to Admin</button>
+  </div>
+
+  <!-- VIEW A: GOOGLE SIGN-IN GATE -->
+  <div id="view-login" class="login-wrap" style="display:none;">
+    <div class="login-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <img src="./assets/icon.svg" style="width:46px;height:46px;border-radius:12px;">
+        <div>
+          <div style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Multi-User Android App Hub</div>
+          <h1 style="margin:2px 0 0 0;font-size:20px;">RollupOS Launcher</h1>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin:0 0 14px 0;">
+        Sign in with your Google account to load your authorized mini-apps and isolated personal cloud/device storage.
+      </p>
+
+      <!-- Official Google Identity Services Button Container (renders automatically when google_client_id is set) -->
+      <div id="g-id-onload-box" style="margin-bottom:12px;"></div>
+
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:#cbd5e1;">Sign in with your Google Email:</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <input type="email" id="custom-google-email" class="input-field" style="margin-top:0;" placeholder="you@gmail.com">
+          <button class="btn-primary" onclick="signInCustomEmail()" style="white-space:nowrap;">Sign In</button>
+        </div>
+      </div>
+
+      <details style="margin-top:10px;border-top:1px solid #1f2937;padding-top:10px;">
+        <summary style="font-size:10.5px;font-weight:800;text-transform:uppercase;color:#94a3b8;cursor:pointer;">
+          ⚡ Quick Sign-In Profiles (Admin PIN Gate Protected)
+        </summary>
+        <div id="login-quick-accounts" style="margin-top:6px;"></div>
+      </details>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #1f2937;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:#94a3b8;">Want the native Android package?</span>
+        <a href="https://github.com/andrewnicks-lang/android-rollup-app/releases/latest/download/RollupOS.apk" style="background:#052e16;border:1px solid #16a34a;color:#4ade80;text-decoration:none;font-size:11px;font-weight:800;padding:6px 10px;border-radius:8px;">📲 Download APK</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW B: AUTHENTICATED HUB SHELL -->
+  <div id="view-authenticated" style="display:none;">
+    <div class="top-header">
+      <div class="hdr-row">
+        <div class="brand-box">
+          <img src="./assets/icon.svg" class="brand-logo" alt="RollupOS">
+          <div>
+            <div class="brand-name">RollupOS Hub</div>
+            <div class="brand-sub" id="hdr-role-badge">Loading...</div>
+          </div>
+        </div>
+        <div class="user-pill" onclick="signOutHub()" title="Tap to Switch Google Account / Sign Out">
+          <div class="avatar-circle" id="hdr-user-avatar">AN</div>
+          <div style="font-size:11px;font-weight:700;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="hdr-user-name">User</div>
+          <span style="font-size:10px;color:#94a3b8;">↪</span>
+        </div>
+      </div>
+      <input type="search" id="app-search-input" class="search-input" placeholder="🔍 Search your authorized mini-apps..." oninput="renderAppsDashboard()">
+    </div>
+
+    <!-- TAB 1: MY APPS LAUNCHER -->
+    <div id="hub-tab-apps">
+      <div class="filter-bar" id="cat-filter-bar">
+        <button class="filter-pill active" onclick="setCategoryFilter('ALL', this)">All Authorized Apps</button>
+        <button class="filter-pill" onclick="setCategoryFilter('Sports & Analytics', this)">🏈 Sports &amp; Analytics</button>
+        <button class="filter-pill" onclick="setCategoryFilter('Gaming & Tactical Tools', this)">🦅 Gaming &amp; Tactical</button>
+        <button class="filter-pill" onclick="setCategoryFilter('Field & Productivity', this)">📸 Field &amp; Tools</button>
+        <button class="filter-pill" onclick="setCategoryFilter('Admin & Dev Tools', this)">🧪 Admin &amp; Dev</button>
+      </div>
+      <div class="app-grid" id="apps-grid-container"></div>
+    </div>
+
+    <!-- TAB 2: ADMIN MODE SWITCHBOARD (VISIBLE ONLY TO ADMIN) -->
+    <div id="hub-tab-admin" class="admin-section" style="display:none;">
+      <div class="admin-card" style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-color:#6366f1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:10.5px;font-weight:800;color:#a5b4fc;text-transform:uppercase;">👑 Dynamic Access Control Switchboard</div>
+            <h2 style="margin:2px 0 0 0;font-size:17px;">User &amp; App Authorization</h2>
+          </div>
+          <button class="btn-primary" style="background:#16a34a;" onclick="syncAclToBackend()">☁️ Save &amp; Sync</button>
+        </div>
+        <p style="font-size:11.5px;color:#cbd5e1;margin:6px 0 0 0;">
+          Authorize Google users for specific mini-apps, pre-assign their default Fantasy Team in <em>Weekend Warriors (#945552)</em>, or tap <strong>👁️ Preview as User</strong> to test their exact dashboard and isolated data.
+        </p>
+      </div>
+
+      <!-- Add / Invite New Google User -->
+      <div class="admin-card">
+        <div style="font-size:12.5px;font-weight:800;color:#38bdf8;">➕ Authorize a Google User / League-Mate</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <input type="email" id="adm-new-email" class="input-field" placeholder="Google Email (e.g. mike@gmail.com)">
+          <input type="text" id="adm-new-name" class="input-field" placeholder="Display Name (e.g. Mike)">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <select id="adm-new-team" class="input-field" style="margin-top:0;flex:1;">
+            <option value="4">Default Fantasy Team: #4 Mahomes Depot</option>
+            <option value="1">#1 The Questionables (3-3)</option>
+            <option value="2">#2 Dirty 6 (2-4)</option>
+            <option value="3">#3 Jew Nose (3-3)</option>
+            <option value="5">#5 Worthy of a Championship (4-2)</option>
+            <option value="6">#6 Woo (4-2)</option>
+            <option value="9">#9 Greek Freaks (4-2)</option>
+            <option value="10">#10 Club Chubb (4-2)</option>
+            <option value="11">#11 Raiders of the Black Hole (2-4)</option>
+            <option value="12">#12 Mitch Better Have My Money (2-4)</option>
+            <option value="13">#13 Pickens Up Another Trophy (1-5)</option>
+            <option value="14" selected>#14 America's Team (3-3)</option>
+          </select>
+          <button class="btn-primary" onclick="adminAddUser()">Authorize User</button>
+        </div>
+      </div>
+
+      <!-- Live Users & App Permissions Matrix -->
+      <div class="admin-card">
+        <div style="font-size:12.5px;font-weight:800;color:#4ade80;">👥 Authorized Users &amp; Per-App Toggles</div>
+        <div id="admin-users-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: PHONE SECRET VAULT & OFFLINE SYNC -->
+    <div id="hub-tab-vault" class="admin-section" style="display:none;">
+      <div class="admin-card">
+        <div style="font-size:10.5px;font-weight:800;color:#4ade80;text-transform:uppercase;">Isolated Per-User Phone Vault</div>
+        <h2 style="margin:2px 0 6px 0;font-size:17px;">🔐 Personal API Keys &amp; Credentials</h2>
+        <p style="font-size:11.5px;color:#94a3b8;margin:0 0 10px 0;">
+          Keys saved here stay strictly on your device inside your isolated Google user bucket (<code>rollup::v1::vault::*</code>) and are never committed to GitHub.
+        </p>
+
+        <label style="font-size:11px;font-weight:700;color:#cbd5e1;">Gemini API Key (Optional for AI Coach in Mini-Apps)</label>
+        <input type="password" id="vault-gemini-key" class="input-field" placeholder="AIzaSy...">
+
+        <label style="font-size:11px;font-weight:700;color:#cbd5e1;display:block;margin-top:10px;">Personal ESPN_S2 Cookie (Optional for Custom Private Leagues)</label>
+        <input type="password" id="vault-espn-s2" class="input-field" placeholder="AEBl...">
+
+        <label style="font-size:11px;font-weight:700;color:#cbd5e1;display:block;margin-top:10px;">Personal ESPN SWID (Optional, e.g. {GUID})</label>
+        <input type="text" id="vault-espn-swid" class="input-field" placeholder="{...}">
+
+        <div id="admin-only-vault-fields" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid #1f2937;">
+          <div style="font-size:11px;font-weight:800;color:#c084fc;">👑 Admin-Only Cloud &amp; Security Config</div>
+          <label style="font-size:11px;font-weight:700;color:#cbd5e1;display:block;margin-top:6px;">GitHub Personal Access Token (Enables 1-Tap On-Phone Admin Cloud Sync!)</label>
+          <input type="password" id="vault-github-pat" class="input-field" placeholder="ghp_... or github_pat_...">
+          <label style="font-size:11px;font-weight:700;color:#cbd5e1;display:block;margin-top:8px;">Admin Unlock PIN (Default: 2309)</label>
+          <input type="password" id="vault-admin-pin" class="input-field" placeholder="2309">
+          <label style="font-size:11px;font-weight:700;color:#cbd5e1;display:block;margin-top:8px;">Google OAuth Client ID (Optional for 1-Tap GIS Banner)</label>
+          <input type="text" id="vault-google-client-id" class="input-field" placeholder="xxxx.apps.googleusercontent.com">
+        </div>
+
+        <div style="margin-top:12px;padding:10px;background:#090d16;border:1px solid #1e3a8a;border-radius:9px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:11.5px;font-weight:800;color:#38bdf8;">📲 Native Android App (APK)</div>
+            <div style="font-size:10.5px;color:#94a3b8;">Install WebAPK via Chrome menu or grab the native APK</div>
+          </div>
+          <a href="https://github.com/andrewnicks-lang/android-rollup-app/releases/latest/download/RollupOS.apk" style="background:#0284c7;color:#fff;text-decoration:none;font-size:11px;font-weight:800;padding:7px 11px;border-radius:8px;white-space:nowrap;">Download APK</a>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn-primary" style="flex:1;" onclick="saveVaultSecrets()">💾 Save to My Phone Vault</button>
+          <button class="btn-secondary" onclick="refreshOfflineCache()">🔄 Refresh Offline Cache</button>
+        </div>
+        <div id="vault-save-msg" style="font-size:11px;color:#4ade80;margin-top:8px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <div class="bottom-nav">
+      <div class="nav-item active" id="bnav-apps" onclick="switchHubTab('apps')">
+        <span class="nav-icon">📱</span>My Apps
+      </div>
+      <div class="nav-item" id="bnav-admin" onclick="switchHubTab('admin')" style="display:none;">
+        <span class="nav-icon">👑</span>Admin Mode
+      </div>
+      <div class="nav-item" id="bnav-vault" onclick="switchHubTab('vault')">
+        <span class="nav-icon">🔐</span>My Vault
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let REGISTRY = null;
+let CURRENT_CAT = 'ALL';
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+async function loadRegistry() {
+  try {
+    const resp = await fetch('./registry.json?t=' + Date.now());
+    REGISTRY = await resp.json();
+    RollupBridge.auth.seedACLFromRegistry(REGISTRY);
+  } catch (e) {
+    REGISTRY = { apps: [] };
+  }
+}
+
+function renderLoginScreen() {
+  document.getElementById('view-login').style.display = 'flex';
+  document.getElementById('view-authenticated').style.display = 'none';
+  document.getElementById('hub-imp-banner').style.display = 'none';
+
+  const acl = RollupBridge.auth.getACL();
+  const usersList = Object.values(acl.users || {});
+
+  document.getElementById('login-quick-accounts').innerHTML = usersList.map(u => {
+    const isAdmin = u.role === 'admin';
+    const appCount = isAdmin ? (REGISTRY.apps || []).length : (u.authorized_apps || []).length;
+    return `
+      <button class="google-acct-btn" onclick="quickSignIn('${u.email}')">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div class="avatar-circle" style="width:32px;height:32px;background:${isAdmin ? '#2563eb' : '#0f766e'};flex-shrink:0;">
+            ${u.avatar || 'G'}
+          </div>
+          <div style="min-width:0;">
+            <div style="font-size:13px;font-weight:800;color:#ffffff;">${u.name}</div>
+            <div style="font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;">${u.email}</div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:${isAdmin ? '#1e3a8a' : '#052e16'};color:${isAdmin ? '#93c5fd' : '#86efac'};">
+            ${isAdmin ? '👑 Admin (All Apps)' : `${appCount} App(s)`}
+          </span>
+        </div>
+      </button>
+    `;
+  }).join('');
+
+  // Render real Google Identity Services button if a Google Client ID is configured
+  const clientId = acl.google_client_id || (REGISTRY.hub && REGISTRY.hub.auth && REGISTRY.hub.auth.google_client_id);
+  if (clientId && window.google && window.google.accounts && window.google.accounts.id) {
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (resp) => {
+        if (resp && resp.credential) {
+          RollupBridge.auth.signInWithGoogleCredential(resp.credential);
+          renderHubApp();
+        }
+      }
+    });
+    window.google.accounts.id.renderButton(document.getElementById('g-id-onload-box'), {
+      theme: 'filled_blue',
+      size: 'large',
+      width: 340
+    });
+  }
+}
+
+function verifyAdminPinIfNeeded(email) {
+  const ne = String(email || '').trim().toLowerCase();
+  const acl = RollupBridge.auth.getACL();
+  const isAdminEmail = (acl.admin_emails || ['andrewnicks@gmail.com']).map(e => e.toLowerCase()).includes(ne);
+  if (!isAdminEmail) return true;
+  const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if (isLocal) return true;
+  const expectedPin = localStorage.getItem('rollup::v1::admin_pin') || '2309';
+  const entered = prompt('👑 Admin Verification — Enter your Admin Unlock PIN to access Master Admin Mode:');
+  if (entered === null) return false;
+  if (String(entered).trim() !== expectedPin) {
+    alert('Incorrect Admin PIN.');
+    return false;
+  }
+  return true;
+}
+
+function quickSignIn(email) {
+  if (!verifyAdminPinIfNeeded(email)) return;
+  RollupBridge.auth.signInWithGoogleEmail(email);
+  renderHubApp();
+}
+
+function signInCustomEmail() {
+  const em = document.getElementById('custom-google-email').value.trim();
+  if (!em || !em.includes('@')) return alert('Please enter a valid Google email address.');
+  if (!verifyAdminPinIfNeeded(em)) return;
+  RollupBridge.auth.signInWithGoogleEmail(em);
+  renderHubApp();
+}
+
+function signOutHub() {
+  RollupBridge.auth.signOut();
+  renderLoginScreen();
+}
+
+function exitImpersonation() {
+  RollupBridge.auth.stopImpersonation();
+  renderHubApp();
+  switchHubTab('admin');
+}
+
+function setCategoryFilter(cat, btnEl) {
+  CURRENT_CAT = cat;
+  document.querySelectorAll('#cat-filter-bar .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderAppsDashboard();
+}
+
+function switchHubTab(tab) {
+  ['apps', 'admin', 'vault'].forEach(t => {
+    const view = document.getElementById('hub-tab-' + t);
+    const nav = document.getElementById('bnav-' + t);
+    if (view) view.style.display = (t === tab) ? 'block' : 'none';
+    if (nav) nav.classList.toggle('active', t === tab);
+  });
+  if (tab === 'admin') renderAdminSwitchboard();
+  if (tab === 'vault') loadVaultForm();
+}
+
+function renderAppsDashboard() {
+  const user = RollupBridge.auth.getCurrentUser();
+  if (!user) return renderLoginScreen();
+
+  const query = (document.getElementById('app-search-input').value || '').toLowerCase().trim();
+  const allApps = (REGISTRY && REGISTRY.apps) || [];
+
+  // Filter strictly to apps this user is authorized to see
+  const authorizedApps = allApps.filter(app => {
+    if (!RollupBridge.auth.canAccessApp(app.id, app.visibility)) return false;
+    if (CURRENT_CAT !== 'ALL' && app.category !== CURRENT_CAT) return false;
+    if (query) {
+      const hay = `${app.title} ${app.subtitle} ${app.description} ${app.category}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
+
+  const grid = document.getElementById('apps-grid-container');
+  if (authorizedApps.length === 0) {
+    grid.innerHTML = `
+      <div class="admin-card" style="text-align:center;padding:24px 16px;">
+        <div style="font-size:32px;margin-bottom:6px;">🔒</div>
+        <div style="font-size:15px;font-weight:800;color:#ffffff;">No Mini-Apps Authorized Yet</div>
+        <p style="font-size:12px;color:#94a3b8;margin:6px 0 0 0;">
+          Signed in as <strong style="color:#e2e8f0;">${user.email}</strong>.<br>
+          Ask the Hub Admin (<code>andrewnicks@gmail.com</code>) to toggle access for your Google account in <strong>👑 Admin Mode</strong>.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = authorizedApps.map(app => {
+    const userKeysCount = RollupBridge.storage.listKeys(app.id).length;
+    const userCfg = RollupBridge.user.getAppConfig(app.id);
+    const teamTag = (app.id === 'fantasy-manager' && userCfg && userCfg.team_name)
+      ? `<span class="mini-badge" style="background:#172554;color:#93c5fd;border-color:#2563eb;">🏈 ${userCfg.team_name} (#${userCfg.team_id})</span>`
+      : '';
+
+    return `
+      <div class="app-card">
+        <div class="app-card-top">
+          <div class="app-icon-box" style="border-color:${app.accent || '#334155'};">${app.icon || '📱'}</div>
+          <div class="app-meta">
+            <div class="app-title-row">
+              <span class="app-title">${app.title}</span>
+              <span class="app-ver">v${app.version}</span>
+            </div>
+            <div class="app-sub">${app.subtitle}</div>
+            <div class="app-desc">${app.description}</div>
+          </div>
+        </div>
+        <div class="app-footer">
+          <div class="badge-row">
+            <span class="mini-badge">🟢 Offline Ready</span>
+            ${teamTag}
+            <button class="btn-secondary" style="padding:3px 7px;font-size:10px;" onclick="clearMyAppData('${app.id}', '${app.title.replace(/'/g, "\\'")}')" title="Reset your isolated storage for this app">
+              🧹 Data (${userKeysCount})
+            </button>
+          </div>
+          <a class="launch-btn" href="./${app.entry}">
+            Launch App ➔
+          </a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function clearMyAppData(appId, title) {
+  const u = RollupBridge.auth.getCurrentUser();
+  if (!confirm(`Clear your isolated saved data for "${title}" under ${u.email}? (Other users and other mini-apps are untouched.)`)) return;
+  RollupBridge.storage.clearApp(appId);
+  renderAppsDashboard();
+}
+
+// ADMIN MODE SWITCHBOARD FUNCTIONS
+function renderAdminSwitchboard() {
+  const acl = RollupBridge.auth.getACL();
+  const allApps = (REGISTRY && REGISTRY.apps) || [];
+  const usersList = Object.values(acl.users || {});
+
+  const container = document.getElementById('admin-users-list');
+  container.innerHTML = usersList.map(u => {
+    const isAdmin = u.role === 'admin';
+    const ffCfg = (u.default_app_configs && u.default_app_configs['fantasy-manager']) || {};
+    const teamLabel = ffCfg.team_name ? ` • Default: ${ffCfg.team_name} (#${ffCfg.team_id})` : '';
+
+    const appChips = allApps.map(app => {
+      const hasAccess = isAdmin || (u.authorized_apps || []).includes(app.id);
+      if (isAdmin) {
+        return `<span class="perm-chip enabled" title="Admin always has full access">✅ ${app.icon} ${app.title}</span>`;
+      }
+      return `
+        <button class="perm-chip ${hasAccess ? 'enabled' : ''}" onclick="toggleUserAppAccess('${u.email}', '${app.id}', ${!hasAccess})">
+          ${hasAccess ? '☑️' : '☐'} ${app.icon} ${app.title}
+        </button>
+      `;
+    }).join('');
+
+    const previewBtn = !isAdmin
+      ? `<button class="btn-secondary" style="background:#422006;border-color:#ca8a04;color:#fde047;" onclick="previewAsUser('${u.email}')">👁️ Preview as User</button>`
+      : `<span style="font-size:10.5px;color:#4ade80;font-weight:800;">👑 Master Admin</span>`;
+
+    const deleteBtn = !isAdmin
+      ? `<button class="btn-secondary" style="color:#f87171;" onclick="adminRemoveUser('${u.email}')">✕</button>`
+      : '';
+
+    return `
+      <div class="user-perm-row">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#ffffff;">${u.name}</div>
+            <div style="font-size:11px;color:#93c5fd;">${u.email}${teamLabel}</div>
+          </div>
+          <div style="display:flex;gap:5px;align-items:center;">
+            ${previewBtn}
+            ${deleteBtn}
+          </div>
+        </div>
+        <div class="perm-toggle-grid">
+          ${appChips}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleUserAppAccess(email, appId, enable) {
+  RollupBridge.auth.toggleAppForUser(email, appId, enable);
+  renderAdminSwitchboard();
+}
+
+function adminAddUser() {
+  const email = document.getElementById('adm-new-email').value.trim().toLowerCase();
+  const name = document.getElementById('adm-new-name').value.trim();
+  const teamSelect = document.getElementById('adm-new-team');
+  const teamId = Number(teamSelect.value || 14);
+  const teamText = teamSelect.options[teamSelect.selectedIndex].text.replace('Default Fantasy Team: ', '').split(' (')[0].replace(/^#\d+\s*/, '');
+
+  if (!email || !email.includes('@')) {
+    return alert('Please enter a valid Google email address.');
+  }
+
+  RollupBridge.auth.upsertUserPermission(email, {
+    name: name || email.split('@')[0],
+    role: 'tester',
+    badge: `🏈 Authorized Tester • ${teamText}`,
+    authorized_apps: ['fantasy-manager'],
+    default_app_configs: {
+      'fantasy-manager': {
+        league_id: 945552,
+        team_id: teamId,
+        team_name: teamText,
+        blend_weight: 60
+      }
+    }
+  });
+
+  document.getElementById('adm-new-email').value = '';
+  document.getElementById('adm-new-name').value = '';
+  renderAdminSwitchboard();
+}
+
+function adminRemoveUser(email) {
+  if (!confirm(`Remove ${email} from the Hub ACL?`)) return;
+  RollupBridge.auth.removeUser(email);
+  renderAdminSwitchboard();
+}
+
+function previewAsUser(email) {
+  RollupBridge.auth.impersonateUser(email);
+  renderHubApp();
+  switchHubTab('apps');
+}
+
+async function syncAclToBackend() {
+  const acl = RollupBridge.auth.getACL();
+  const ghPat = RollupBridge.vault.getSecret('github_pat', '');
+
+  // 1. If GitHub PAT is configured on phone, push registry.json straight to GitHub over HTTPS!
+  if (ghPat) {
+    try {
+      const apiUrl = 'https://api.github.com/repos/andrewnicks-lang/android-rollup-app/contents/registry.json';
+      const getResp = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${ghPat}`,
+          'Accept': 'application/vnd.github+json'
+        }
+      });
+      if (!getResp.ok) throw new Error(`GitHub API HTTP ${getResp.status}`);
+      const fileMeta = await getResp.json();
+      const updatedReg = JSON.parse(JSON.stringify(REGISTRY));
+      updatedReg.hub.updated_at = new Date().toISOString();
+      updatedReg.hub.auth.default_users = Object.values(acl.users || {});
+      updatedReg.hub.auth.google_client_id = acl.google_client_id || '';
+
+      const jsonBytes = new TextEncoder().encode(JSON.stringify(updatedReg, null, 2));
+      let binStr = '';
+      jsonBytes.forEach(b => { binStr += String.fromCharCode(b); });
+      const b64Content = btoa(binStr);
+
+      const putResp = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${ghPat}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Admin ACL update from mobile Hub (${new Date().toLocaleString()})`,
+          content: b64Content,
+          sha: fileMeta.sha
+        })
+      });
+      if (!putResp.ok) throw new Error(`GitHub PUT HTTP ${putResp.status}`);
+      REGISTRY = updatedReg;
+      alert('☁️ Published live to GitHub! Authorized users will see their updated apps immediately on refresh.');
+      return;
+    } catch (err) {
+      alert('⚠️ GitHub direct push error: ' + err.message);
+      return;
+    }
+  }
+
+  // 2. Local PC server fallback (rollup.py serve)
+  try {
+    const resp = await fetch('/api/hub/acl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(acl)
+    });
+    if (resp.ok) {
+      alert('✅ Permissions saved to local registry.json! Run "python rollup.py publish" (or add a GitHub PAT in 🔐 My Vault for 1-tap phone cloud sync).');
+      return;
+    }
+  } catch (e) {}
+  alert('✅ Permissions saved on this device! Tip: Paste a GitHub PAT in 🔐 My Vault to push live user authorizations directly from your phone anywhere.');
+}
+
+// VAULT FUNCTIONS
+function loadVaultForm() {
+  const user = RollupBridge.auth.getCurrentUser();
+  document.getElementById('vault-gemini-key').value = RollupBridge.vault.getSecret('gemini_api_key', '');
+  document.getElementById('vault-espn-s2').value = RollupBridge.vault.getSecret('espn_s2', '');
+  document.getElementById('vault-espn-swid').value = RollupBridge.vault.getSecret('espn_swid', '');
+
+  const admBox = document.getElementById('admin-only-vault-fields');
+  if (user && user.is_admin) {
+    admBox.style.display = 'block';
+    const acl = RollupBridge.auth.getACL();
+    document.getElementById('vault-google-client-id').value = acl.google_client_id || '';
+    document.getElementById('vault-github-pat').value = RollupBridge.vault.getSecret('github_pat', '');
+    document.getElementById('vault-admin-pin').value = localStorage.getItem('rollup::v1::admin_pin') || '2309';
+  } else {
+    admBox.style.display = 'none';
+  }
+}
+
+function saveVaultSecrets() {
+  RollupBridge.vault.setSecret('gemini_api_key', document.getElementById('vault-gemini-key').value);
+  RollupBridge.vault.setSecret('espn_s2', document.getElementById('vault-espn-s2').value);
+  RollupBridge.vault.setSecret('espn_swid', document.getElementById('vault-espn-swid').value);
+
+  const user = RollupBridge.auth.getCurrentUser();
+  if (user && user.is_admin) {
+    const acl = RollupBridge.auth.getACL();
+    acl.google_client_id = document.getElementById('vault-google-client-id').value.trim();
+    RollupBridge.auth.saveACL(acl);
+    RollupBridge.vault.setSecret('github_pat', document.getElementById('vault-github-pat').value);
+    const newPin = document.getElementById('vault-admin-pin').value.trim();
+    if (newPin) localStorage.setItem('rollup::v1::admin_pin', newPin);
+  }
+
+  const msg = document.getElementById('vault-save-msg');
+  msg.textContent = `✅ Saved privately to ${user.email}'s on-device Vault.`;
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 3500);
+}
+
+async function refreshOfflineCache() {
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  window.location.reload();
+}
+
+function renderHubApp() {
+  const user = RollupBridge.auth.getCurrentUser();
+  if (!user) {
+    renderLoginScreen();
+    return;
+  }
+
+  document.getElementById('view-login').style.display = 'none';
+  document.getElementById('view-authenticated').style.display = 'block';
+
+  document.getElementById('hdr-user-name').textContent = user.name;
+  document.getElementById('hdr-user-avatar').textContent = user.avatar || 'U';
+  document.getElementById('hdr-role-badge').textContent = `${user.badge || user.role} • ${user.email}`;
+
+  // Show/hide Admin Mode tab in bottom nav (only real Admin sees Admin Mode when not impersonating)
+  const realUser = RollupBridge.auth.getRealSessionUser();
+  const isImp = RollupBridge.auth.isImpersonating();
+  document.getElementById('bnav-admin').style.display = (realUser && realUser.is_admin && !isImp) ? 'block' : 'none';
+
+  // Impersonation banner
+  const impBanner = document.getElementById('hub-imp-banner');
+  if (isImp) {
+    impBanner.style.display = 'flex';
+    document.getElementById('hub-imp-text').innerHTML = `👁️ Admin Previewing as: <strong>${user.name}</strong> (${user.email})`;
+  } else {
+    impBanner.style.display = 'none';
+  }
+
+  renderAppsDashboard();
+}
+
+async function bootHub() {
+  await loadRegistry();
+  // Auto sign-in Admin ONLY on local PC dev server (localhost / 127.0.0.1);
+  // On Android APK / GitHub Pages, show the Google Sign-In screen until signed in!
+  const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if (isLocalDev && !RollupBridge.auth.getRealSessionUser()) {
+    RollupBridge.auth.signInWithGoogleEmail('andrewnicks@gmail.com', 'Andrew Nicks');
+  }
+  renderHubApp();
+}
+
+bootHub();
+</script>
+</body>
+</html>

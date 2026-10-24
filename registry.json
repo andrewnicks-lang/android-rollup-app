@@ -1,0 +1,249 @@
+{
+  "hub": {
+    "name": "RollupOS \u2014 Mobile App Hub",
+    "short_name": "RollupHub",
+    "version": "1.0.0",
+    "updated_at": "2026-10-24T16:27:16.185957",
+    "auth": {
+      "provider": "google",
+      "google_client_id": "",
+      "admin_emails": [
+        "andrewnicks@gmail.com"
+      ],
+      "default_users": [
+        {
+          "email": "andrewnicks@gmail.com",
+          "name": "Andrew Nicks",
+          "role": "admin",
+          "avatar": "AN",
+          "badge": "\ud83d\udc51 Admin \u2022 Mahomes Depot (#4)",
+          "authorized_apps": [
+            "gravity-agent-monitor",
+            "fantasy-manager",
+            "field-snap",
+            "bridge-lab",
+            "shd-div2-intel"
+          ],
+          "default_app_configs": {
+            "fantasy-manager": {
+              "league_id": 945552,
+              "team_id": 4,
+              "team_name": "Mahomes Depot",
+              "blend_weight": 60
+            },
+            "shd-div2-intel": {
+              "agent_callsign": "rangerd7 (SHD 2793)",
+              "show_admin_showcase": "true"
+            },
+            "gravity-agent-monitor": {
+              "primary_workstation_url": "http://169.254.241.53:8765",
+              "tailscale_workstation_url": "",
+              "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
+            }
+          }
+        },
+        {
+          "email": "americas.team.tester@gmail.com",
+          "name": "League Mate (America's Team #14)",
+          "role": "tester",
+          "avatar": "AT",
+          "badge": "\ud83c\udfc8 Tester \u2022 Weekend Warriors",
+          "authorized_apps": [
+            "fantasy-manager"
+          ],
+          "default_app_configs": {
+            "fantasy-manager": {
+              "league_id": 945552,
+              "team_id": 14,
+              "team_name": "America's Team",
+              "blend_weight": 60
+            }
+          }
+        },
+        {
+          "email": "questionables.tester@gmail.com",
+          "name": "League Mate (The Questionables #1)",
+          "role": "tester",
+          "avatar": "TQ",
+          "badge": "\ud83c\udfc8 Tester \u2022 Weekend Warriors",
+          "authorized_apps": [
+            "fantasy-manager"
+          ],
+          "default_app_configs": {
+            "fantasy-manager": {
+              "league_id": 945552,
+              "team_id": 1,
+              "team_name": "The Questionables",
+              "blend_weight": 60
+            }
+          }
+        },
+        {
+          "email": "field.tech.tester@gmail.com",
+          "name": "Field Tester (No Fantasy Access)",
+          "role": "tester",
+          "avatar": "FT",
+          "badge": "\ud83d\udd27 Field Utility Tester",
+          "authorized_apps": [
+            "field-snap"
+          ],
+          "default_app_configs": {}
+        }
+      ]
+    }
+  },
+  "apps": [
+    {
+      "id": "gravity-agent-monitor",
+      "title": "Gravity Agent Monitor",
+      "subtitle": "Live Antigravity Desktop Sidebar Replica, Trajectory & AgentAPI Bridge",
+      "description": "Real-time multi-workstation telemetry, bouncing/spinning/unread status indicators, Auxiliary Overview panel, and live 2-way prompt dispatch to DESKTOP-UHI3BO3 & Work PC.",
+      "icon": "\ud83d\udef0\ufe0f",
+      "accent": "#38bdf8",
+      "category": "Admin & Dev Tools",
+      "version": "1.2.0",
+      "entry": "apps/gravity-agent-monitor/index.html",
+      "visibility": "admin_only",
+      "offline_assets": [
+        "apps/gravity-agent-monitor/index.html"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "primary_workstation_url",
+          "label": "Primary Workstation Sidecar URL (LAN)",
+          "type": "text",
+          "default": "http://169.254.241.53:8765",
+          "defaultForAdmin": "http://169.254.241.53:8765"
+        },
+        {
+          "key": "tailscale_workstation_url",
+          "label": "Tailscale Workstation URL (Optional)",
+          "type": "text",
+          "default": "",
+          "defaultForAdmin": ""
+        },
+        {
+          "key": "sidecar_token",
+          "label": "X-Gravity-Token Shared Secret",
+          "type": "text",
+          "default": "csc-gravity-admin-2026-x9f4k2",
+          "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
+        }
+      ]
+    },
+    {
+      "id": "fantasy-manager",
+      "title": "The League Pro",
+      "subtitle": "Multi-User ESPN Fantasy Manager \u2022 60/40 Moneyball + War Room",
+      "description": "Full-PPR 2-FLEX Command Center with dynamic per-user Team Selection (all 12 Weekend Warriors teams or custom ESPN League ID), Personal Rockstar Lock, Multi-Horizon Opponent War Room, and Isolated User Watchlist.",
+      "icon": "\ud83c\udfc8",
+      "accent": "#38bdf8",
+      "category": "Sports & Analytics",
+      "version": "2.4.0",
+      "entry": "apps/fantasy-manager/index.html",
+      "visibility": "restricted",
+      "offline_assets": [
+        "apps/fantasy-manager/index.html",
+        "apps/fantasy-manager/data/league_945552.json"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "league_id",
+          "label": "ESPN League ID",
+          "type": "number",
+          "default": 945552,
+          "defaultForAdmin": 945552
+        },
+        {
+          "key": "team_id",
+          "label": "Your Fantasy Team (Weekend Warriors #945552)",
+          "type": "team_select",
+          "default": 4,
+          "defaultForAdmin": 4
+        },
+        {
+          "key": "blend_weight",
+          "label": "Default Moneyball Blend % (0-100)",
+          "type": "number",
+          "default": 60,
+          "defaultForAdmin": 60
+        }
+      ]
+    },
+    {
+      "id": "field-snap",
+      "title": "Field Snap & Notes",
+      "subtitle": "Camera Capture, Project Tagging & Instant JSON/CSV Export",
+      "description": "Quick mobile photo & field note logger using RollupBridge Camera, Isolated Per-User Storage, and Android Share Sheet export.",
+      "icon": "\ud83d\udcf8",
+      "accent": "#4ade80",
+      "category": "Field & Productivity",
+      "version": "1.0.0",
+      "entry": "apps/field-snap/index.html",
+      "visibility": "restricted",
+      "offline_assets": [
+        "apps/field-snap/index.html"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "default_project",
+          "label": "Default Project / Job Tag",
+          "type": "text",
+          "default": "General Sandbox",
+          "defaultForAdmin": "CSC / Personal"
+        }
+      ]
+    },
+    {
+      "id": "bridge-lab",
+      "title": "RollupBridge Inspector",
+      "subtitle": "Admin Sandbox: Multi-Tenant Storage, Vault & Hardware Diagnostics",
+      "description": "Developer diagnostic console to inspect per-user storage isolation, test Android WebAPK capabilities, and verify multi-user permissions.",
+      "icon": "\ud83e\uddea",
+      "accent": "#c084fc",
+      "category": "Admin & Dev Tools",
+      "version": "1.0.0",
+      "entry": "apps/bridge-lab/index.html",
+      "visibility": "admin_only",
+      "offline_assets": [
+        "apps/bridge-lab/index.html"
+      ],
+      "userConfigSchema": []
+    },
+    {
+      "id": "shd-div2-intel",
+      "title": "SHD Build Intelligence",
+      "subtitle": "Division 2 Armory, 6-Slot Workbench & Expertise 413/500 Tracker",
+      "description": "100% EAC-Safe Division 2 Build Solver, Interactive 6-Slot Theorycraft Workbench with Admin Showcase Loadouts ('Lengmo Pesti Turm'), Countdown Target Loot Radar, and Expertise 413/500 Mastery Tracker with per-user Google Auth isolation.",
+      "icon": "\ud83e\udd85",
+      "accent": "#ff6b00",
+      "category": "Gaming & Tactical Tools",
+      "version": "4.2.0",
+      "entry": "apps/shd-div2-intel/index.html",
+      "visibility": "restricted",
+      "offline_assets": [
+        "apps/shd-div2-intel/index.html",
+        "apps/shd-div2-intel/styles.css",
+        "apps/shd-div2-intel/shd_solver_portable.js",
+        "apps/shd-div2-intel/shd_storage_adapter.js",
+        "apps/shd-div2-intel/app.js"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "agent_callsign",
+          "label": "SHD Agent Callsign",
+          "type": "text",
+          "default": "SHD Agent",
+          "defaultForAdmin": "rangerd7 (SHD 2793)"
+        },
+        {
+          "key": "show_admin_showcase",
+          "label": "Show Admin Showcase Loadouts (Read-Only / Cloneable)",
+          "type": "text",
+          "default": "true",
+          "defaultForAdmin": "true"
+        }
+      ]
+    }
+  ]
+}

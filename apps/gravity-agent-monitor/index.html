@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Gravity for Android — Antigravity Mobile Mission Control</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <script src="../../bridge/rollup-bridge.js" onerror="window.__standaloneGravityMode=true"></script>
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-card: #111827;
+      --bg-card-elevated: #1b2436;
+      --bg-glass: rgba(17, 24, 39, 0.88);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(56, 189, 248, 0.35);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-cyan: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --safe-bottom: env(safe-area-inset-bottom, 12px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: hidden;
+      padding-bottom: calc(82px + var(--safe-bottom));
+    }
+
+    /* App Container */
+    .app-shell {
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Sticky Top Header */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-orb {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 17px;
+      color: #090d16;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+      display: inline-block;
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.88); }
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-btn {
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .pill-btn:active {
+      transform: scale(0.96);
+    }
+
+    .pill-btn.active-lock {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #34d399;
+    }
+
+    /* Views */
+    .tab-view {
+      display: none;
+      padding: 14px 16px;
+    }
+
+    .tab-view.active {
+      display: block;
+    }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 14px 0 8px 0;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+
+    /* Pinned Approval Gate Card */
+    .approval-banner {
+      background: linear-gradient(145deg, rgba(245, 158, 11, 0.16), rgba(244, 63, 94, 0.12));
+      border: 1.5px solid rgba(245, 158, 11, 0.55);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .approval-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.18);
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .approval-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+    }
+
+    .approval-desc {
+      font-size: 12.5px;
+      color: #cbd5e1;
+      margin: 0 0 12px 0;
+    }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .thumb-btn {
+      min-height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      transition: transform 0.1s;
+    }
+
+    .thumb-btn:active {
+      transform: scale(0.97);
+    }
+
+    .thumb-btn.approve {
+      background: var(--accent-emerald);
+      color: #052e16;
+      border: none;
+    }
+
+    .thumb-btn.secondary {
+      background: var(--bg-card-elevated);
+      color: var(--text-primary);
+    }
+
+    /* Session Card */
+    .session-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+
+    .session-card:active {
+      transform: scale(0.99);
+    }
+
+    .state-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .state-NEEDS_APPROVAL { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .state-RUNNING_TOOL, .state-THINKING { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .state-DONE { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .state-ERROR { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+
+    /* Antigravity Left-Sidebar Replica Styles */
+    .agy-sidebar-section {
+      margin-bottom: 14px;
+    }
+
+    .agy-section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      padding: 4px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .agy-project-group {
+      background: rgba(17, 24, 39, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .agy-project-header {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 600;
+      font-size: 13.5px;
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .agy-project-header:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .agy-project-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .agy-chevron {
+      font-size: 11px;
+      color: #94a3b8;
+      width: 14px;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+
+    .agy-project-group.collapsed .agy-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .agy-project-group.collapsed .agy-convo-list {
+      display: none;
+    }
+
+    .agy-convo-list {
+      padding: 2px 6px 6px 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .agy-convo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px 9px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+
+    .agy-convo-row:hover, .agy-convo-row:active {
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .agy-convo-row.selected {
+      background: rgba(56, 189, 248, 0.14);
+      border-left: 3px solid var(--accent-cyan);
+      padding-left: 19px;
+    }
+
+    .agy-convo-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .agy-convo-title {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .agy-convo-row.unread .agy-convo-title {
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .agy-convo-sub {
+      font-size: 11px;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    /* Status Indicator 1: Bouncing Three Dots (•••) */
+    .status-bouncing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      height: 18px;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .status-bouncing-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background-color: #38bdf8;
+      display: inline-block;
+      animation: agyBounce 1.2s infinite ease-in-out both;
+    }
+
+    .status-bouncing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .status-bouncing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    .status-bouncing-dots span:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes agyBounce {
+      0%, 80%, 100% { transform: translateY(0) scale(0.85); opacity: 0.55; }
+      40% { transform: translateY(-4px) scale(1.1); opacity: 1; }
+    }
+
+    /* Status Indicator 2: Spinning Circle Ring */
+    .status-spinning-ring {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(56, 189, 248, 0.25);
+      border-top-color: #38bdf8;
+      border-right-color: #38bdf8;
+      border-radius: 50%;
+      animation: agySpin 0.85s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes agySpin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Status Indicator 3: Solid Blue Circle (●) */
+    .status-blue-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background-color: #3b82f6;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.75);
+      flex-shrink: 0;
+    }
+
+    /* Trajectory View */
+    .step-item {
+      margin-bottom: 10px;
+    }
+
+    .bubble-user {
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: #ffffff;
+      padding: 11px 14px;
+      border-radius: 16px 16px 4px 16px;
+      margin-left: 28px;
+      font-size: 13.5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .bubble-agent {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 13px 15px;
+      border-radius: 16px 16px 16px 4px;
+      margin-right: 6px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .bubble-agent h1, .bubble-agent h2, .bubble-agent h3, .bubble-agent h4 {
+      margin: 10px 0 6px 0;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .bubble-agent h1:first-child, .bubble-agent h2:first-child, .bubble-agent h3:first-child {
+      margin-top: 0;
+    }
+
+    .bubble-agent p {
+      margin: 0 0 8px 0;
+    }
+
+    .bubble-agent p:last-child {
+      margin-bottom: 0;
+    }
+
+    .bubble-agent ul, .bubble-agent ol {
+      margin: 4px 0 10px 0;
+      padding-left: 18px;
+    }
+
+    .bubble-agent li {
+      margin-bottom: 4px;
+    }
+
+    .bubble-agent code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #7dd3fc;
+      padding: 1.5px 5px;
+      border-radius: 5px;
+    }
+
+    .bubble-agent pre.md-code {
+      background: #070a12;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      margin: 8px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      color: #e2e8f0;
+      white-space: pre;
+    }
+
+    /* Antigravity Auxiliary Overview Panel (Background Tasks / Artifacts / Modified Files) */
+    .aux-overview-card {
+      background: #13161c;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .aux-section {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .aux-section:last-child {
+      border-bottom: none;
+    }
+
+    .aux-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .aux-count-pill {
+      background: rgba(255, 255, 255, 0.09);
+      color: #cbd5e1;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
+
+    .aux-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 5px 4px;
+      font-size: 13px;
+      color: #e2e8f0;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .aux-row:hover, .aux-row:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .aux-file-path {
+      color: #64748b;
+      font-size: 12px;
+      margin-left: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .plumbing-pill {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      border-radius: 10px;
+      padding: 7px 11px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+
+    .plumbing-details {
+      display: none;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border-subtle);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      color: #94a3b8;
+      white-space: pre-wrap;
+    }
+
+    .plumbing-pill.open .plumbing-details {
+      display: block;
+    }
+
+    /* Quick-Steer Dock */
+    .steer-dock {
+      position: sticky;
+      bottom: 68px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-highlight);
+      border-radius: var(--radius-lg);
+      padding: 10px;
+      margin-top: 12px;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .quick-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+
+    .quick-chips::-webkit-scrollbar { display: none; }
+
+    .quick-chip {
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--border-subtle);
+      color: #e2e8f0;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .steer-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .steer-input {
+      flex: 1;
+      background: #0b1120;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .steer-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card-elevated);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .icon-btn.send {
+      background: var(--accent-cyan);
+      color: #090d16;
+      border: none;
+      font-weight: 800;
+    }
+
+    .icon-btn.recording {
+      background: var(--accent-rose);
+      color: white;
+      animation: pulseGlow 1s infinite;
+    }
+
+    /* Artifact Vault Cards */
+    .vault-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ext-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 11px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .ext-pdf { background: rgba(244, 63, 94, 0.18); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35); }
+    .ext-html { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .ext-md { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+
+    /* Bottom Thumb Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(9, 13, 22, 0.94);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-subtle);
+      padding: 6px 12px calc(6px + var(--safe-bottom));
+    }
+
+    .bottom-nav-inner {
+      max-width: 520px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 4px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .nav-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .nav-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* Passkey Biometric Lock Overlay */
+    .lock-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: radial-gradient(circle at top, #172554 0%, #090d16 70%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .lock-overlay.visible {
+      display: flex;
+    }
+
+    .fingerprint-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.12);
+      border: 2px solid var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      box-shadow: 0 0 32px rgba(56, 189, 248, 0.25);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #052e16;
+      font-weight: 700;
+      font-size: 12.5px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      z-index: 90;
+      display: none;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Modal Preview */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(0, 0, 0, 0.78);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 520px;
+      max-height: 84vh;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-highlight);
+      border-radius: 20px 20px 0 0;
+      padding: 16px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Passkey / Biometric Overlay -->
+  <div id="lockOverlay" class="lock-overlay">
+    <div class="fingerprint-ring" onclick="unlockWithPasskey()">🔐</div>
+    <h2 style="margin:0 0 6px 0;font-size:20px;">Gravity for Android</h2>
+    <p style="margin:0 0 20px 0;color:var(--text-secondary);font-size:13px;max-width:300px;">
+      Authenticate with Android Biometrics / FIDO2 Passkey to connect to your Workstation Sidecar.
+    </p>
+    <button class="thumb-btn approve" style="width:240px;" onclick="unlockWithPasskey()">
+      🔓 Unlock with Passkey
+    </button>
+  </div>
+
+  <div id="toast" class="toast">Action dispatched</div>
+
+  <div class="app-shell">
+    <!-- Sticky Header -->
+    <header class="top-bar">
+      <div class="brand-row">
+        <div class="brand-orb">G</div>
+        <div>
+          <div class="brand-title">Gravity Mobile</div>
+          <div class="brand-sub">
+            <span class="live-dot"></span>
+            <span id="hostStatusText">Connecting to Workstation…</span>
+          </div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="wakeLockBtn" class="pill-btn" onclick="toggleWakeLock()" title="Keep Windows Workstation Awake">
+          ☕ Awake: OFF
+        </button>
+        <button class="pill-btn" onclick="lockApp()" title="Lock Passkey Session">
+          🔒
+        </button>
+      </div>
+    </header>
+
+    <!-- TAB 1: PULSE (MISSION CONTROL) -->
+    <main id="tab-pulse" class="tab-view active">
+      <div id="offlineSnapshotBanner" style="display:none;background:rgba(245,158,11,0.16);border:1px solid rgba(245,158,11,0.5);color:#fde68a;border-radius:12px;padding:9px 12px;margin-bottom:10px;font-size:12px;font-weight:600;">
+        📡 Offline Snapshot Mode — Viewing cached workstation state
+      </div>
+      <!-- Multi-PC Follow-Me Fleet Bar -->
+      <div id="fleetBar" class="quick-chips" style="margin-bottom:10px;">
+        <button class="quick-chip" style="border-color:var(--accent-cyan);color:var(--accent-cyan);font-weight:700;" onclick="setHostFilter('ALL')">
+          🌐 All PCs (Auto Follow-Me)
+        </button>
+      </div>
+
+      <div id="approvalGatesContainer"></div>
+
+      <div class="section-header">
+        <span class="section-title">Active & Recent Agent Sessions</span>
+        <span id="computeLatencyBadge" style="font-size:11px;color:var(--accent-cyan);">0ms deterministic</span>
+      </div>
+
+      <div id="sessionsContainer"></div>
+    </main>
+
+    <!-- TAB 2: TRAJECTORY (LIVE STREAM & STEER) -->
+    <section id="tab-trajectory" class="tab-view">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;">
+        <div style="min-width:0;">
+          <div id="trajHostBadge" style="font-size:11px;color:var(--accent-cyan);font-weight:700;">SELECTED CONVERSATION</div>
+          <div id="trajTitle" style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Select a session from Pulse</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="pill-btn" onclick="exportHandoffBundle()" title="Generate Cross-PC Handoff Bundle">🔄 Handoff</button>
+          <button class="pill-btn" onclick="switchTab('pulse')">← Back</button>
+        </div>
+      </div>
+
+      <div id="subagentsBar" style="margin-bottom:10px;"></div>
+      <div id="stepsContainer"></div>
+
+      <!-- One-Handed Quick Steer Dock -->
+      <div class="steer-dock">
+        <div class="quick-chips">
+          <button class="quick-chip" onclick="sendQuickSteer('APPROVE', 'Proceed with the recommended plan.')">✅ Approve & Proceed</button>
+          <button class="quick-chip" onclick="sendQuickSteer('STEER', 'Compile findings into a clean PDF report in the workspace.')">📄 Export PDF</button>
+          <button class="quick-chip" onclick="sendQuickSteer('STEER', 'Run tests and verify deterministic output.')">🧪 Run Tests</button>
+          <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/compact')">🗜️ /compact</button>
+          <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/goal')">🎯 /goal</button>
+        </div>
+        <div class="steer-input-row">
+          <button id="micBtn" class="icon-btn" onclick="toggleVoiceInput()" title="Push-to-Talk Voice Steer">🎙️</button>
+          <input id="steerInput" class="steer-input" type="text" placeholder="Steer agent or type /command…" onkeydown="if(event.key==='Enter') submitSteerInput()" />
+          <button class="icon-btn send" onclick="submitSteerInput()">↑</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: VAULT (ARTIFACTS & DELIVERABLES) -->
+    <section id="tab-vault" class="tab-view">
+      <div class="section-header">
+        <span class="section-title">Generated Artifacts & Deliverables (.PDF / .HTML / .MD)</span>
+        <button class="pill-btn" onclick="loadVault()">↻ Refresh</button>
+      </div>
+      <div id="vaultContainer"></div>
+    </section>
+
+    <!-- TAB 4: OPS & LAUNCHER -->
+    <section id="tab-ops" class="tab-view">
+      <div class="section-header">
+        <span class="section-title">Workstation Vital Signs & Zero-Trust Network</span>
+      </div>
+      <div class="session-card" style="cursor:default;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:11px;color:var(--text-secondary);">HOST WORKSTATION</div>
+            <div id="opsHost" style="font-weight:700;font-size:14px;">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-secondary);">CPU / RAM LOAD</div>
+            <div id="opsLoad" style="font-weight:700;font-size:14px;color:var(--accent-emerald);">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-secondary);">TAILSCALE MESH IP</div>
+            <div id="opsTailscale" style="font-weight:700;font-size:13px;color:var(--accent-cyan);">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-secondary);">LAN / WI-FI URL</div>
+            <div id="opsLan" style="font-weight:700;font-size:13px;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <span class="section-title">Multi-PC Dynamic Fleet ("Follow-Me" Handoff)</span>
+      </div>
+      <div class="session-card" style="cursor:default;">
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary);">
+          Add your other workstations (Tailscale IP or LAN IP). The app polls all nodes in parallel and auto-highlights whichever PC you are actively using:
+        </div>
+        <div id="peerNodesList" style="margin-bottom:10px;font-size:12.5px;"></div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input id="peerNameInput" class="steer-input" style="flex:0.9;" placeholder="Name (e.g. Office-PC)" />
+          <input id="peerUrlInput" class="steer-input" style="flex:1.4;" placeholder="http://100.x.y.z:8765" />
+        </div>
+        <button class="thumb-btn secondary" style="width:100%;" onclick="addPeerNode()">➕ Add Workstation Node</button>
+      </div>
+
+      <div class="section-header">
+        <span class="section-title">Quick-Launch Task / Live AgentAPI Bridge</span>
+      </div>
+      <div class="session-card" style="cursor:default;">
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary);">
+          Dispatches directly into your running Antigravity Desktop app via native <code>language_server.exe agentapi</code>:
+        </div>
+        <select id="launchTargetSelect" class="steer-input" style="width:100%;margin-bottom:8px;">
+          <option value="ACTIVE_CONVO">💬 Send into Currently Selected Conversation</option>
+          <option value="PROJ:bf5fbfae-02df-43df-a82c-0aca5ccb1710">➕ New Chat in: gravity-for-android</option>
+          <option value="PROJ:6fdbfcba-093b-4468-aacd-8806935560f3">➕ New Chat in: FF_2026</option>
+          <option value="PROJ:1ea3c127-aaba-4196-8ced-e10bd9b15e2d">➕ New Chat in: Div2</option>
+          <option value="PROJ:1fd24e0c-d28b-41ce-8f98-818c12c79319">➕ New Chat in: Andrew Productivity</option>
+          <option value="PROJ:53962d7d-8c54-4e69-88fc-2a37c5f38ea2">➕ New Chat in: CSC DE Dashboard</option>
+          <option value="PROJ:cec72282-0663-44f7-b2b6-d0f4284b4eeb">➕ New Chat in: CSC Skills</option>
+          <option value="PROJ:f7817cce-b3f1-4315-8734-646cc17b8664">➕ New Chat in: CSC AI Taskforce</option>
+          <option value="PROJ:outside-of-project">➕ New Chat in: Playground (Outside of Project)</option>
+        </select>
+        <select id="skillQuickSelect" class="steer-input" style="width:100%;margin-bottom:8px;" onchange="applySkillQuickSelect()">
+          <option value="">⚡ Streamlined Skill Call (Optional — 27 Installed Skills)…</option>
+        </select>
+        <input id="launchPrompt" class="steer-input" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" onkeydown="if(event.key==='Enter') launchNewTask()" />
+        <div class="thumb-grid">
+          <button class="thumb-btn approve" onclick="launchNewTask()">🚀 Dispatch Live</button>
+          <button class="thumb-btn secondary" onclick="toggleWakeLock()">☕ Toggle Keep-Awake</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Artifact Preview Bottom Sheet -->
+  <div id="previewModal" class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+    <div class="modal-sheet">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <strong id="modalTitle" style="font-size:14px;">Artifact Preview</strong>
+        <button class="pill-btn" onclick="closeModal()">✕ Close</button>
+      </div>
+      <pre id="modalBody" style="white-space:pre-wrap;word-break:break-word;font-size:12.5px;color:#e2e8f0;background:#090d16;padding:12px;border-radius:10px;border:1px solid var(--border-subtle);"></pre>
+    </div>
+  </div>
+
+  <!-- Bottom Thumb Navigation -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="nav-btn active" data-tab="pulse" onclick="switchTab('pulse')">
+        <span class="nav-icon">⚡</span>
+        <span>Pulse</span>
+      </button>
+      <button class="nav-btn" data-tab="trajectory" onclick="switchTab('trajectory')">
+        <span class="nav-icon">💬</span>
+        <span>Trajectory</span>
+      </button>
+      <button class="nav-btn" data-tab="vault" onclick="switchTab('vault')">
+        <span class="nav-icon">📄</span>
+        <span>Vault</span>
+      </button>
+      <button class="nav-btn" data-tab="ops" onclick="switchTab('ops')">
+        <span class="nav-icon">⚙️</span>
+        <span>Ops</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    window.ROLLUP_APP_ID = 'gravity-agent-monitor';
+    const DEFAULT_ADMIN_LAN_URL = 'http://169.254.241.53:8765';
+    const DEFAULT_ADMIN_TS_URL = '';
+    const DEFAULT_SIDECAR_TOKEN = 'csc-gravity-admin-2026-x9f4k2';
+
+    let currentConversationId = null;
+    let currentHostBase = '';
+    let selectedHostFilter = 'ALL';
+    let wakeLockState = false;
+    let isOfflineSnapshotMode = false;
+    let knownPeers = JSON.parse(localStorage.getItem('gravity_peers') || '[]');
+
+    function isRunningInRollupContainer() {
+      return Boolean(window.RollupBridge && window.location.port !== '8765');
+    }
+
+    function getGravityStorage(key, fallbackVal = null) {
+      if (window.RollupBridge && window.RollupBridge.storage) {
+        return window.RollupBridge.storage.get(key, fallbackVal, 'gravity-agent-monitor');
+      }
+      try {
+        const raw = localStorage.getItem('gravity_cache_' + key);
+        return raw ? JSON.parse(raw) : fallbackVal;
+      } catch (e) {
+        return fallbackVal;
+      }
+    }
+
+    function setGravityStorage(key, val) {
+      if (window.RollupBridge && window.RollupBridge.storage) {
+        window.RollupBridge.storage.set(key, val, 'gravity-agent-monitor');
+      }
+      try {
+        localStorage.setItem('gravity_cache_' + key, JSON.stringify(val));
+      } catch (e) {}
+    }
+
+    function getSidecarToken() {
+      if (window.RollupBridge && window.RollupBridge.vault) {
+        const vTok = window.RollupBridge.vault.getSecret('GRAVITY_SIDECAR_TOKEN', '');
+        if (vTok) return vTok;
+      }
+      if (window.RollupBridge && window.RollupBridge.user) {
+        const cfg = window.RollupBridge.user.getAppConfig('gravity-agent-monitor') || {};
+        if (cfg.sidecar_token) return cfg.sidecar_token;
+      }
+      return localStorage.getItem('gravity_sidecar_token') || DEFAULT_SIDECAR_TOKEN;
+    }
+
+    function getWorkstationEndpoints() {
+      const list = [];
+      const seen = new Set();
+      function addEp(name, base) {
+        const clean = String(base || '').replace(/\/$/, '');
+        if (seen.has(clean)) return;
+        seen.add(clean);
+        list.push({ name, base: clean });
+      }
+      // If served directly from port 8765 on PC, relative '' is fastest
+      if (window.location.port === '8765') {
+        addEp('Local Sidecar', '');
+      } else {
+        // Running inside RollupOS Container Hub / APK WebView: use pre-seeded workstation URLs
+        let cfg = {};
+        if (window.RollupBridge && window.RollupBridge.user) {
+          cfg = window.RollupBridge.user.getAppConfig('gravity-agent-monitor') || {};
+        }
+        const primaryUrl = cfg.primary_workstation_url || DEFAULT_ADMIN_LAN_URL;
+        const tsUrl = cfg.tailscale_workstation_url || DEFAULT_ADMIN_TS_URL;
+        if (primaryUrl) addEp('DESKTOP-UHI3BO3 (LAN)', primaryUrl);
+        if (tsUrl) addEp('DESKTOP-UHI3BO3 (Tailscale)', tsUrl);
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          addEp('Localhost:8765', 'http://localhost:8765');
+        }
+      }
+      for (const p of knownPeers) {
+        if (p && p.url) addEp(p.name || 'Peer PC', p.url);
+      }
+      return list;
+    }
+
+    function getActiveHostBase() {
+      if (currentHostBase) return currentHostBase;
+      const eps = getWorkstationEndpoints();
+      return eps.length > 0 ? eps[0].base : '';
+    }
+
+    async function gravityFetch(urlOrPath, options = {}) {
+      const headers = Object.assign({}, options.headers || {});
+      const tok = getSidecarToken();
+      if (tok) headers['X-Gravity-Token'] = tok;
+      return fetch(urlOrPath, Object.assign({}, options, { headers }));
+    }
+
+    function initRollupCartridgeBridge() {
+      if (!window.RollupBridge) return;
+      // Seed Admin Vault token if not yet set
+      if (!window.RollupBridge.vault.getSecret('GRAVITY_SIDECAR_TOKEN', '')) {
+        window.RollupBridge.vault.setSecret('GRAVITY_SIDECAR_TOKEN', DEFAULT_SIDECAR_TOKEN);
+      }
+      if (isRunningInRollupContainer()) {
+        if (!window.RollupBridge.enforceAccessGate('gravity-agent-monitor', 'admin_only')) {
+          return;
+        }
+        window.RollupBridge.mountInAppConsolePill({
+          appId: 'gravity-agent-monitor',
+          visibility: 'admin_only',
+          bottomOffset: '76px',
+          settingsLabel: 'Nodes',
+          onOpenSettings: () => switchTab('ops')
+        });
+        // Auto-unlock Passkey overlay when signed into RollupOS Hub as Admin
+        const u = window.RollupBridge.auth.getCurrentUser();
+        if (u && u.is_admin) {
+          const lockEl = document.getElementById('lockOverlay');
+          if (lockEl) lockEl.classList.remove('visible');
+          sessionStorage.setItem('gravity_unlocked', '1');
+        }
+      }
+    }
+
+    function uuid4() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2400);
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      const btn = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
+      if (btn) btn.classList.add('active');
+      if (tabName === 'vault') loadVault();
+      if (tabName === 'ops') {
+        renderPeersList();
+        loadSkillsCatalog();
+      }
+    }
+
+    let skillsCatalogLoaded = false;
+    async function loadSkillsCatalog() {
+      if (skillsCatalogLoaded) return;
+      const sel = document.getElementById('skillQuickSelect');
+      if (!sel) return;
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/skills`);
+        const data = await res.json();
+        const skills = data.skills || [];
+        for (const s of skills) {
+          const opt = document.createElement('option');
+          opt.value = s.slug;
+          opt.textContent = `🛠 ${s.slug}${s.has_cli ? ' [CLI]' : ''}`;
+          sel.appendChild(opt);
+        }
+        skillsCatalogLoaded = true;
+      } catch (e) {}
+    }
+
+    function applySkillQuickSelect() {
+      const sel = document.getElementById('skillQuickSelect');
+      const inp = document.getElementById('launchPrompt');
+      if (!sel || !inp || !sel.value) return;
+      inp.value = `Activate the ${sel.value} skill and `;
+      inp.focus();
+    }
+
+    function setHostFilter(hostName) {
+      selectedHostFilter = hostName;
+      fetchPulse();
+    }
+
+    function addPeerNode() {
+      const name = document.getElementById('peerNameInput').value.trim();
+      const url = document.getElementById('peerUrlInput').value.trim().replace(/\/$/, '');
+      if (!name || !url) {
+        showToast('Enter both node name and URL');
+        return;
+      }
+      knownPeers = knownPeers.filter(p => p.url !== url);
+      knownPeers.push({ name, url });
+      localStorage.setItem('gravity_peers', JSON.stringify(knownPeers));
+      document.getElementById('peerNameInput').value = '';
+      document.getElementById('peerUrlInput').value = '';
+      renderPeersList();
+      showToast(`Added node: ${name}`);
+      fetchPulse();
+    }
+
+    function removePeerNode(url) {
+      knownPeers = knownPeers.filter(p => p.url !== url);
+      localStorage.setItem('gravity_peers', JSON.stringify(knownPeers));
+      renderPeersList();
+      fetchPulse();
+    }
+
+    function renderPeersList() {
+      const el = document.getElementById('peerNodesList');
+      if (!el) return;
+      const primaryBase = getActiveHostBase() || window.location.origin;
+      const items = [
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
+          <span>🟢 <strong>Primary Workstation</strong> (${escapeHtml(primaryBase)})</span>
+          <span style="color:var(--accent-emerald);font-size:11px;">${isOfflineSnapshotMode ? 'Cached' : 'Active'}</span>
+        </div>`
+      ];
+      for (const p of knownPeers) {
+        items.push(`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
+            <span>🖥 <strong>${escapeHtml(p.name)}</strong> (${escapeHtml(p.url)})</span>
+            <button class="pill-btn" onclick="removePeerNode('${escapeHtml(p.url)}')">✕</button>
+          </div>
+        `);
+      }
+      el.innerHTML = items.join('');
+    }
+
+    async function unlockWithPasskey() {
+      document.getElementById('lockOverlay').classList.remove('visible');
+      sessionStorage.setItem('gravity_unlocked', '1');
+      showToast('🔓 Passkey session verified');
+      fetchPulse();
+    }
+
+    function lockApp() {
+      sessionStorage.removeItem('gravity_unlocked');
+      document.getElementById('lockOverlay').classList.add('visible');
+    }
+
+    async function fetchPulse() {
+      const endpoints = getWorkstationEndpoints();
+      const banner = document.getElementById('offlineSnapshotBanner');
+      try {
+        const results = await Promise.allSettled(
+          endpoints.map(async ep => {
+            const res = await gravityFetch(`${ep.base}/api/v1/pulse`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            return { base: ep.base, data: json };
+          })
+        );
+        const valid = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+        if (valid.length > 0) {
+          isOfflineSnapshotMode = false;
+          if (!currentHostBase && valid[0].base) currentHostBase = valid[0].base;
+          if (banner) banner.style.display = 'none';
+          setGravityStorage('last_pulse_snapshot', { saved_at: Date.now(), nodes: valid });
+          renderMultiHostPulse(valid);
+          return;
+        }
+      } catch (err) {}
+
+      // Offline Snapshot Fallback when all workstation nodes are unreachable
+      const cached = getGravityStorage('last_pulse_snapshot', null);
+      if (cached && Array.isArray(cached.nodes) && cached.nodes.length > 0) {
+        isOfflineSnapshotMode = true;
+        const minsAgo = Math.max(1, Math.round((Date.now() - (cached.saved_at || Date.now())) / 60000));
+        if (banner) {
+          banner.style.display = 'block';
+          banner.textContent = `📡 Offline Snapshot — Last synced ${minsAgo}m ago (Workstation unreachable / asleep)`;
+        }
+        renderMultiHostPulse(cached.nodes);
+        document.getElementById('hostStatusText').textContent = `Offline Snapshot (${minsAgo}m ago)`;
+      } else {
+        document.getElementById('hostStatusText').textContent = 'Offline / Reconnecting…';
+      }
+    }
+
+    function renderMultiHostPulse(nodes) {
+      // Sort nodes: actively used at keyboard first (user_idle_seconds < 120), then newest agent mtime
+      nodes.sort((a, b) => {
+        const wa = a.data.workstation || {};
+        const wb = b.data.workstation || {};
+        if (!!wa.is_actively_used !== !!wb.is_actively_used) {
+          return wa.is_actively_used ? -1 : 1;
+        }
+        return (wb.latest_agent_mtime || 0) - (wa.latest_agent_mtime || 0);
+      });
+
+      const primary = nodes[0].data;
+      const ws = primary.workstation || {};
+      const idleLabel = (ws.user_idle_seconds !== undefined && ws.user_idle_seconds < 60)
+        ? '⌨️ Active Now'
+        : `Idle ${Math.round((ws.user_idle_seconds || 0) / 60)}m`;
+
+      document.getElementById('hostStatusText').textContent =
+        `${ws.hostname || 'PC'} (${idleLabel}) • CPU ${ws.cpu_percent || 0}%`;
+      document.getElementById('computeLatencyBadge').textContent = `${primary.compute_ms}ms • ${nodes.length} PC(s)`;
+
+      wakeLockState = !!ws.wake_lock_active;
+      const wlBtn = document.getElementById('wakeLockBtn');
+      wlBtn.textContent = wakeLockState ? '☕ Awake: ON' : '☕ Awake: OFF';
+      wlBtn.classList.toggle('active-lock', wakeLockState);
+
+      // Ops Tab stats
+      document.getElementById('opsHost').textContent = `${ws.hostname || 'Workstation'} (${idleLabel})`;
+      document.getElementById('opsLoad').textContent = `CPU ${ws.cpu_percent}% / RAM ${ws.ram_percent}%`;
+      document.getElementById('opsTailscale').textContent = (ws.network && ws.network.tailscale_ip) || 'Not Detected';
+      document.getElementById('opsLan').textContent = (ws.network && ws.network.lan_ip) ? `http://${ws.network.lan_ip}:8765` : 'http://localhost:8765';
+
+      // Render Multi-PC Fleet Filter Bar
+      const fleetBar = document.getElementById('fleetBar');
+      const chips = [
+        `<button class="quick-chip" style="${selectedHostFilter === 'ALL' ? 'border-color:var(--accent-cyan);color:var(--accent-cyan);font-weight:700;' : ''}" onclick="setHostFilter('ALL')">
+          🌐 All PCs (${nodes.length})
+        </button>`
+      ];
+      for (const n of nodes) {
+        const hname = (n.data.workstation && n.data.workstation.hostname) || 'PC';
+        const activeTag = (n.data.workstation && n.data.workstation.is_actively_used) ? '⚡ ' : '🖥 ';
+        const isSel = selectedHostFilter === hname;
+        chips.push(`
+          <button class="quick-chip" style="${isSel ? 'border-color:var(--accent-cyan);color:var(--accent-cyan);font-weight:700;' : ''}" onclick="setHostFilter('${escapeHtml(hname)}')">
+            ${activeTag}${escapeHtml(hname)}
+          </button>
+        `);
+      }
+      fleetBar.innerHTML = chips.join('');
+
+      // Merge Gates & Sessions across nodes
+      let allGates = [];
+      let allSessions = [];
+      for (const n of nodes) {
+        const hname = (n.data.workstation && n.data.workstation.hostname) || 'PC';
+        if (selectedHostFilter !== 'ALL' && selectedHostFilter !== hname) continue;
+        for (const g of (n.data.pending_gates || [])) {
+          allGates.push({ ...g, _host: hname, _base: n.base });
+        }
+        for (const s of (n.data.sessions || [])) {
+          allSessions.push({ ...s, _host: hname, _base: n.base });
+        }
+      }
+
+      const gatesEl = document.getElementById('approvalGatesContainer');
+      if (allGates.length === 0) {
+        gatesEl.innerHTML = '';
+      } else {
+        gatesEl.innerHTML = allGates.map(g => `
+          <div class="approval-banner">
+            <div class="approval-tag">🔴 Action Required • ${escapeHtml(g._host)} • ${escapeHtml(g.kind)}</div>
+            <h3 class="approval-title">${escapeHtml(g.session_title)}</h3>
+            <p class="approval-desc">${escapeHtml(g.summary || g.title)}</p>
+            <div class="thumb-grid">
+              <button class="thumb-btn approve" onclick="approveGate('${g.conversation_id}', 'Approve & Proceed', '${g._base}')">
+                ✅ Approve & Proceed
+              </button>
+              <button class="thumb-btn secondary" onclick="openConversation('${g.conversation_id}', '${g._base}', '${escapeHtml(g._host)}')">
+                🔍 Inspect Details
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const sessEl = document.getElementById('sessionsContainer');
+      if (!currentConversationId && allSessions.length > 0) {
+        currentConversationId = allSessions[0].conversation_id;
+        currentHostBase = allSessions[0]._base || '';
+      }
+
+      // Collect Projects catalog across nodes
+      const projectMap = new Map();
+      for (const n of nodes) {
+        const hname = (n.data.workstation && n.data.workstation.hostname) || 'PC';
+        if (selectedHostFilter !== 'ALL' && selectedHostFilter !== hname) continue;
+        for (const p of (n.data.projects_catalog || [])) {
+          if (!projectMap.has(p.id)) {
+            projectMap.set(p.id, { id: p.id, name: p.name, sessions: [], latestMtime: 0 });
+          }
+        }
+      }
+
+      const playgroundSessions = [];
+      const archivedSessions = [];
+
+      for (const s of allSessions) {
+        if (s.is_archived) {
+          archivedSessions.push(s);
+        } else if (s.project_id && s.project_id !== 'outside-of-project') {
+          if (!projectMap.has(s.project_id)) {
+            projectMap.set(s.project_id, { id: s.project_id, name: s.project_name || 'Project', sessions: [], latestMtime: 0 });
+          }
+          const grp = projectMap.get(s.project_id);
+          grp.sessions.push(s);
+          grp.latestMtime = Math.max(grp.latestMtime, s.mtime || 0);
+        } else {
+          playgroundSessions.push(s);
+        }
+      }
+
+      // Sort projects: projects with conversations first (by most recent activity), then alphabetical empty projects
+      const sortedProjects = Array.from(projectMap.values()).sort((a, b) => {
+        if ((a.sessions.length > 0) !== (b.sessions.length > 0)) {
+          return a.sessions.length > 0 ? -1 : 1;
+        }
+        if (b.latestMtime !== a.latestMtime) {
+          return b.latestMtime - a.latestMtime;
+        }
+        return a.name.localeCompare(b.name);
+      });
+
+      const sectionsHtml = [];
+
+      // 1. PROJECTS SECTION (Exact Antigravity Left Sidebar Tree)
+      sectionsHtml.push(`
+        <div class="agy-sidebar-section">
+          <div class="agy-section-label">
+            <span>Projects</span>
+            <span>${sortedProjects.length} workspaces</span>
+          </div>
+          ${sortedProjects.map(proj => {
+            const grpKey = 'proj_' + proj.id;
+            // Default collapse empty projects so active ones stand out cleanly
+            const isCollapsed = window._collapsedGroups
+              ? window._collapsedGroups.has(grpKey)
+              : (proj.sessions.length === 0);
+            const groupIndicator = getGroupAggregateIndicator(proj.sessions);
+            return `
+              <div class="agy-project-group ${isCollapsed ? 'collapsed' : ''}" id="grp_${escapeHtml(grpKey)}">
+                <div class="agy-project-header" onclick="toggleSidebarGroup('${escapeHtml(grpKey)}')">
+                  <div class="agy-project-left">
+                    <span class="agy-chevron">▾</span>
+                    <span>📁</span>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(proj.name)}</span>
+                    <span style="font-size:11px;color:#64748b;font-weight:500;">(${proj.sessions.length})</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    ${renderSidebarIndicator(groupIndicator)}
+                  </div>
+                </div>
+                <div class="agy-convo-list">
+                  ${proj.sessions.length > 0
+                    ? proj.sessions.map(s => renderSidebarConvoRow(s)).join('')
+                    : `<div style="padding:6px 12px 6px 28px;font-size:12px;color:#64748b;">No active conversations in this workspace</div>`
+                  }
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `);
+
+      // 2. PLAYGROUND / OUTSIDE OF PROJECT SECTION
+      if (playgroundSessions.length > 0) {
+        sectionsHtml.push(`
+          <div class="agy-sidebar-section">
+            <div class="agy-section-label">
+              <span>Playground / Outside of Project</span>
+              <span>${playgroundSessions.length}</span>
+            </div>
+            <div class="agy-project-group">
+              <div class="agy-convo-list" style="border-top:none;padding-top:6px;">
+                ${playgroundSessions.map(s => renderSidebarConvoRow(s)).join('')}
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
+      // 3. ARCHIVED SECTION (Collapsed by default like Antigravity Sidebar)
+      if (archivedSessions.length > 0) {
+        const archKey = 'grp_archived';
+        const isArchCollapsed = window._collapsedGroups ? window._collapsedGroups.has(archKey) : true;
+        sectionsHtml.push(`
+          <div class="agy-sidebar-section">
+            <div class="agy-project-group ${isArchCollapsed ? 'collapsed' : ''}">
+              <div class="agy-project-header" onclick="toggleSidebarGroup('${archKey}')">
+                <div class="agy-project-left">
+                  <span class="agy-chevron">▾</span>
+                  <span>🗄️</span>
+                  <span>Archived Conversations</span>
+                  <span style="font-size:11px;color:#64748b;">(${archivedSessions.length})</span>
+                </div>
+              </div>
+              <div class="agy-convo-list">
+                ${archivedSessions.map(s => renderSidebarConvoRow(s)).join('')}
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
+      sessEl.innerHTML = sectionsHtml.join('');
+    }
+
+    function renderSidebarIndicator(indicator) {
+      if (indicator === 'BOUNCING_DOTS') {
+        return `<div class="status-bouncing-dots" title="Actively generating / running tool"><span></span><span></span><span></span></div>`;
+      }
+      if (indicator === 'SPINNING_RING') {
+        return `<div class="status-spinning-ring" title="Active session / background process running"></div>`;
+      }
+      if (indicator === 'BLUE_DOT') {
+        return `<div class="status-blue-dot" title="Unread update / waiting on you"></div>`;
+      }
+      return '';
+    }
+
+    function getGroupAggregateIndicator(sessions) {
+      if (!sessions || sessions.length === 0) return 'IDLE';
+      if (sessions.some(s => s.sidebar_indicator === 'BOUNCING_DOTS')) return 'BOUNCING_DOTS';
+      if (sessions.some(s => s.sidebar_indicator === 'SPINNING_RING')) return 'SPINNING_RING';
+      if (sessions.some(s => s.sidebar_indicator === 'BLUE_DOT')) return 'BLUE_DOT';
+      return 'IDLE';
+    }
+
+    function renderSidebarConvoRow(s) {
+      const isSelected = currentConversationId === s.conversation_id;
+      const isUnread = s.sidebar_indicator === 'BLUE_DOT' || s.has_unread;
+      const subLine = s.latest_tool_summary
+        ? `🔧 ${s.latest_tool_name || 'tool'}: ${s.latest_tool_summary}`
+        : `${s.step_count} steps • ${s._host}`;
+      const showExtraBlueDot = (s.sidebar_indicator === 'SPINNING_RING' || s.sidebar_indicator === 'BOUNCING_DOTS') && s.has_unread;
+      return `
+        <div class="agy-convo-row ${isSelected ? 'selected' : ''} ${isUnread ? 'unread' : ''}"
+             onclick="openConversation('${s.conversation_id}', '${s._base}', '${escapeHtml(s._host)}')">
+          <div class="agy-convo-main">
+            <div class="agy-convo-title">${escapeHtml(s.title)}</div>
+            <div class="agy-convo-sub">${escapeHtml(subLine)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            ${renderSidebarIndicator(s.sidebar_indicator)}
+            ${showExtraBlueDot ? `<div class="status-blue-dot" title="Unread activity"></div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleSidebarGroup(grpKey) {
+      if (!window._collapsedGroups) {
+        // Initialize default collapsed set (empty projects + archived)
+        window._collapsedGroups = new Set(['grp_archived']);
+        document.querySelectorAll('.agy-project-group.collapsed').forEach(el => {
+          if (el.id && el.id.startsWith('grp_')) {
+            window._collapsedGroups.add(el.id.replace(/^grp_/, ''));
+          }
+        });
+      }
+      if (window._collapsedGroups.has(grpKey)) {
+        window._collapsedGroups.delete(grpKey);
+      } else {
+        window._collapsedGroups.add(grpKey);
+      }
+      fetchPulse();
+    }
+
+    async function openConversation(convId, hostBase = '', hostName = 'PC') {
+      currentConversationId = convId;
+      currentHostBase = hostBase || '';
+      switchTab('trajectory');
+      document.getElementById('trajHostBadge').textContent = `🖥 HOST: ${hostName}`;
+      document.getElementById('stepsContainer').innerHTML = '<div style="padding:20px;color:var(--text-secondary);">Loading trajectory…</div>';
+      try {
+        const base = currentHostBase || getActiveHostBase();
+        const res = await gravityFetch(`${base}/api/v1/conversations/${convId}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        setGravityStorage('traj_' + convId, data);
+        renderTrajectory(data);
+      } catch (e) {
+        const cachedTraj = getGravityStorage('traj_' + convId, null);
+        if (cachedTraj) {
+          renderTrajectory(cachedTraj);
+          showToast('📡 Showing cached offline trajectory');
+        } else {
+          document.getElementById('stepsContainer').innerHTML = '<div style="color:var(--accent-rose);">Workstation offline & no cached trajectory for this session yet.</div>';
+        }
+      }
+    }
+
+    async function exportHandoffBundle() {
+      if (!currentConversationId) {
+        showToast('Select a session first');
+        return;
+      }
+      const res = await gravityFetch(`${getActiveHostBase()}/api/v1/handoff/${currentConversationId}`);
+      const data = await res.json();
+      document.getElementById('modalTitle').textContent = `Cross-PC Handoff (${data.source_host})`;
+      document.getElementById('modalBody').textContent = data.handoff_markdown || '';
+      document.getElementById('previewModal').classList.add('open');
+      if (navigator.clipboard && data.handoff_markdown) {
+        navigator.clipboard.writeText(data.handoff_markdown).catch(() => {});
+        showToast('📋 Handoff Markdown copied to clipboard!');
+      }
+    }
+
+    function getFileIcon(ext) {
+      const e = (ext || '').toLowerCase();
+      if (e === 'sqlite' || e === 'db') return '<span style="color:#f43f5e;font-weight:800;">🛢️</span>';
+      if (e === 'py') return '<span style="color:#38bdf8;font-weight:800;">🐍</span>';
+      if (e === 'html') return '<span style="color:#f59e0b;font-weight:800;">🌐</span>';
+      if (e === 'pdf') return '<span style="color:#fb7185;font-weight:800;">📕</span>';
+      if (e === 'md') return '<span style="color:#34d399;font-weight:800;">📄</span>';
+      if (e === 'ps1') return '<span style="color:#60a5fa;font-weight:800;">⚡</span>';
+      if (e === 'kt' || e === 'xml') return '<span style="color:#a78bfa;font-weight:800;">🤖</span>';
+      return '<span style="color:#94a3b8;">📄</span>';
+    }
+
+    function renderMarkdownFlow(raw) {
+      if (!raw) return '';
+      // Extract fenced code blocks first
+      const codeBlocks = [];
+      let text = String(raw).replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        const idx = codeBlocks.length;
+        codeBlocks.push(`<pre class="md-code">${escapeHtml(code.replace(/\n$/, ''))}</pre>`);
+        return `@@CODEBLOCK_${idx}@@`;
+      });
+
+      const lines = text.split('\n');
+      const out = [];
+      let inList = false;
+
+      const formatInline = (s) => {
+        let safe = escapeHtml(s);
+        // Markdown links [label](url)
+        safe = safe.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span style="color:#38bdf8;text-decoration:underline;">$1</span>');
+        // Inline code `code`
+        safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Bold **text**
+        safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        return safe;
+      };
+
+      for (let line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('@@CODEBLOCK_')) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          const m = trimmed.match(/@@CODEBLOCK_(\d+)@@/);
+          if (m) out.push(codeBlocks[parseInt(m[1], 10)]);
+          continue;
+        }
+        if (/^---+$/.test(trimmed)) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:10px 0;" />');
+          continue;
+        }
+        const hMatch = trimmed.match(/^(#{1,4})\s+(.*)$/);
+        if (hMatch) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          const tag = 'h' + Math.min(4, hMatch[1].length);
+          out.push(`<${tag}>${formatInline(hMatch[2])}</${tag}>`);
+          continue;
+        }
+        const liMatch = trimmed.match(/^([*-]|\d+\.)\s+(.*)$/);
+        if (liMatch) {
+          if (!inList) { out.push('<ul>'); inList = true; }
+          out.push(`<li>${formatInline(liMatch[2])}</li>`);
+          continue;
+        }
+        if (trimmed === '') {
+          if (inList) { out.push('</ul>'); inList = false; }
+          continue;
+        }
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(`<p>${formatInline(line)}</p>`);
+      }
+      if (inList) out.push('</ul>');
+      return out.join('');
+    }
+
+    function renderTrajectory(data) {
+      document.getElementById('trajTitle').textContent = data.title;
+      const subBar = document.getElementById('subagentsBar');
+
+      // Render Antigravity Overview Panel (Background Tasks / Artifacts / Modified Files) matching Desktop Screenshot
+      const bgTasks = data.background_tasks || [];
+      const artifacts = data.artifacts || [];
+      const modFiles = data.modified_files || [];
+      const auxSections = [];
+
+      if (bgTasks.length > 0) {
+        const showTasks = window._showAllBgTasks ? bgTasks : bgTasks.slice(0, 2);
+        auxSections.push(`
+          <div class="aux-section">
+            <div class="aux-header">
+              <span>Background Tasks</span>
+              <span class="aux-count-pill">${bgTasks.length}</span>
+            </div>
+            ${showTasks.map(t => `
+              <div class="aux-row">
+                ${t.status === 'RUNNING'
+                  ? `<div class="status-spinning-ring" style="width:13px;height:13px;"></div>`
+                  : `<span style="color:#64748b;font-size:12px;">✓</span>`
+                }
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${t.status === 'RUNNING' ? '#f1f5f9' : '#94a3b8'};">
+                  ${escapeHtml(t.title)}
+                </span>
+              </div>
+            `).join('')}
+            ${bgTasks.length > 2 ? `
+              <div style="font-size:11.5px;color:#64748b;padding:4px 4px 0 4px;cursor:pointer;" onclick="window._showAllBgTasks=!window._showAllBgTasks;openConversation('${data.conversation_id}', currentHostBase)">
+                ${window._showAllBgTasks ? 'Show less' : 'See all'}
+              </div>
+            ` : ''}
+          </div>
+        `);
+      }
+
+      if (artifacts.length > 0) {
+        auxSections.push(`
+          <div class="aux-section">
+            <div class="aux-header">
+              <span>Artifacts</span>
+              <span class="aux-count-pill">${artifacts.length}</span>
+            </div>
+            ${artifacts.map(a => `
+              <div class="aux-row" onclick="openArtifact('${encodeURIComponent(a.path)}', '${escapeHtml(a.ext)}', '${escapeHtml(a.name)}')">
+                <span>📄</span>
+                <span style="font-weight:500;">${escapeHtml(a.display_title || a.name)}</span>
+              </div>
+            `).join('')}
+          </div>
+        `);
+      }
+
+      if (modFiles.length > 0) {
+        const showFiles = window._showAllModFiles ? modFiles : modFiles.slice(0, 5);
+        auxSections.push(`
+          <div class="aux-section">
+            <div class="aux-header">
+              <span>Modified Files</span>
+              <span class="aux-count-pill">${modFiles.length}</span>
+            </div>
+            ${showFiles.map(f => `
+              <div class="aux-row" onclick="openArtifact('${encodeURIComponent(f.path)}', 'md', '${escapeHtml(f.name)}')">
+                ${getFileIcon(f.ext)}
+                <span style="font-weight:500;flex-shrink:0;">${escapeHtml(f.name)}</span>
+                <span class="aux-file-path">${escapeHtml(f.dir)}</span>
+              </div>
+            `).join('')}
+            ${modFiles.length > 5 ? `
+              <div style="font-size:11.5px;color:#64748b;padding:4px 4px 0 4px;cursor:pointer;" onclick="window._showAllModFiles=!window._showAllModFiles;openConversation('${data.conversation_id}', currentHostBase)">
+                ${window._showAllModFiles ? 'Show less' : `See all (${modFiles.length})`}
+              </div>
+            ` : ''}
+          </div>
+        `);
+      }
+
+      subBar.innerHTML = auxSections.length > 0
+        ? `<div class="aux-overview-card">${auxSections.join('')}</div>`
+        : '';
+
+      const stepsEl = document.getElementById('stepsContainer');
+      const html = [];
+      for (const st of (data.steps || [])) {
+        if (st.type === 'USER_INPUT' && st.content) {
+          html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(st.content)}</div></div>`);
+        } else if (st.type === 'SYSTEM_MESSAGE' && st.content) {
+          const msgMatch = st.content.match(/content=([\s\S]*?)<\/SYSTEM_MESSAGE>/);
+          const cleanSys = msgMatch ? msgMatch[1].trim() : st.content;
+          if (!cleanSys.startsWith('Task id "')) {
+            html.push(`
+              <div class="step-item">
+                <div class="bubble-user" style="background:rgba(56,189,248,0.16);border:1px solid rgba(56,189,248,0.4);color:#e0f2fe;">
+                  <strong>📱 Mobile / System Message:</strong>\n${escapeHtml(cleanSys)}
+                </div>
+              </div>
+            `);
+          }
+        } else {
+          // Collapsible thinking + tool calls pill
+          if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {
+            const toolsLabel = (st.tool_calls || []).map(t => `${t.summary}`).join(' • ');
+            html.push(`
+              <div class="plumbing-pill" onclick="this.classList.toggle('open')">
+                <div>🧠 ${st.has_thinking ? 'Thought' : 'Step'} ${toolsLabel ? '• 🔧 ' + escapeHtml(toolsLabel) : ''} <span style="float:right;font-size:10px;">Details ▾</span></div>
+                <div class="plumbing-details">${escapeHtml(st.thinking_preview || '')}${toolsLabel ? '\nTools: ' + escapeHtml(toolsLabel) : ''}</div>
+              </div>
+            `);
+          }
+          if (st.type === 'PLANNER_RESPONSE' && st.content) {
+            html.push(`<div class="step-item"><div class="bubble-agent">${renderMarkdownFlow(st.content)}</div></div>`);
+          }
+        }
+      }
+      stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
+    }
+
+    async function approveGate(convId, message) {
+      await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotency_key: uuid4(),
+          conversation_id: convId,
+          action: 'APPROVE',
+          message: message
+        })
+      });
+      showToast('✅ Approval sent to workstation');
+      fetchPulse();
+    }
+
+    async function sendQuickSteer(action, message) {
+      if (!currentConversationId) {
+        showToast('Select a conversation first');
+        return;
+      }
+      const res = await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idempotency_key: uuid4(),
+          conversation_id: currentConversationId,
+          action: action,
+          message: message
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'dispatched') {
+        showToast(`✅ Sent to Antigravity: ${message.slice(0, 24)}`);
+      } else {
+        showToast(`⚡ Queued: ${message.slice(0, 24)}`);
+      }
+      fetchPulse();
+      if (document.getElementById('tab-trajectory').classList.contains('active')) {
+        const tRes = await gravityFetch(`${getActiveHostBase()}/api/v1/conversations/${currentConversationId}`);
+        if (tRes.ok) renderTrajectory(await tRes.json());
+      }
+    }
+
+    function submitSteerInput() {
+      const inp = document.getElementById('steerInput');
+      const val = inp.value.trim();
+      if (!val) return;
+      const action = val.startsWith('/') ? 'SLASH_COMMAND' : 'STEER';
+      sendQuickSteer(action, val);
+      inp.value = '';
+    }
+
+    function toggleVoiceInput() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const micBtn = document.getElementById('micBtn');
+      if (!SR) {
+        showToast('Speech recognition supported in Chrome/Android');
+        return;
+      }
+      const rec = new SR();
+      rec.lang = 'en-US';
+      micBtn.classList.add('recording');
+      rec.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        document.getElementById('steerInput').value = transcript;
+        micBtn.classList.remove('recording');
+      };
+      rec.onerror = () => micBtn.classList.remove('recording');
+      rec.onend = () => micBtn.classList.remove('recording');
+      rec.start();
+    }
+
+    async function loadVault() {
+      const container = document.getElementById('vaultContainer');
+      try {
+        let data = null;
+        try {
+          const res = await gravityFetch(`${getActiveHostBase()}/api/v1/artifacts`);
+          if (res.ok) {
+            data = await res.json();
+            setGravityStorage('last_vault_snapshot', data);
+          }
+        } catch (innerErr) {}
+        if (!data) data = getGravityStorage('last_vault_snapshot', { artifacts: [] });
+        const items = data.artifacts || [];
+        container.innerHTML = items.map(a => `
+          <div class="vault-card">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+              <div class="ext-badge ext-${a.ext}">${escapeHtml(a.ext)}</div>
+              <div style="min-width:0;">
+                <div style="font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  ${escapeHtml(a.name)}
+                </div>
+                <div style="font-size:11px;color:var(--text-secondary);">
+                  ${escapeHtml(a.session_title)} • ${a.size_kb} KB
+                </div>
+              </div>
+            </div>
+            <button class="pill-btn" onclick="openArtifact('${encodeURIComponent(a.path)}', '${escapeHtml(a.ext)}', '${escapeHtml(a.name)}')">
+              Open
+            </button>
+          </div>
+        `).join('');
+      } catch (e) {
+        container.innerHTML = '<div style="color:var(--text-secondary);">Unable to load artifacts.</div>';
+      }
+    }
+
+    async function openArtifact(encodedPath, ext, name) {
+      const url = `${getActiveHostBase()}/api/v1/file?path=${encodedPath}`;
+      if (ext === 'pdf' || ext === 'html') {
+        window.open(url, '_blank');
+        return;
+      }
+      const res = await gravityFetch(url);
+      const data = await res.json();
+      document.getElementById('modalTitle').textContent = name;
+      document.getElementById('modalBody').textContent = data.content || '';
+      document.getElementById('previewModal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('previewModal').classList.remove('open');
+    }
+
+    async function toggleWakeLock() {
+      const res = await gravityFetch(`${getActiveHostBase()}/api/v1/wakelock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enable: !wakeLockState })
+      });
+      const data = await res.json();
+      wakeLockState = data.wake_lock_active;
+      showToast(wakeLockState ? '☕ Windows Sleep Blocked (Wake-Lock ON)' : '☕ Windows Wake-Lock Released');
+      fetchPulse();
+    }
+
+    async function launchNewTask() {
+      const inp = document.getElementById('launchPrompt');
+      const val = inp.value.trim();
+      if (!val) {
+        showToast('Enter a prompt first');
+        return;
+      }
+      const targetVal = document.getElementById('launchTargetSelect').value;
+      if (targetVal.startsWith('PROJ:')) {
+        const projId = targetVal.slice(5);
+        showToast('🚀 Spawning new conversation in Antigravity…');
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idempotency_key: uuid4(),
+            project_id: projId,
+            action: 'NEW_CONVERSATION',
+            message: val
+          })
+        });
+        const data = await res.json();
+        inp.value = '';
+        if (data.status === 'dispatched') {
+          showToast('✅ Live conversation started in Antigravity!');
+          switchTab('pulse');
+          fetchPulse();
+        } else {
+          showToast('⚠️ Queued (check agentapi bridge)');
+        }
+      } else {
+        await sendQuickSteer('STEER', val);
+        inp.value = '';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Initial load & 3-second deterministic poll
+    initRollupCartridgeBridge();
+    fetchPulse();
+    setInterval(async () => {
+      await fetchPulse();
+      if (
+        currentConversationId &&
+        document.getElementById('tab-trajectory').classList.contains('active') &&
+        document.querySelectorAll('.plumbing-pill.open').length === 0
+      ) {
+        try {
+          const tRes = await gravityFetch(`${getActiveHostBase()}/api/v1/conversations/${currentConversationId}`);
+          if (tRes.ok) renderTrajectory(await tRes.json());
+        } catch (e) {}
+      }
+    }, 3000);
+  </script>
+</body>
+</html>

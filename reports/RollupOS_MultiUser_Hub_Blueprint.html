@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RollupOS — Multi-User Android Mini-App Hub Architecture & Guide</title>
+<style>
+  @page { size: letter; margin: 0.55in; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: #0f172a;
+    line-height: 1.45;
+    font-size: 10.5pt;
+    margin: 0;
+  }
+  .hdr {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    color: #ffffff;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .hdr h1 { margin: 0; font-size: 18pt; letter-spacing: -0.3px; }
+  .hdr p { margin: 4px 0 0 0; font-size: 10pt; color: #bae6fd; }
+  h2 {
+    font-size: 12.5pt;
+    color: #1e3a8a;
+    border-bottom: 2px solid #cbd5e1;
+    padding-bottom: 4px;
+    margin: 16px 0 8px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 14px 0;
+    font-size: 9.5pt;
+  }
+  th {
+    background: #f1f5f9;
+    color: #0f172a;
+    text-align: left;
+    padding: 7px 9px;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+  }
+  td {
+    padding: 7px 9px;
+    border: 1px solid #cbd5e1;
+    vertical-align: top;
+  }
+  .callout {
+    background: #f8fafc;
+    border-left: 4px solid #0284c7;
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin: 10px 0;
+  }
+  code {
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: Consolas, monospace;
+    font-size: 9pt;
+  }
+</style>
+</head>
+<body>
+  <div class="hdr">
+    <h1>RollupOS — Multi-User Android Mini-App Hub</h1>
+    <p>Google Identity Auth • Dynamic On-Phone Admin Switchboard • Per-User Isolated Storage • Multi-Team ESPN Fantasy Manager</p>
+  </div>
+
+  <h2>1. Executive Overview &amp; Multi-Tenant Architecture</h2>
+  <p>
+    <strong>RollupOS</strong> solves "90-app clutter" by installing a single Android WebAPK Super-App shell that dynamically loads authorized mini-apps, enforces per-user Google authentication, and isolates every user's data and API keys into strict namespaces (<code>rollup::v1::u::&lt;email&gt;::app::&lt;app-id&gt;::*</code>).
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Architectural Layer</th>
+        <th>File / Component</th>
+        <th>Multi-User &amp; Security Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Mobile Launcher &amp; Admin Switchboard</strong></td>
+        <td><code>index.html</code>, <code>manifest.json</code>, <code>sw.js</code></td>
+        <td>Handles Google Sign-In, renders only the mini-apps authorized for the signed-in email, provides the <strong>👑 Admin Mode</strong> permission matrix, and includes 1-tap <strong>👁️ Preview as User</strong> testing.</td>
+      </tr>
+      <tr>
+        <td><strong>2. Multi-Tenant Bridge SDK</strong></td>
+        <td><code>bridge/rollup-bridge.js</code></td>
+        <td>Injected into every mini-app. Provides <code>RollupBridge.auth</code>, isolated per-user storage (<code>RollupBridge.storage</code>), per-user app config (<code>RollupBridge.user</code>), Phone Secret Vault (<code>RollupBridge.vault</code>), Camera, and File Export.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Flagship Mini-App: The League Pro</strong></td>
+        <td><code>apps/fantasy-manager/index.html</code><br><code>data/league_945552.json</code></td>
+        <td>Multi-user ESPN Fantasy Manager synced with all 12 teams in <em>Weekend Warriors (#945552)</em>. Each user selects their own team, toggles their own Protected Core players, stars Free Agents to their private Watchlist, and simulates roster moves in their own isolated sandbox.</td>
+      </tr>
+      <tr>
+        <td><strong>4. CLI &amp; GitHub Cloud Publisher</strong></td>
+        <td><code>rollup.py</code></td>
+        <td>One-command local server (<code>serve</code>), live 12-team ESPN sync (<code>sync-fantasy</code>), new mini-app scaffolding (<code>create</code>), user authorization (<code>authorize</code>), and GitHub deployment (<code>publish</code>).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Live Weekend Warriors (#945552) — All 12 Teams Loaded</h2>
+  <p>
+    The live ESPN v3 sync engine (<code>scripts/build_multi_team_fantasy_data.py</code>) pre-computes 60/40 Blended Moneyball + Consensus VORP, Bench Floor Anchors, and Multi-Horizon Opponent Counter-Pick War Rooms for all 12 franchises:
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Team ID</th>
+        <th>Franchise Name</th>
+        <th>Record</th>
+        <th>Default Profile Behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>#4</strong></td><td><strong>Mahomes Depot</strong></td><td>4-2-0</td><td>Default for <code>andrewnicks@gmail.com</code> (👑 Admin) with 10 canonical Protected Rockstars.</td></tr>
+      <tr><td><strong>#14</strong></td><td>America's Team</td><td>3-3-0</td><td>Pre-configured for <code>americas.team.tester@gmail.com</code> (or selectable by any authorized user).</td></tr>
+      <tr><td><strong>#1</strong></td><td>The Questionables</td><td>3-3-0</td><td>Pre-configured for <code>questionables.tester@gmail.com</code> (or selectable by any authorized user).</td></tr>
+      <tr><td><strong>#2, #3, #5, #6, #9, #10, #11, #12, #13</strong></td><td>Dirty 6, Jew Nose, Worthy of a Championship, Woo, Greek Freaks, Club Chubb, Raiders of the Black Hole, Mitch Better Have My Money, Pickens Up Another Trophy</td><td>Active</td><td>Selectable with 1 tap via the <strong>👥 Team</strong> button inside <em>The League Pro</em> or pre-assignable by Admin.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Quick-Start Commands &amp; Testing Workflow</h2>
+  <div class="callout">
+    <strong>Local Hub URL:</strong> <code>http://localhost:8090</code><br>
+    <strong>Refresh All 12 Teams from ESPN Live API:</strong> <code>python rollup.py sync-fantasy</code><br>
+    <strong>Create a New Mini-App:</strong> <code>python rollup.py create my-tool --title "My Tool"</code><br>
+    <strong>Publish to GitHub for Remote Mobile Sync:</strong> <code>python rollup.py publish</code>
+  </div>
+</body>
+</html>

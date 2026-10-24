@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#090d16">
+<title>RollupBridge Admin Inspector</title>
+<script src="../../bridge/rollup-bridge.js"></script>
+<style>
+  body {
+    margin: 0;
+    padding: 0 0 90px 0;
+    background: #090d16;
+    color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Google Sans', monospace;
+  }
+  .shell { max-width: 480px; margin: 0 auto; padding: 14px; }
+  .card {
+    background: #111827;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 13px;
+    margin-bottom: 10px;
+  }
+  pre {
+    background: #070b14;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 11px;
+    color: #93c5fd;
+    overflow-x: auto;
+    margin: 6px 0 0 0;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div style="font-size:10.5px;font-weight:800;color:#c084fc;text-transform:uppercase;">Admin-Only Diagnostic App</div>
+  <h1 style="margin:2px 0 12px 0;font-size:18px;">🧪 RollupBridge Multi-Tenant Inspector</h1>
+
+  <div class="card">
+    <div style="font-size:12px;font-weight:800;color:#4ade80;">1. Active Session &amp; Role Verification</div>
+    <pre id="out-user"></pre>
+  </div>
+
+  <div class="card">
+    <div style="font-size:12px;font-weight:800;color:#38bdf8;">2. Live Hub Access Control Matrix (ACL)</div>
+    <pre id="out-acl"></pre>
+  </div>
+
+  <div class="card">
+    <div style="font-size:12px;font-weight:800;color:#fbbf24;">3. Per-User Isolated Storage Keys on This Device</div>
+    <pre id="out-keys"></pre>
+  </div>
+</div>
+
+<script>
+window.ROLLUP_APP_ID = 'bridge-lab';
+if (RollupBridge.enforceAccessGate('bridge-lab', 'admin_only')) {
+  RollupBridge.mountInAppConsolePill({ appId: 'bridge-lab', visibility: 'admin_only' });
+  document.getElementById('out-user').textContent = JSON.stringify(RollupBridge.auth.getCurrentUser(), null, 2);
+  document.getElementById('out-acl').textContent = JSON.stringify(RollupBridge.auth.getACL(), null, 2);
+
+  const rollupKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('rollup::v1::')) rollupKeys.push(k);
+  }
+  rollupKeys.sort();
+  document.getElementById('out-keys').textContent = rollupKeys.join('\n') || 'No keys yet.';
+}
+</script>
+</body>
+</html>
