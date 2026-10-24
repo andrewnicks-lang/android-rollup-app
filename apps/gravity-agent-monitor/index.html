@@ -1062,7 +1062,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_ADMIN_LAN_URL = 'http://169.254.241.53:8765';
+    const DEFAULT_ADMIN_LAN_URL = 'http://192.168.86.47:8765';
     const DEFAULT_ADMIN_TS_URL = '';
     const DEFAULT_SIDECAR_TOKEN = 'csc-gravity-admin-2026-x9f4k2';
 
@@ -1114,30 +1114,34 @@
       const list = [];
       const seen = new Set();
       function addEp(name, base) {
-        const clean = String(base || '').replace(/\/$/, '');
+        let clean = String(base || '').replace(/\/$/, '');
+        if (clean.includes('169.254.')) {
+          clean = DEFAULT_ADMIN_LAN_URL;
+        }
         if (seen.has(clean)) return;
         seen.add(clean);
         list.push({ name, base: clean });
       }
-      // If served directly from port 8765 on PC, relative '' is fastest
       if (window.location.port === '8765') {
         addEp('Local Sidecar', '');
       } else {
-        // Running inside RollupOS Container Hub / APK WebView: use pre-seeded workstation URLs
         let cfg = {};
         if (window.RollupBridge && window.RollupBridge.user) {
           cfg = window.RollupBridge.user.getAppConfig('gravity-agent-monitor') || {};
+          if (cfg.primary_workstation_url && String(cfg.primary_workstation_url).includes('169.254.')) {
+            cfg.primary_workstation_url = DEFAULT_ADMIN_LAN_URL;
+            window.RollupBridge.user.setAppConfig({ primary_workstation_url: DEFAULT_ADMIN_LAN_URL }, 'gravity-agent-monitor');
+          }
         }
         const primaryUrl = cfg.primary_workstation_url || DEFAULT_ADMIN_LAN_URL;
         const tsUrl = cfg.tailscale_workstation_url || DEFAULT_ADMIN_TS_URL;
+        // Always try both localhost:8765 (instant on PC) and LAN IP (instant on Phone Wi-Fi)
+        addEp('Localhost:8765', 'http://localhost:8765');
         if (primaryUrl) addEp('DESKTOP-UHI3BO3 (LAN)', primaryUrl);
         if (tsUrl) addEp('DESKTOP-UHI3BO3 (Tailscale)', tsUrl);
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          addEp('Localhost:8765', 'http://localhost:8765');
-        }
       }
       for (const p of knownPeers) {
-        if (p && p.url) addEp(p.name || 'Peer PC', p.url);
+        if (p && p.url && !String(p.url).includes('169.254.')) addEp(p.name || 'Peer PC', p.url);
       }
       return list;
     }
@@ -1152,10 +1156,23 @@
       const headers = Object.assign({}, options.headers || {});
       const tok = getSidecarToken();
       if (tok) headers['X-Gravity-Token'] = tok;
-      return fetch(urlOrPath, Object.assign({}, options, { headers }));
+      const controller = new AbortController();
+      const timeoutMs = options.timeoutMs || 2400;
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(urlOrPath, Object.assign({}, options, { headers, signal: controller.signal }));
+      } finally {
+        clearTimeout(timer);
+      }
     }
 
     function initRollupCartridgeBridge() {
+      try {
+        const aclRaw = localStorage.getItem('rollup::v1::hub::acl');
+        if (aclRaw && aclRaw.includes('169.254.')) {
+          localStorage.setItem('rollup::v1::hub::acl', aclRaw.replace(/http:\/\/169\.254\.[0-9.]+:8765/g, DEFAULT_ADMIN_LAN_URL));
+        }
+      } catch (e) {}
       if (!window.RollupBridge) return;
       // Seed Admin Vault token if not yet set
       if (!window.RollupBridge.vault.getSecret('GRAVITY_SIDECAR_TOKEN', '')) {
@@ -1310,7 +1327,17 @@
             return { base: ep.base, data: json };
           })
         );
-        const valid = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+        const rawValid = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+        // Deduplicate nodes by workstation.hostname so localhost + LAN IP on the same PC don't double-render
+        const seenHosts = new Set();
+        const valid = [];
+        for (const item of rawValid) {
+          const h = (item.data && item.data.workstation && item.data.workstation.hostname) || item.base;
+          if (!seenHosts.has(h)) {
+            seenHosts.add(h);
+            valid.push(item);
+          }
+        }
         if (valid.length > 0) {
           isOfflineSnapshotMode = false;
           if (!currentHostBase && valid[0].base) currentHostBase = valid[0].base;

@@ -6,7 +6,7 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "entry": "apps/gravity-agent-monitor/index.html",
   "visibility": "admin_only",
   "offline_assets": [
@@ -17,8 +17,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (LAN)",
       "type": "text",
-      "default": "http://169.254.241.53:8765",
-      "defaultForAdmin": "http://169.254.241.53:8765"
+      "default": "http://192.168.86.47:8765",
+      "defaultForAdmin": "http://192.168.86.47:8765"
     },
     {
       "key": "tailscale_workstation_url",

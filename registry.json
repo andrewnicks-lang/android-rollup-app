@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.0",
-    "updated_at": "2026-10-24T16:38:35.961888",
+    "updated_at": "2026-10-24T16:38:47.321787",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -37,7 +37,7 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "http://169.254.241.53:8765",
+              "primary_workstation_url": "http://192.168.86.47:8765",
               "tailscale_workstation_url": "",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
@@ -107,7 +107,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -118,8 +118,8 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (LAN)",
           "type": "text",
-          "default": "http://169.254.241.53:8765",
-          "defaultForAdmin": "http://169.254.241.53:8765"
+          "default": "http://192.168.86.47:8765",
+          "defaultForAdmin": "http://192.168.86.47:8765"
         },
         {
           "key": "tailscale_workstation_url",
