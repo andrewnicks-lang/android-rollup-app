@@ -1,0 +1,26 @@
+steps:
+  - name: 'ghcr.io/cirruslabs/android-sdk:34'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        curl -sSL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
+        unzip -q /tmp/gradle.zip -d /opt
+        export PATH="/opt/gradle-8.7/bin:$$PATH"
+        keytool -genkeypair -v \
+          -keystore app/rollupos-release.jks \
+          -alias rollupos \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass rollupos2026 \
+          -keypass rollupos2026 \
+          -dname "CN=RollupOS Hub, OU=Mobile, O=Andrew Nicks, L=Kansas City, ST=MO, C=US"
+        gradle assembleRelease --no-daemon
+        cp app/build/outputs/apk/release/app-release.apk /workspace/RollupOS.apk
+        ls -lh /workspace/RollupOS.apk
+artifacts:
+  objects:
+    location: 'gs://${PROJECT_ID}_cloudbuild/releases/'
+    paths: ['/workspace/RollupOS.apk']
