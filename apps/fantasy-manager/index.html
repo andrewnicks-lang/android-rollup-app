@@ -33,6 +33,10 @@
     line-height: 1.38;
     overflow-x: hidden;
   }
+  body.modal-open {
+    overflow: hidden !important;
+    touch-action: none;
+  }
   .app-shell {
     max-width: 480px;
     margin: 0 auto;
@@ -260,11 +264,17 @@
   .chip {
     font-size: 9.5px;
     font-weight: 700;
-    padding: 1.5px 6px;
+    padding: 2px 6.5px;
     border-radius: 4px;
     background: #1e293b;
     color: #cbd5e1;
     border: 1px solid #334155;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip:active {
+    transform: scale(0.95);
+    filter: brightness(1.18);
   }
   .chip-alpha { background: #052e16; color: #86efac; border-color: #166534; }
   .chip-sleeper { background: #0c4a6e; color: #7dd3fc; border-color: #0369a1; }
@@ -367,15 +377,16 @@
   }
   .nav-item.active { color: var(--accent-blue); }
   .nav-icon { font-size: 17px; display: block; margin-bottom: 2px; }
-  /* Slide-Up Drawers */
+  /* Slide-Up Drawers (Elevated above #rollup-console-pill z-index: 9990 + Scroll Contained) */
   .drawer-backdrop {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.76);
-    z-index: 90;
+    background: rgba(0, 0, 0, 0.80);
+    z-index: 10050;
     align-items: flex-end;
     justify-content: center;
+    overscroll-behavior: contain;
   }
   .drawer {
     width: 100%;
@@ -384,8 +395,10 @@
     background: #0f172a;
     border-top: 2px solid #38bdf8;
     border-radius: 18px 18px 0 0;
-    padding: 16px 16px 32px 16px;
+    padding: 16px 16px calc(44px + env(safe-area-inset-bottom, 0px)) 16px;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     box-shadow: 0 -10px 30px rgba(0,0,0,0.65);
   }
   .drawer-handle {
@@ -409,25 +422,43 @@
   }
   .d-k { font-size: 9.5px; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
   .d-v { font-size: 13px; font-weight: 800; color: #f8fafc; margin-top: 2px; }
-  .outlook-box {
-    background: #111827;
-    border-left: 3px solid #38bdf8;
-    padding: 10px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #e2e8f0;
-    margin: 10px 0;
-    line-height: 1.45;
+  .intel-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 10px 0 8px 0;
+    background: #090d16;
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid #1f2937;
+  }
+  .intel-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11.5px;
+    font-weight: 800;
+    padding: 8px 6px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .intel-tab-btn.active {
+    background: #1e3a8a;
+    color: #ffffff;
   }
   .news-card {
     background: #111827;
     border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 9px 11px;
+    border-radius: 9px;
+    padding: 10px 12px;
     margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
   }
-  .news-hl { font-size: 12px; font-weight: 700; color: #bae6fd; }
-  .news-body { font-size: 11.5px; color: #cbd5e1; margin-top: 4px; }
+  .news-card:active { border-color: #38bdf8; }
+  .news-hl { font-size: 12.5px; font-weight: 700; color: #bae6fd; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .news-meta { font-size: 10px; color: #64748b; margin-top: 3px; }
+  .news-body { font-size: 11.5px; color: #cbd5e1; margin-top: 6px; line-height: 1.45; }
   .news-date { font-size: 9.5px; color: #64748b; margin-top: 4px; }
   .team-pick-grid {
     display: grid;
@@ -528,9 +559,15 @@
       <button class="filter-pill" onclick="setFaPos('QB', this)">QB</button>
       <button class="filter-pill" onclick="setFaPos('DST', this)">D/ST</button>
     </div>
+    <div style="margin:6px 12px 2px 12px;padding:7px 11px;background:#111827;border:1px solid #1f2937;border-radius:8px;display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:#cbd5e1;gap:8px;flex-wrap:wrap;">
+      <span>⚖️ <strong>Smart Category VORP:</strong> D/ST vs D/ST • QB vs QB • Skill vs Same-Pos / Valid 2-FLEX</span>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:#38bdf8;font-weight:700;">
+        <input type="checkbox" id="chk-fringe-swap" onchange="renderWaiversTab()"> 2nd D/ST or QB Stash
+      </label>
+    </div>
     <div class="sec-hdr">
       <span>Available Free Agents (Sorted by Your Blend)</span>
-      <span>vs. <span id="fa-drop-anchor-lbl">Bench Floor</span></span>
+      <span>vs. <span id="fa-drop-anchor-lbl">Category Anchor</span></span>
     </div>
     <div id="fa-list-container"></div>
   </div>
@@ -589,14 +626,50 @@
   </div>
 </div>
 
+<!-- TAG EXPLAINABILITY POPUP MODAL (Fires above drawers too!) -->
+<div class="drawer-backdrop" id="tag-backdrop" style="z-index:10150;align-items:center;padding:16px;" onclick="if(event.target.id==='tag-backdrop') closeDrawerModal('tag-backdrop')">
+  <div style="width:100%;max-width:410px;background:#0f172a;border:1.5px solid #38bdf8;border-radius:16px;padding:16px;box-shadow:0 20px 45px rgba(0,0,0,0.85);" onclick="event.stopPropagation()">
+    <div id="tag-body"></div>
+  </div>
+</div>
+
 <script>
 window.ROLLUP_APP_ID = 'fantasy-manager';
+const CLOUD_API_BASE = 'https://ff-2026-manager-d7jwjq5hna-uc.a.run.app';
 
 let LEAGUE_BUNDLE = null;
 let ACTIVE_TEAM_ID = 4;
 let MB_WEIGHT = 0.60;
 let CURRENT_FA_FILTER = 'ALL';
 let CURRENT_WR_HORIZON = 'curr';
+
+// In-Memory Registries (Fixes apostrophe click bug on 100% of players + powers Tag Popups)
+const PLAYER_REGISTRY = new Map();
+const TAG_REGISTRY = new Map();
+let TAG_SEQ = 0;
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function openDrawerModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'flex';
+  document.body.classList.add('modal-open');
+  const pill = document.getElementById('rollup-console-pill');
+  if (pill) pill.style.display = 'none';
+}
+
+function closeDrawerModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+  const anyOpen = Array.from(document.querySelectorAll('.drawer-backdrop')).some(b => b.style.display === 'flex');
+  if (!anyOpen) {
+    document.body.classList.remove('modal-open');
+    const pill = document.getElementById('rollup-console-pill');
+    if (pill) pill.style.display = 'flex';
+  }
+}
 
 function normName(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -675,35 +748,117 @@ function calcBlend(p) {
   };
 }
 
-// Dynamically compute the user's current Bench Floor Anchor based on THEIR Protected List & Blend Slider
-function computeDynamicBenchAnchor(teamData) {
+// ---------------------------------------------------------------------------
+// Category-Aware Smart Drop Anchor (Best-Practice Substitution Buckets!)
+// ---------------------------------------------------------------------------
+function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = false) {
   const roster = getActiveRosterForUser(teamData);
   const protectedSet = getUserProtectedSet(teamData);
-  const droppable = roster.filter(p =>
-    ['RB', 'WR', 'TE'].includes(p.pos) &&
-    !p.is_locked_played &&
-    !protectedSet.has(normName(p.name))
-  );
-  if (droppable.length === 0) {
-    const fallback = (teamData && teamData.default_drop) || { id: 0, name: 'Bench Floor', moneyball_vorp: 0.5, consensus_vorp: 0.5 };
+  const unlockedDroppable = roster.filter(p => !p.is_locked_played && !protectedSet.has(normName(p.name)));
+
+  // 1. D/ST compares strictly 1-for-1 against active/rostered D/ST unless fringe stash is checked
+  if (candidatePos === 'DST' && !allowCrossBucketStash) {
+    const myDsts = roster.filter(p => p.pos === 'DST' && !p.is_locked_played);
+    if (myDsts.length > 0) {
+      myDsts.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
+      const d = myDsts[0];
+      return { id: d.player_id, name: d.name, pos: d.pos, player: d, bucket_label: '1-for-1 D/ST Stream', valid: true, blended_vorp: calcBlend(d).vorp };
+    }
+    return { id: 0, name: 'Active D/ST Locked', pos: 'DST', player: null, bucket_label: 'Active D/ST Locked', valid: false, blended_vorp: 0 };
+  }
+
+  // 2. QB compares strictly against unlocked droppable QBs (never suggests cutting a WR/RB for a 3rd QB!)
+  if (candidatePos === 'QB' && !allowCrossBucketStash) {
+    const myQbs = unlockedDroppable.filter(p => p.pos === 'QB');
+    if (myQbs.length > 0) {
+      myQbs.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
+      const q = myQbs[0];
+      return { id: q.player_id, name: q.name, pos: q.pos, player: q, bucket_label: '1-for-1 QB Swap', valid: true, blended_vorp: calcBlend(q).vorp };
+    }
+    const anyQb = roster.filter(p => p.pos === 'QB');
+    const refQb = anyQb[0];
     return {
-      ...fallback,
-      blended_vorp: (MB_WEIGHT * Number(fallback.moneyball_vorp || 0.5)) + ((1 - MB_WEIGHT) * Number(fallback.consensus_vorp || 0.5))
+      id: refQb ? refQb.player_id : 0,
+      name: refQb ? refQb.name : 'Core QBs',
+      pos: 'QB',
+      player: refQb || null,
+      bucket_label: 'Your QBs Are Core-Locked',
+      valid: false,
+      blended_vorp: refQb ? calcBlend(refQb).vorp : 2.5
     };
   }
-  droppable.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
-  const floorP = droppable[0];
-  const b = calcBlend(floorP);
+
+  // 3. Skill Pool (RB / WR / TE): Same-Position first, or Cross-FLEX only when starter positional minimums stay intact
+  const posMinimums = { RB: 2, WR: 2, TE: 1 };
+  const posCounts = { RB: 0, WR: 0, TE: 0 };
+  roster.forEach(p => { if (posCounts[p.pos] !== undefined) posCounts[p.pos]++; });
+
+  const validSkillDrops = unlockedDroppable.filter(p => {
+    if (!['RB', 'WR', 'TE'].includes(p.pos)) return false;
+    if (p.pos === candidatePos) return true;
+    return (posCounts[p.pos] - 1) >= (posMinimums[p.pos] || 1);
+  });
+
+  if (validSkillDrops.length > 0) {
+    validSkillDrops.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
+    const bestDrop = validSkillDrops[0];
+    const bucketType = bestDrop.pos === candidatePos ? `Same-Pos (${candidatePos})` : `2-FLEX Pool (${bestDrop.pos})`;
+    return {
+      id: bestDrop.player_id,
+      name: bestDrop.name,
+      pos: bestDrop.pos,
+      player: bestDrop,
+      bucket_label: bucketType,
+      valid: true,
+      blended_vorp: calcBlend(bestDrop).vorp
+    };
+  }
+
+  const fallback = (teamData && teamData.default_drop) || { id: 0, name: 'Skill Bench Locked', moneyball_vorp: 1.5, consensus_vorp: 1.5 };
   return {
-    id: floorP.player_id,
-    name: floorP.name,
-    pos: floorP.pos,
-    nfl_team: floorP.nfl_team,
-    moneyball_vorp: b.mbVorp,
-    consensus_vorp: b.csVorp,
-    blended_vorp: b.vorp,
-    blended_ppg: b.ppg
+    id: fallback.id || 0,
+    name: fallback.name || 'Skill Bench Locked',
+    pos: fallback.pos || 'WR',
+    player: null,
+    bucket_label: 'No Unlocked Drop Spot',
+    valid: false,
+    blended_vorp: (MB_WEIGHT * Number(fallback.moneyball_vorp || 1.5)) + ((1 - MB_WEIGHT) * Number(fallback.consensus_vorp || 1.5))
   };
+}
+
+function computeDynamicBenchAnchor(teamData) {
+  return resolveSmartDropAnchor('WR', teamData, false);
+}
+
+// ---------------------------------------------------------------------------
+// Tag Explainability Engine (Tap Any Chip for Instant Definition + Proof!)
+// ---------------------------------------------------------------------------
+function makeInteractiveChip(label, cssClass, title, ruleMeaning, playerWhy) {
+  const id = 't_' + (++TAG_SEQ);
+  TAG_REGISTRY.set(id, { label, title, ruleMeaning, playerWhy });
+  return `<span class="chip ${cssClass}" onclick="openTagPopup(event, '${id}')">${escHtml(label)}</span>`;
+}
+
+function openTagPopup(ev, tagId) {
+  ev.stopPropagation();
+  const info = TAG_REGISTRY.get(tagId);
+  if (!info) return;
+  document.getElementById('tag-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="chip chip-sleeper" style="font-size:11.5px;padding:4px 9px;">${escHtml(info.label)}</span>
+      <button onclick="closeDrawerModal('tag-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:5px 10px;font-weight:800;cursor:pointer;">✕</button>
+    </div>
+    <h3 style="margin:10px 0 6px 0;font-size:17px;color:#ffffff;">${escHtml(info.title)}</h3>
+    <div style="background:#111827;border-left:3px solid #38bdf8;padding:10px 12px;border-radius:6px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;margin-bottom:3px;">📘 What This Tag Means</div>
+      <div style="font-size:12.5px;color:#e2e8f0;line-height:1.45;">${escHtml(info.ruleMeaning)}</div>
+    </div>
+    <div style="background:#052e1666;border:1px solid #166534;padding:10px 12px;border-radius:8px;">
+      <div style="font-size:10px;font-weight:800;color:#4ade80;text-transform:uppercase;margin-bottom:3px;">🎯 Why Applied to This Player</div>
+      <div style="font-size:12.5px;color:#dcfce7;line-height:1.45;">${escHtml(info.playerWhy)}</div>
+    </div>
+  `;
+  openDrawerModal('tag-backdrop');
 }
 
 function quadClass(code) {
@@ -744,51 +899,116 @@ function getActiveTeamData() {
   return LEAGUE_BUNDLE.teams[String(ACTIVE_TEAM_ID)] || LEAGUE_BUNDLE.teams['4'] || Object.values(LEAGUE_BUNDLE.teams)[0];
 }
 
-function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSet = new Set()) {
+function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSet = new Set(), comparisonOverride = null) {
   const b = calcBlend(p);
   const vorpSign = b.vorp >= 0 ? '+' : '';
   const slot = isFa ? (p.availability === 'FREEAGENT' ? 'FA' : 'WVR') : (p.slot || 'BENCH');
   const isBench = slot === 'BENCH';
   const isProtected = !isFa && protectedSet.has(normName(p.name));
   const isStarred = watchlistSet.has(Number(p.player_id));
-  const hasNote = Boolean(getUserPlayerNote(p.player_id));
+  const userNoteText = getUserPlayerNote(p.player_id);
+  const hasNote = Boolean(userNoteText);
 
-  const coreChip = isProtected ? `<span class="chip chip-core">🛡️ Core Locked</span>` : '';
-  const starChip = isStarred ? `<span class="chip chip-star">⭐ Watch</span>` : '';
-  const noteChip = hasNote ? `<span class="chip">📝 Note</span>` : '';
-  const qChip = p.quadrant_label ? `<span class="chip ${quadClass(p.quadrant_code)}">${p.quadrant_label}</span>` : '';
-  const lockChip = p.is_locked_played ? `<span class="chip chip-lock">🔒 Played</span>` : '';
-  const byeChip = p.is_bye ? `<span class="chip chip-trap">BYE</span>` : '';
+  const pKey = (isFa ? 'fa_' : 'ro_') + (p.player_id || normName(p.name));
+  PLAYER_REGISTRY.set(pKey, p);
+
+  let chipsHtml = '';
+  if (isProtected) {
+    chipsHtml += makeInteractiveChip(
+      '🛡️ Core Locked', 'chip-core', 'Protected Core Star',
+      'Protected players are locked against automatic drop suggestions so your core starters & stashes are never cut.',
+      `${p.name} is protected in your personal profile. Open his card to unlock if you want to allow swaps.`
+    );
+  }
+  if (isStarred) {
+    chipsHtml += makeInteractiveChip(
+      '⭐ Watch', 'chip-star', 'Personal Watchlist Target',
+      'Saved privately to your RollupBridge profile for quick tracking in the Waivers Watchlist filter.',
+      `You starred ${p.name} (${p.pos}, ${p.nfl_team}) for priority monitoring.`
+    );
+  }
+  if (hasNote) {
+    chipsHtml += makeInteractiveChip(
+      '📝 Note', '', 'Your Private Scouting Note',
+      'Private player note stored strictly in your isolated user profile.',
+      `Your note on ${p.name}: "${userNoteText}"`
+    );
+  }
+  if (p.quadrant_label) {
+    const quadDefs = {
+      CONSENSUS_ALPHA: 'Elite positive VORP in BOTH our Moneyball statistical model AND league-wide expert/market start rates.',
+      MONEYBALL_SLEEPER: 'Hidden mathematical edge: Moneyball usage/matchup VORP significantly beats public ownership & start %.',
+      EXPERT_VOLUME_HOLD: 'High public/expert trust & start %, though underlying efficiency or matchup faces near-term headwinds.',
+      NAME_BRAND_TRAP: 'Sub-replacement output propped up by outdated name recognition — prime cut or fade candidate.'
+    };
+    chipsHtml += makeInteractiveChip(
+      p.quadrant_label, quadClass(p.quadrant_code), `${p.quadrant_label} Classification`,
+      quadDefs[p.quadrant_code] || 'Dual-index Moneyball vs. Expert Consensus classification.',
+      p.quadrant_reason || `${p.name} grades at ${b.mbVorp.toFixed(2)} Moneyball VORP vs ${b.csVorp.toFixed(2)} Consensus VORP.`
+    );
+  }
+  if (p.is_locked_played) {
+    chipsHtml += makeInteractiveChip(
+      '🔒 Played', 'chip-lock', 'Game Already Kickoff / Locked',
+      'Once a player’s NFL game kicks off, ESPN locks their roster slot until Tuesday morning waivers clear.',
+      `${p.name}'s game (${p.matchup || 'this week'}) has already started or finished, so we omit immediate drop alerts.`
+    );
+  }
+  if (p.is_bye) {
+    chipsHtml += makeInteractiveChip(
+      'BYE', 'chip-trap', 'Scheduled NFL Bye Week',
+      'Players on Bye score 0.00 points this week, but Empirical Bayes Season PPG protects their true rest-of-season stash value.',
+      `${p.name} (${p.nfl_team}) is on Bye in Week ${LEAGUE_BUNDLE.week || 7}. Season PPG (${Number(p.season_ppg || 0).toFixed(1)}) preserves his baseline.`
+    );
+  }
   const injStatus = p.injury_status || p.espn_injury_status || 'Healthy';
-  const injChip = (injStatus !== 'Healthy' && injStatus !== 'ACTIVE')
-    ? `<span class="chip chip-hold">${injStatus}</span>` : '';
-
-  let fringeHtml = '';
+  if (injStatus !== 'Healthy' && injStatus !== 'ACTIVE') {
+    chipsHtml += makeInteractiveChip(
+      injStatus, 'chip-hold', `Official Injury Designation: ${injStatus}`,
+      'Live NFL / Sleeper injury wire status factoring into weekly availability and teammate target/touch vacuums.',
+      `${p.name} is currently listed as ${injStatus}${p.injury_detail ? ' (' + p.injury_detail + ')' : ''}.`
+    );
+  }
   if (Array.isArray(p.fringe_badges)) {
     p.fringe_badges.slice(0, 2).forEach(fb => {
-      fringeHtml += `<span class="chip">${fb.tag}</span>`;
+      chipsHtml += makeInteractiveChip(
+        fb.tag, '', `Fringe Variable: ${fb.tag}`,
+        'Statistically validated weather, offensive line trench cluster, rookie route surge, or short-rest modifier.',
+        fb.detail || `Active modifier on ${p.name} (${p.nfl_team}) for Week ${LEAGUE_BUNDLE.week || 7}.`
+      );
     });
   }
 
-  const encodedPlayer = encodeURIComponent(JSON.stringify(p));
+  let rightSubLine = `${vorpSign}${b.vorp.toFixed(2)} ${p.pos} VORP`;
+  if (isFa && comparisonOverride) {
+    if (comparisonOverride.valid && comparisonOverride.player) {
+      const net = b.vorp - comparisonOverride.blended_vorp;
+      const col = net >= 0 ? '#4ade80' : '#94a3b8';
+      const shortAnchor = comparisonOverride.name.split(' ').pop();
+      rightSubLine = `<span style="color:${col};">${net >= 0 ? '+' : ''}${net.toFixed(2)} vs ${escHtml(shortAnchor)}</span>`;
+    } else {
+      rightSubLine = `<span style="color:#64748b;">${escHtml(comparisonOverride.bucket_label)}</span>`;
+    }
+  }
+
   return `
-    <div class="p-card" onclick="openDossier('${encodedPlayer}', ${isFa})">
+    <div class="p-card" onclick="openDossierByKey('${pKey}', ${isFa})">
       <div class="p-left">
-        <div class="slot-pill ${isBench ? 'slot-bench' : ''}">${slot}</div>
+        <div class="slot-pill ${isBench ? 'slot-bench' : ''}">${escHtml(slot)}</div>
         <div class="p-info">
           <div class="p-name-row">
-            <span class="p-name">${p.name}</span>
-            <span class="p-meta">${p.pos_rank || p.pos} • ${p.nfl_team}</span>
+            <span class="p-name">${escHtml(p.name)}</span>
+            <span class="p-meta">${escHtml(p.pos_rank || p.pos)} • ${escHtml(p.nfl_team)}</span>
           </div>
-          <div class="p-sub">${p.vegas_summary || p.matchup || 'Active'}</div>
+          <div class="p-sub">${escHtml(p.vegas_summary || p.matchup || 'Active')}</div>
           <div class="chip-row">
-            ${coreChip}${starChip}${noteChip}${qChip}${lockChip}${byeChip}${injChip}${fringeHtml}
+            ${chipsHtml}
           </div>
         </div>
       </div>
       <div class="p-right">
         <div class="p-blend-val">${b.ppg.toFixed(1)} <span style="font-size:10px;font-weight:600;color:#94a3b8;">PPG</span></div>
-        <div class="p-vorp-val">${vorpSign}${b.vorp.toFixed(2)} VORP</div>
+        <div class="p-vorp-val">${rightSubLine}</div>
         <div class="p-proj-val">Wk Proj: ${Number(p.wk_proj || 0).toFixed(1)} | Own: ${Number(p.percent_owned || 0).toFixed(0)}%</div>
       </div>
     </div>
@@ -821,7 +1041,7 @@ function renderTeamTab() {
 
   document.getElementById('team-h2h-banner').innerHTML = `
     <div class="h2h-team">
-      <span class="h2h-name">${teamData.team_name}</span>
+      <span class="h2h-name">${escHtml(teamData.team_name)}</span>
       <span class="h2h-sub">Wk ${wk} Starter Proj</span>
       <span class="h2h-score">${myLiveProj.toFixed(1)}</span>
     </div>
@@ -832,26 +1052,27 @@ function renderTeamTab() {
       </div>
     </div>
     <div class="h2h-team" style="text-align:right;">
-      <span class="h2h-name">${oppName}</span>
-      <span class="h2h-sub">${currOpp.opponent_record || 'Opponent'}</span>
+      <span class="h2h-name">${escHtml(oppName)}</span>
+      <span class="h2h-sub">${escHtml(currOpp.opponent_record || 'Opponent')}</span>
       <span class="h2h-score" style="color:#f8fafc;">${oppProj.toFixed(1)}</span>
     </div>
   `;
 
-  // Dynamic Best Available FA comparison vs this user's bench floor
+  // Dynamic Best Available Skill FA comparison vs category-aware skill bench anchor
   const faList = [...(LEAGUE_BUNDLE.free_agents || [])].filter(f => ['RB', 'WR', 'TE'].includes(f.pos));
   faList.sort((a, b) => calcBlend(b).vorp - calcBlend(a).vorp);
   const topFa = faList[0];
   const recBanner = document.getElementById('team-rec-banner');
-  if (topFa && benchAnchor) {
+  if (topFa) {
+    const catAnchor = resolveSmartDropAnchor(topFa.pos, teamData, false);
     const topFaVorp = calcBlend(topFa).vorp;
-    const netGain = topFaVorp - benchAnchor.blended_vorp;
-    if (netGain >= 1.0) {
+    const netGain = topFaVorp - catAnchor.blended_vorp;
+    if (catAnchor.valid && netGain >= 1.0) {
       recBanner.innerHTML = `
         <div class="rec-banner" onclick="switchTab('waivers')" style="cursor:pointer;">
           <div>
             <strong>⚡ Positive-EV Waiver Upgrade (+${netGain.toFixed(2)} VORP):</strong><br>
-            Add <strong>${topFa.name} (${topFa.pos})</strong> / Drop <strong>${benchAnchor.name}</strong>
+            Add <strong>${escHtml(topFa.name)} (${topFa.pos})</strong> / Drop <strong>${escHtml(catAnchor.name)} (${catAnchor.pos})</strong>
           </div>
           <span style="font-weight:800;color:#4ade80;white-space:nowrap;">View ➔</span>
         </div>
@@ -860,7 +1081,7 @@ function renderTeamTab() {
       recBanner.innerHTML = `
         <div class="rec-banner hold">
           <div>
-            <strong>✅ Roster Floor Optimal:</strong> Your lowest unlocked bench player (<strong>${benchAnchor.name}</strong>, ${benchAnchor.blended_vorp >= 0 ? '+' : ''}${benchAnchor.blended_vorp.toFixed(2)} VORP) holds strong value vs. top FA <strong>${topFa.name}</strong>.
+            <strong>✅ Roster Floor Optimal:</strong> Your unlocked skill bench (<strong>${escHtml(benchAnchor.name)}</strong>, ${benchAnchor.blended_vorp >= 0 ? '+' : ''}${benchAnchor.blended_vorp.toFixed(2)} VORP) holds strong value vs. top FA <strong>${escHtml(topFa.name)}</strong>.
           </div>
         </div>
       `;
@@ -887,11 +1108,14 @@ function setFaPos(pos, btnEl) {
 function renderWaiversTab() {
   const teamData = getActiveTeamData();
   if (!teamData) return;
-  const benchAnchor = computeDynamicBenchAnchor(teamData);
+  const allowStash = document.getElementById('chk-fringe-swap')?.checked || false;
   const watchlistSet = getUserWatchlist();
 
-  document.getElementById('fa-drop-anchor-lbl').textContent =
-    `${benchAnchor.name} (${benchAnchor.blended_vorp >= 0 ? '+' : ''}${benchAnchor.blended_vorp.toFixed(2)} VORP)`;
+  const headerAnchorPos = ['QB', 'RB', 'WR', 'TE', 'DST'].includes(CURRENT_FA_FILTER) ? CURRENT_FA_FILTER : 'WR';
+  const hdrComp = resolveSmartDropAnchor(headerAnchorPos, teamData, allowStash);
+  document.getElementById('fa-drop-anchor-lbl').textContent = hdrComp.valid
+    ? `${hdrComp.name} (${hdrComp.pos}: ${hdrComp.blended_vorp >= 0 ? '+' : ''}${hdrComp.blended_vorp.toFixed(2)} VORP)`
+    : hdrComp.bucket_label;
 
   let list = [...(LEAGUE_BUNDLE.free_agents || [])];
   if (CURRENT_FA_FILTER === 'WATCHLIST') {
@@ -908,7 +1132,10 @@ function renderWaiversTab() {
       `<div style="padding:20px;text-align:center;color:#94a3b8;">No players match this filter yet. Tap any player to ⭐ Star them to your personal Watchlist!</div>`;
     return;
   }
-  document.getElementById('fa-list-container').innerHTML = list.slice(0, 35).map(f => renderPlayerCard(f, true, new Set(), watchlistSet)).join('');
+  document.getElementById('fa-list-container').innerHTML = list.slice(0, 35).map(f => {
+    const comp = resolveSmartDropAnchor(f.pos, teamData, allowStash);
+    return renderPlayerCard(f, true, new Set(), watchlistSet, comp);
+  }).join('');
 }
 
 function setWarRoomHorizon(h) {
@@ -919,9 +1146,8 @@ function setWarRoomHorizon(h) {
   renderWarRoomTab();
 }
 
-function renderOpponentAuditCard(opp, benchAnchor) {
+function renderOpponentAuditCard(opp, teamData) {
   if (!opp) return '<div style="padding:16px;color:#94a3b8;">No opponent data available for this horizon.</div>';
-  const dropBlendVorp = benchAnchor.blended_vorp;
 
   let cpsHtml = '';
   const cps = opp.counter_picks || [];
@@ -929,27 +1155,30 @@ function renderOpponentAuditCard(opp, benchAnchor) {
     cpsHtml = `<div style="font-size:11.5px;color:#94a3b8;padding:6px 0;">✅ Opponent has no glaring sub-replacement starters at this horizon.</div>`;
   } else {
     cps.forEach(cp => {
-      const netVorp = Number(cp.block_blended_vorp || 0) - dropBlendVorp;
-      const isActionable = netVorp >= 0.0;
+      const catAnchor = resolveSmartDropAnchor(cp.target_pos, teamData, false);
+      const netVorp = catAnchor.valid ? (Number(cp.block_blended_vorp || 0) - catAnchor.blended_vorp) : -9.9;
+      const isActionable = catAnchor.valid && netVorp >= 0.0;
       const badgeStyle = isActionable
         ? 'background:#052e16;color:#4ade80;border:1px solid #16a34a;'
         : 'background:#1e293b;color:#94a3b8;border:1px solid #334155;';
-      const badgeTxt = isActionable
-        ? `✅ ACTIONABLE BLOCK (${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)} Net VORP vs ${benchAnchor.name})`
-        : `🛡️ HOLD BENCH (${netVorp.toFixed(2)} VORP vs ${benchAnchor.name} — Below Neutral Gate)`;
+      const badgeTxt = !catAnchor.valid
+        ? `🔒 ${catAnchor.bucket_label}`
+        : (isActionable
+          ? `✅ ACTIONABLE BLOCK (${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)} Net VORP vs ${catAnchor.name})`
+          : `🛡️ HOLD ${catAnchor.name} (${netVorp.toFixed(2)} VORP — Below Neutral Gate)`);
 
-      const btnHtml = isActionable
-        ? `<button class="cp-action-btn" onclick="simulateAddDrop(${cp.block_player_id}, ${benchAnchor.id})">🧪 Simulate Counter-Pick on My Roster: +${cp.block_player_name} / -${benchAnchor.name}</button>`
+      const btnHtml = (isActionable && catAnchor.id)
+        ? `<button class="cp-action-btn" onclick="simulateAddDrop(${cp.block_player_id}, ${catAnchor.id})">🧪 Simulate Counter-Pick (${catAnchor.bucket_label}): +${escHtml(cp.block_player_name)} / -${escHtml(catAnchor.name)}</button>`
         : '';
 
       cpsHtml += `
         <div style="background:#090d16;border:1px solid #1f2937;border-radius:9px;padding:10px;margin-top:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
-            <span style="font-size:11px;font-weight:800;color:#fca5a5;">🎯 ${cp.vulnerability}</span>
-            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;${badgeStyle}">${badgeTxt}</span>
+            <span style="font-size:11px;font-weight:800;color:#fca5a5;">🎯 ${escHtml(cp.vulnerability)}</span>
+            <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;${badgeStyle}">${escHtml(badgeTxt)}</span>
           </div>
           <div style="margin-top:6px;font-size:12.5px;font-weight:700;color:#f8fafc;">
-            Top Block Target: <span style="color:#38bdf8;">+${cp.block_player_name} (${cp.target_pos}, ${cp.block_player_team})</span>
+            Top Block Target: <span style="color:#38bdf8;">+${escHtml(cp.block_player_name)} (${cp.target_pos}, ${cp.block_player_team})</span>
             <span style="font-size:11px;color:#94a3b8;font-weight:500;"> • ${Number(cp.block_blended_ppg || 0).toFixed(1)} Blended PPG</span>
           </div>
           ${btnHtml}
@@ -958,14 +1187,14 @@ function renderOpponentAuditCard(opp, benchAnchor) {
     });
   }
 
-  const startersSummary = (opp.starters || []).map(s => `${s.name} (${s.pos}: ${Number(s.wk_proj || s.season_ppg || 0).toFixed(1)})`).join(' • ');
+  const startersSummary = (opp.starters || []).map(s => `${escHtml(s.name)} (${s.pos}: ${Number(s.wk_proj || s.season_ppg || 0).toFixed(1)})`).join(' • ');
 
   return `
     <div class="cp-card">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <span style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Week ${opp.week} Opponent</span>
-          <div style="font-size:15px;font-weight:800;color:#ffffff;cursor:pointer;" onclick="selectTeamForUser(${opp.opponent_team_id})">${opp.opponent_name} <span style="font-size:11.5px;color:#94a3b8;font-weight:600;">(${opp.opponent_record || ''})</span></div>
+          <div style="font-size:15px;font-weight:800;color:#ffffff;cursor:pointer;" onclick="selectTeamForUser(${opp.opponent_team_id})">${escHtml(opp.opponent_name)} <span style="font-size:11.5px;color:#94a3b8;font-weight:600;">(${escHtml(opp.opponent_record || '')})</span></div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:#94a3b8;">Starter Proj</div>
@@ -984,18 +1213,19 @@ function renderWarRoomTab() {
   const wr = teamData.war_room || {};
   const benchAnchor = computeDynamicBenchAnchor(teamData);
 
-  document.getElementById('wr-floor-name').textContent =
-    `${benchAnchor.name} (${benchAnchor.blended_vorp >= 0 ? '+' : ''}${benchAnchor.blended_vorp.toFixed(2)} VORP)`;
+  document.getElementById('wr-floor-name').textContent = benchAnchor.valid
+    ? `${benchAnchor.name} (${benchAnchor.blended_vorp >= 0 ? '+' : ''}${benchAnchor.blended_vorp.toFixed(2)} Skill VORP)`
+    : benchAnchor.bucket_label;
 
   const container = document.getElementById('warroom-content');
   if (CURRENT_WR_HORIZON === 'curr') {
-    container.innerHTML = renderOpponentAuditCard(wr.current_opponent, benchAnchor);
+    container.innerHTML = renderOpponentAuditCard(wr.current_opponent, teamData);
   } else if (CURRENT_WR_HORIZON === 'near') {
     const list = wr.near_term_opponents || [];
-    container.innerHTML = list.map(o => renderOpponentAuditCard(o, benchAnchor)).join('') || '<div style="padding:16px;">No near-term opponents found.</div>';
+    container.innerHTML = list.map(o => renderOpponentAuditCard(o, teamData)).join('') || '<div style="padding:16px;">No near-term opponents found.</div>';
   } else {
     const list = wr.far_term_opponents || [];
-    container.innerHTML = list.map(o => renderOpponentAuditCard(o, benchAnchor)).join('') || '<div style="padding:16px;">No far-term opponents found.</div>';
+    container.innerHTML = list.map(o => renderOpponentAuditCard(o, teamData)).join('') || '<div style="padding:16px;">No far-term opponents found.</div>';
   }
 }
 
@@ -1010,8 +1240,8 @@ function renderNewsAndLeagueTab() {
         <div class="p-left">
           <div class="slot-pill" style="${isMe ? 'background:#0284c7;color:#fff;' : ''}">#${idx + 1}</div>
           <div class="p-info">
-            <div class="p-name">${t.team_name} ${isMe ? '<span class="chip chip-core">YOUR TEAM</span>' : ''}</div>
-            <div class="p-sub">Record: ${t.record_str} • Team ID #${t.team_id} (Tap to load team)</div>
+            <div class="p-name">${escHtml(t.team_name)} ${isMe ? '<span class="chip chip-core">YOUR TEAM</span>' : ''}</div>
+            <div class="p-sub">Record: ${escHtml(t.record_str)} • Team ID #${t.team_id} (Tap to load team)</div>
           </div>
         </div>
         <div class="p-right">
@@ -1035,8 +1265,8 @@ function renderNewsAndLeagueTab() {
       olHtml += `
         <div class="p-card" style="cursor:default;">
           <div>
-            <div style="font-weight:800;color:#fca5a5;font-size:13px;">🛡️ ${team} O-Line Depleted (${info.injured_count} Vet OL Out/IR)</div>
-            <div style="font-size:11px;color:#cbd5e1;margin-top:2px;">${(info.injured_linemen || []).join(' • ')}</div>
+            <div style="font-weight:800;color:#fca5a5;font-size:13px;">🛡️ ${escHtml(team)} O-Line Depleted (${info.injured_count} Vet OL Out/IR)</div>
+            <div style="font-size:11px;color:#cbd5e1;margin-top:2px;">${escHtml((info.injured_linemen || []).join(' • '))}</div>
             <div style="font-size:10px;color:#93c5fd;margin-top:3px;">Impact: Pocket QB -1.5 PPG | PPR Dump-Off RB/TE +0.85 PPG | Opposing D/ST +1.6 PPG</div>
           </div>
         </div>
@@ -1045,78 +1275,163 @@ function renderNewsAndLeagueTab() {
   }
   document.getElementById('oline-cluster-container').innerHTML = olHtml;
 
-  // 3. Breaking News
+  // 3. Inline-Expandable Breaking News
   const news = LEAGUE_BUNDLE.breaking_news || [];
-  document.getElementById('breaking-news-container').innerHTML = news.map(n => `
-    <div class="news-card">
-      <div class="news-hl">${n.headline || 'NFL Update'}</div>
-      <div class="news-body">${n.description || ''}</div>
-      <div class="news-date">${(n.published || '').slice(0, 10)}</div>
-    </div>
-  `).join('');
+  document.getElementById('breaking-news-container').innerHTML = news.map(n => {
+    const desc = n.description || n.headline || '';
+    return `
+      <div class="news-card" onclick="toggleInlineStory(this)">
+        <div class="news-hl"><span>${escHtml(n.headline || 'NFL Update')}</span><span class="story-chev" style="color:#38bdf8;">▾</span></div>
+        <div class="news-meta">${escHtml((n.published || '').slice(0, 10))} • Tap to expand</div>
+        <div class="news-body story-short">${escHtml(desc.slice(0, 115))}${desc.length > 115 ? '...' : ''}</div>
+        <div class="news-body story-full" style="display:none;border-top:1px solid #1f2937;padding-top:6px;">${escHtml(desc)}</div>
+      </div>
+    `;
+  }).join('');
 }
 
-// Interactive Player Dossier with Per-User Core Lock, Starter/Bench Toggle, Watchlist & Private Notes
-function openDossier(encodedPlayer, isFa) {
-  const p = JSON.parse(decodeURIComponent(encodedPlayer));
+// ---------------------------------------------------------------------------
+// 2-Tab Inline-Expandable News & Related Ecosystem Ripple Helpers
+// ---------------------------------------------------------------------------
+function toggleInlineStory(el) {
+  const full = el.querySelector('.story-full');
+  const short = el.querySelector('.story-short');
+  const chev = el.querySelector('.story-chev');
+  if (!full) return;
+  const open = full.style.display === 'block';
+  full.style.display = open ? 'none' : 'block';
+  if (short) short.style.display = open ? 'block' : 'none';
+  if (chev) chev.textContent = open ? '▾' : '▴';
+}
+
+function switchIntelSubTab(which) {
+  document.getElementById('subtab-btn-direct')?.classList.toggle('active', which === 'direct');
+  document.getElementById('subtab-btn-ripple')?.classList.toggle('active', which === 'ripple');
+  const dPane = document.getElementById('subpane-direct');
+  const rPane = document.getElementById('subpane-ripple');
+  if (dPane) dPane.style.display = which === 'direct' ? 'block' : 'none';
+  if (rPane) rPane.style.display = which === 'ripple' ? 'block' : 'none';
+}
+
+function renderExpandableStories(stories) {
+  if (!stories || !stories.length) {
+    return '<div style="color:#64748b;font-size:12px;padding:8px 0;">No additional beat stories published in the last 7 days.</div>';
+  }
+  return stories.map(s => {
+    const ctxPill = s.ripple_context
+      ? `<span style="display:inline-block;background:#1e3a8a;color:#bae6fd;font-size:9.5px;font-weight:800;padding:1.5px 6px;border-radius:4px;margin-bottom:4px;">🔗 ${escHtml(s.ripple_context)}</span>`
+      : '';
+    const extLink = s.url
+      ? `<div style="margin-top:7px;"><a href="${escHtml(s.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#38bdf8;font-size:11px;font-weight:700;text-decoration:none;">Open Full Article (${escHtml(s.source || 'Source')}) ↗</a></div>`
+      : '';
+    return `
+      <div class="news-card" onclick="toggleInlineStory(this)">
+        ${ctxPill}
+        <div class="news-hl"><span>${escHtml(s.headline)}</span><span class="story-chev" style="color:#38bdf8;flex-shrink:0;">▾</span></div>
+        <div class="news-meta">${escHtml(s.source || 'NFL Wire')} • ${escHtml(s.published || 'Recent')} • Tap to expand</div>
+        <div class="news-body story-short">${escHtml(s.summary || '')}</div>
+        <div class="news-body story-full" style="display:none;border-top:1px solid #1f2937;padding-top:6px;">
+          ${escHtml(s.full_body || s.summary || '')}
+          ${extLink}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Interactive Player Dossier (100% Clickable via PLAYER_REGISTRY + Category VORP + 2-Tab Ecosystem News)
+async function openDossierByKey(playerKey, isFa) {
+  const p = PLAYER_REGISTRY.get(playerKey);
+  if (!p) return;
   const b = calcBlend(p);
   const teamData = getActiveTeamData();
-  const benchAnchor = computeDynamicBenchAnchor(teamData);
+  const allowStash = document.getElementById('chk-fringe-swap')?.checked || false;
+  const catAnchor = resolveSmartDropAnchor(p.pos, teamData, allowStash);
   const protectedSet = getUserProtectedSet(teamData);
   const watchlistSet = getUserWatchlist();
   const isProtected = protectedSet.has(normName(p.name));
   const isStarred = watchlistSet.has(Number(p.player_id));
   const userNote = getUserPlayerNote(p.player_id);
 
-  const netVorp = b.vorp - benchAnchor.blended_vorp;
-  const backdrop = document.getElementById('dossier-backdrop');
+  const netVorp = b.vorp - catAnchor.blended_vorp;
   const body = document.getElementById('dossier-body');
 
   let userActionsHtml = '';
   if (isFa) {
-    const btnColor = netVorp >= 1.0 ? '#16a34a' : '#2563eb';
-    const verdictLabel = netVorp >= 1.0
-      ? `🧪 Test Claim (+${netVorp.toFixed(2)} VORP): +${p.name} / -${benchAnchor.name}`
-      : `🧪 Simulate Swap (${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)} VORP): +${p.name} / -${benchAnchor.name}`;
-    userActionsHtml = `
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <button class="cp-action-btn" style="background:${btnColor};margin-top:0;flex:2;" onclick="simulateAddDrop(${p.player_id}, ${benchAnchor.id}); document.getElementById('dossier-backdrop').style.display='none';">
-          ${verdictLabel}
-        </button>
-        <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;flex:1;" onclick="toggleWatchlistPlayer(${p.player_id}); openDossier('${encodedPlayer}', ${isFa});">
-          ${isStarred ? '⭐ Unstar' : '☆ Watchlist'}
-        </button>
-      </div>
-    `;
+    if (catAnchor.valid && catAnchor.id) {
+      const btnColor = netVorp >= 1.0 ? '#16a34a' : '#2563eb';
+      const verdictLabel = netVorp >= 1.0
+        ? `🧪 Claim (${catAnchor.bucket_label}: +${netVorp.toFixed(2)}V): +${escHtml(p.name)} / -${escHtml(catAnchor.name)}`
+        : `🧪 Simulate (${catAnchor.bucket_label}: ${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)}V): -${escHtml(catAnchor.name)}`;
+      userActionsHtml = `
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="cp-action-btn" style="background:${btnColor};margin-top:0;flex:2;" onclick="simulateAddDrop(${p.player_id}, ${catAnchor.id}); closeDrawerModal('dossier-backdrop');">
+            ${verdictLabel}
+          </button>
+          <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;flex:1;" onclick="toggleWatchlistPlayer(${p.player_id}); openDossierByKey('${playerKey}', true);">
+            ${isStarred ? '⭐ Unstar' : '☆ Watch'}
+          </button>
+        </div>
+      `;
+    } else {
+      userActionsHtml = `
+        <div style="background:#111827;border:1px solid #334155;border-radius:9px;padding:9px 11px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div style="font-size:11.5px;color:#94a3b8;"><strong>⚖️ ${escHtml(catAnchor.bucket_label)}:</strong> Out-of-category bench drops are suppressed unless <em>2nd Stash</em> is enabled.</div>
+          <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;width:auto;white-space:nowrap;" onclick="toggleWatchlistPlayer(${p.player_id}); openDossierByKey('${playerKey}', true);">
+            ${isStarred ? '⭐ Unstar' : '☆ Watch'}
+          </button>
+        </div>
+      `;
+    }
   } else {
     const isBench = p.slot === 'BENCH';
     const targetSlot = isBench ? (['RB', 'WR', 'TE'].includes(p.pos) ? 'FLEX' : p.pos) : 'BENCH';
     userActionsHtml = `
       <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;">
-        <button class="cp-action-btn" style="background:${isProtected ? '#1e3a8a' : '#1e293b'};border:1px solid #38bdf8;margin-top:0;flex:1;" onclick="toggleProtectPlayer('${p.name.replace(/'/g, "\\'")}', '${encodedPlayer}', ${isFa})">
+        <button class="cp-action-btn" style="background:${isProtected ? '#1e3a8a' : '#1e293b'};border:1px solid #38bdf8;margin-top:0;flex:1;" onclick="toggleProtectByKey('${playerKey}', false)">
           ${isProtected ? '🛡️ Core Locked (Tap to Unlock)' : '🔓 Unlocked (Tap to Protect)'}
         </button>
-        <button class="cp-action-btn" style="background:#0f766e;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${p.player_id}, '${targetSlot}'); document.getElementById('dossier-backdrop').style.display='none';">
+        <button class="cp-action-btn" style="background:#0f766e;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${p.player_id}, '${targetSlot}'); closeDrawerModal('dossier-backdrop');">
           🔄 Move to ${targetSlot}
         </button>
       </div>
     `;
   }
 
-  const outlookText = p.weekly_outlook || p.season_outlook || 'No ESPN analyst paragraph published for this week yet.';
-  const fringeList = (p.catalysts || []).map(c => `<li style="margin-bottom:4px;">${c}</li>`).join('') || '<li>Neutral slate environment</li>';
+  const outlookText = p.weekly_outlook || p.season_outlook || '';
+  const outlookCard = outlookText ? `
+    <div class="news-card" onclick="toggleInlineStory(this)" style="border-left:3px solid #38bdf8;">
+      <div class="news-hl"><span>🧠 Official ESPN Fantasy Analyst Outlook</span><span class="story-chev" style="color:#38bdf8;">▾</span></div>
+      <div class="news-meta">ESPN Analytics • Week ${LEAGUE_BUNDLE.week || 7} • Tap to expand</div>
+      <div class="news-body story-short">${escHtml(outlookText.slice(0, 145))}${outlookText.length > 145 ? '...' : ''}</div>
+      <div class="news-body story-full" style="display:none;border-top:1px solid #1f2937;padding-top:6px;">${escHtml(outlookText)}</div>
+    </div>
+  ` : '';
+
+  const fringeList = (p.catalysts || []).map(c => `<li style="margin-bottom:4px;">${escHtml(c)}</li>`).join('') || '<li>Neutral slate environment</li>';
+
+  // Extract opponent abbreviation from matchup (e.g. "ATL @ SF" or "vs NO")
+  let oppAbbr = '';
+  const mStr = String(p.matchup || '');
+  const parts = mStr.match(/\b([A-Z]{2,3})\s*@\s*([A-Z]{2,3})\b/);
+  if (parts) {
+    oppAbbr = (parts[1] === p.nfl_team) ? parts[2] : parts[1];
+  } else {
+    const vsMatch = mStr.match(/(?:@|vs\.?)\s*([A-Z]{2,3})\b/i);
+    if (vsMatch) oppAbbr = vsMatch[1].toUpperCase();
+  }
 
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        <span class="chip ${quadClass(p.quadrant_code)}">${p.quadrant_label || 'Player Intel'}</span>
-        <h2 style="margin:6px 0 2px 0;font-size:19px;color:#ffffff;">${p.name}</h2>
-        <div style="font-size:12px;color:#94a3b8;">${p.pos_rank || p.pos} • ${p.nfl_team} • ${p.vegas_summary || p.matchup || ''}</div>
+        <span class="chip ${quadClass(p.quadrant_code)}">${escHtml(p.quadrant_label || 'Player Intel')}</span>
+        <h2 style="margin:6px 0 2px 0;font-size:19px;color:#ffffff;">${escHtml(p.name)}</h2>
+        <div style="font-size:12px;color:#94a3b8;">${escHtml(p.pos_rank || p.pos)} • ${escHtml(p.nfl_team)} • ${escHtml(p.vegas_summary || p.matchup || '')}</div>
       </div>
-      <button onclick="document.getElementById('dossier-backdrop').style.display='none'" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
+      <button onclick="closeDrawerModal('dossier-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
     </div>
 
-    <div style="font-size:11px;color:#93c5fd;margin-top:6px;">${p.quadrant_reason || ''}</div>
+    <div style="font-size:11px;color:#93c5fd;margin-top:6px;">${escHtml(p.quadrant_reason || '')}</div>
 
     <div class="dossier-grid">
       <div class="d-cell">
@@ -1151,7 +1466,7 @@ function openDossier(encodedPlayer, isFa) {
     <div style="background:#111827;border:1px solid #334155;border-radius:9px;padding:9px 11px;margin-bottom:10px;">
       <div style="font-size:10.5px;font-weight:800;color:#38bdf8;margin-bottom:5px;">📝 Your Private Scouting Note (Isolated to Your Account)</div>
       <div style="display:flex;gap:6px;">
-        <input type="text" id="dossier-note-input" value="${userNote.replace(/"/g, '&quot;')}" placeholder="Add private note for ${p.name}..." style="flex:1;background:#090d16;border:1px solid #334155;border-radius:6px;color:#f8fafc;padding:6px 9px;font-size:12px;">
+        <input type="text" id="dossier-note-input" value="${escHtml(userNote)}" placeholder="Add private note for ${escHtml(p.name)}..." style="flex:1;background:#090d16;border:1px solid #334155;border-radius:6px;color:#f8fafc;padding:6px 9px;font-size:12px;">
         <button onclick="saveNoteFromDossier(${p.player_id})" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 11px;font-size:11.5px;font-weight:800;cursor:pointer;">Save</button>
       </div>
     </div>
@@ -1161,11 +1476,75 @@ function openDossier(encodedPlayer, isFa) {
       ${fringeList}
     </ul>
 
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#94a3b8;">🧠 Official ESPN Analyst Outlook</div>
-    <div class="outlook-box">${outlookText}</div>
+    <!-- 2-TAB MULTI-SOURCE NEWS & ECOSYSTEM RIPPLE CENTER -->
+    <div class="intel-tabs">
+      <button class="intel-tab-btn active" id="subtab-btn-direct" onclick="switchIntelSubTab('direct')">📰 Direct Player News</button>
+      <button class="intel-tab-btn" id="subtab-btn-ripple" onclick="switchIntelSubTab('ripple')">🔗 Ripple &amp; Trench Intel</button>
+    </div>
+
+    <div id="subpane-direct">
+      ${outlookCard}
+      <div id="live-direct-news"><div style="color:#94a3b8;font-size:12px;padding:8px 0;">⏳ Pulling multi-source beat stories for ${escHtml(p.name)}...</div></div>
+    </div>
+
+    <div id="subpane-ripple" style="display:none;">
+      <div id="live-ripple-intel"><div style="color:#94a3b8;font-size:12px;padding:8px 0;">⏳ Auditing QB/Teammate dependencies &amp; O-Line vs. Defense health...</div></div>
+    </div>
   `;
 
-  backdrop.style.display = 'flex';
+  openDrawerModal('dossier-backdrop');
+
+  try {
+    const qs = new URLSearchParams({
+      name: p.name || '',
+      pos: p.pos || 'WR',
+      team: p.nfl_team || '',
+      opp: oppAbbr
+    });
+    const resp = await fetch(`${CLOUD_API_BASE}/api/player-ecosystem-intel/${p.player_id || 0}?` + qs.toString());
+    const data = await resp.json();
+    const directBox = document.getElementById('live-direct-news');
+    const rippleBox = document.getElementById('live-ripple-intel');
+    if (directBox) directBox.innerHTML = renderExpandableStories(data.direct_news || []);
+
+    if (rippleBox && data.ripple_intel) {
+      const ri = data.ripple_intel;
+      const tm = ri.trench_matchup || {};
+      const sevStyles = {
+        danger: 'background:#450a0a;border:1px solid #ef4444;color:#fecaca;',
+        warning: 'background:#422006;border:1px solid #d97706;color:#fef08a;',
+        positive: 'background:#052e16;border:1px solid #22c55e;color:#dcfce7;',
+        neutral: 'background:#111827;border:1px solid #334155;color:#e2e8f0;'
+      };
+      const tmStyle = sevStyles[tm.severity || 'neutral'];
+      const relPlayersHtml = (ri.related_players || []).map(rp => {
+        const c = rp.impact_type === 'danger' ? '#fca5a5' : (rp.impact_type === 'positive' ? '#4ade80' : '#93c5fd');
+        return `
+          <div style="background:#111827;border:1px solid #1f2937;border-radius:8px;padding:9px 11px;margin-bottom:7px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:${c};">
+              <span>${escHtml(rp.role)}: ${escHtml(rp.name)}</span>
+              <span>${escHtml(rp.status)}</span>
+            </div>
+            <div style="font-size:11.5px;color:#cbd5e1;margin-top:3px;">${escHtml(rp.why_it_matters)}</div>
+          </div>
+        `;
+      }).join('');
+
+      rippleBox.innerHTML = `
+        <div style="border-radius:10px;padding:10px 12px;margin-bottom:10px;${tmStyle}">
+          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;">${escHtml(tm.badge || 'Trench & Unit Matchup')}</div>
+          <div style="font-size:13px;font-weight:800;margin-top:2px;">${escHtml(tm.headline || '')}</div>
+          <div style="font-size:11.5px;margin-top:4px;line-height:1.4;">${escHtml(tm.detail || '')}</div>
+        </div>
+        ${relPlayersHtml}
+        <div style="font-size:10.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin:10px 0 6px 0;">📰 Related Unit &amp; Teammate Beat Stories</div>
+        ${renderExpandableStories(ri.related_news || [])}
+      `;
+    }
+  } catch (err) {
+    const directBox = document.getElementById('live-direct-news');
+    if (directBox) directBox.innerHTML = '<div style="color:#64748b;font-size:12px;">Live multi-source wire temporarily unreachable.</div>';
+  }
 }
 
 function saveNoteFromDossier(playerId) {
@@ -1174,15 +1553,17 @@ function saveNoteFromDossier(playerId) {
   renderAll();
 }
 
-function toggleProtectPlayer(playerName, encodedPlayer, isFa) {
+function toggleProtectByKey(playerKey, isFa) {
+  const p = PLAYER_REGISTRY.get(playerKey);
+  if (!p) return;
   const teamData = getActiveTeamData();
   const set = getUserProtectedSet(teamData);
-  const nn = normName(playerName);
+  const nn = normName(p.name);
   if (set.has(nn)) set.delete(nn);
   else set.add(nn);
   saveUserProtectedSet(set);
   renderAll();
-  openDossier(encodedPlayer, isFa);
+  openDossierByKey(playerKey, isFa);
 }
 
 function togglePlayerLineupSlot(playerId, newSlot) {
@@ -1212,13 +1593,12 @@ function simulateAddDrop(addPlayerId, dropPlayerId) {
 
 function closeDossier(e) {
   if (e.target.id === 'dossier-backdrop') {
-    document.getElementById('dossier-backdrop').style.display = 'none';
+    closeDrawerModal('dossier-backdrop');
   }
 }
 
 // Multi-User Team Picker & Custom League Modal
 function openTeamSelectorModal() {
-  const backdrop = document.getElementById('team-modal-backdrop');
   const body = document.getElementById('team-modal-body');
   const currentUser = RollupBridge.auth.getCurrentUser();
   const dir = LEAGUE_BUNDLE.teams_directory || [];
@@ -1228,8 +1608,8 @@ function openTeamSelectorModal() {
     return `
       <div class="team-pick-item ${isSel ? 'selected' : ''}" onclick="selectTeamForUser(${t.team_id})">
         <div>
-          <div style="font-size:13.5px;font-weight:800;color:#ffffff;">${t.team_name} ${isSel ? '✅' : ''}</div>
-          <div style="font-size:11px;color:#94a3b8;">Team #${t.team_id} • Record: ${t.record_str} • ${t.points_for} PF</div>
+          <div style="font-size:13.5px;font-weight:800;color:#ffffff;">${escHtml(t.team_name)} ${isSel ? '✅' : ''}</div>
+          <div style="font-size:11px;color:#94a3b8;">Team #${t.team_id} • Record: ${escHtml(t.record_str)} • ${t.points_for} PF</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:13px;font-weight:800;color:#4ade80;">${Number(t.starter_proj || 0).toFixed(1)}</div>
@@ -1245,21 +1625,21 @@ function openTeamSelectorModal() {
         <div style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Multi-User Profile Binding</div>
         <h2 style="margin:3px 0 0 0;font-size:18px;color:#ffffff;">Select Your Fantasy Team</h2>
       </div>
-      <button onclick="document.getElementById('team-modal-backdrop').style.display='none'" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
+      <button onclick="closeDrawerModal('team-modal-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
     </div>
     <p style="font-size:11.5px;color:#94a3b8;margin:6px 0 10px 0;">
-      Signed in as <strong style="color:#e2e8f0;">${currentUser ? currentUser.email : 'Guest'}</strong>. Your selected team, Protected Core locks, Watchlist, and Sandbox Lineup moves are saved strictly to your isolated profile.
+      Signed in as <strong style="color:#e2e8f0;">${escHtml(currentUser ? currentUser.email : 'Guest')}</strong>. Your selected team, Protected Core locks, Watchlist, and Sandbox Lineup moves are saved strictly to your isolated profile.
     </p>
     <div class="team-pick-grid">
       ${teamsHtml}
     </div>
   `;
-  backdrop.style.display = 'flex';
+  openDrawerModal('team-modal-backdrop');
 }
 
 function closeTeamModal(e) {
   if (e.target.id === 'team-modal-backdrop') {
-    document.getElementById('team-modal-backdrop').style.display = 'none';
+    closeDrawerModal('team-modal-backdrop');
   }
 }
 
@@ -1271,7 +1651,7 @@ function selectTeamForUser(teamId) {
     team_id: ACTIVE_TEAM_ID,
     team_name: teamData ? teamData.team_name : `Team #${ACTIVE_TEAM_ID}`
   });
-  document.getElementById('team-modal-backdrop').style.display = 'none';
+  closeDrawerModal('team-modal-backdrop');
   renderAll();
 }
 
