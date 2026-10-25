@@ -19,6 +19,8 @@ import socket
 import socketserver
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict
 
@@ -168,7 +170,58 @@ class RollupRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, directory=str(ROOT_DIR), **kwargs)
 
+    def _proxy_gravity(self, method: str) -> bool:
+        if not self.path.startswith("/api/gravity-proxy/"):
+            return False
+        subpath = self.path[len("/api/gravity-proxy"):]
+        target_url = f"http://127.0.0.1:8765{subpath}"
+        body = None
+        if method == "POST":
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length) if length > 0 else b""
+        req = urllib.request.Request(target_url, data=body, method=method)
+        for hdr in ("Content-Type", "X-Gravity-Token", "Authorization"):
+            val = self.headers.get(hdr)
+            if val:
+                req.add_header(hdr, val)
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                resp_bytes = resp.read()
+                self.send_response(resp.status)
+                self.send_header("Content-Type", resp.headers.get("Content-Type", "application/json"))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(resp_bytes)
+        except urllib.error.HTTPError as he:
+            err_bytes = he.read()
+            self.send_response(he.code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(err_bytes)
+        except Exception as exc:
+            self.send_response(502)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "ERROR", "error": str(exc)}).encode("utf-8"))
+        return True
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Gravity-Token, Authorization")
+        self.end_headers()
+
+    def do_GET(self) -> None:
+        if self._proxy_gravity("GET"):
+            return
+        super().do_GET()
+
     def do_POST(self) -> None:
+        if self._proxy_gravity("POST"):
+            return
         if self.path == "/api/hub/acl":
             length = int(self.headers.get("Content-Length", "0"))
             raw = self.rfile.read(length).decode("utf-8")

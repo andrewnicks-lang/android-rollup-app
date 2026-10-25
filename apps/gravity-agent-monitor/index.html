@@ -176,42 +176,7 @@
       color: var(--text-secondary);
     }
 
-    /* Pinned Approval Gate Card */
-    .approval-banner {
-      background: linear-gradient(145deg, rgba(245, 158, 11, 0.16), rgba(244, 63, 94, 0.12));
-      border: 1.5px solid rgba(245, 158, 11, 0.55);
-      border-radius: var(--radius-lg);
-      padding: 14px;
-      margin-bottom: 14px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    }
-
-    .approval-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #fbbf24;
-      background: rgba(245, 158, 11, 0.18);
-      padding: 3px 9px;
-      border-radius: 999px;
-      margin-bottom: 8px;
-    }
-
-    .approval-title {
-      font-size: 15px;
-      font-weight: 700;
-      margin: 0 0 4px 0;
-    }
-
-    .approval-desc {
-      font-size: 12.5px;
-      color: #cbd5e1;
-      margin: 0 0 12px 0;
-    }
+    /* Action Grid Buttons */
 
     .thumb-grid {
       display: grid;
@@ -904,8 +869,6 @@
         </button>
       </div>
 
-      <div id="approvalGatesContainer"></div>
-
       <div class="section-header">
         <span class="section-title">Active & Recent Agent Sessions</span>
         <span id="computeLatencyBadge" style="font-size:11px;color:var(--accent-cyan);">0ms deterministic</span>
@@ -922,7 +885,8 @@
           <div id="trajTitle" style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Select a session from Pulse</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="pill-btn" onclick="exportHandoffBundle()" title="Generate Cross-PC Handoff Bundle">🔄 Handoff</button>
+          <button class="pill-btn" onclick="syncActiveConversation(true)" title="Force Refresh Conversation">↻ Sync</button>
+          <button class="pill-btn" onclick="exportHandoffBundle()" title="Generate Cross-PC Handoff Bundle">📋 Handoff</button>
           <button class="pill-btn" onclick="switchTab('pulse')">← Back</button>
         </div>
       </div>
@@ -1125,6 +1089,9 @@
       if (window.location.port === '8765') {
         addEp('Local Sidecar', '');
       } else {
+        if (window.location.port === '8090') {
+          addEp('RollupOS Proxy', window.location.origin + '/api/gravity-proxy');
+        }
         let cfg = {};
         if (window.RollupBridge && window.RollupBridge.user) {
           cfg = window.RollupBridge.user.getAppConfig('gravity-agent-monitor') || {};
@@ -1135,8 +1102,9 @@
         }
         const primaryUrl = cfg.primary_workstation_url || DEFAULT_ADMIN_LAN_URL;
         const tsUrl = cfg.tailscale_workstation_url || DEFAULT_ADMIN_TS_URL;
-        // Always try both localhost:8765 (instant on PC) and LAN IP (instant on Phone Wi-Fi)
-        addEp('Localhost:8765', 'http://localhost:8765');
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          addEp('Localhost:8765', 'http://localhost:8765');
+        }
         if (primaryUrl) addEp('DESKTOP-UHI3BO3 (LAN)', primaryUrl);
         if (tsUrl) addEp('DESKTOP-UHI3BO3 (Tailscale)', tsUrl);
       }
@@ -1353,7 +1321,7 @@
         }
         if (valid.length > 0) {
           isOfflineSnapshotMode = false;
-          if (!currentHostBase && valid[0].base) currentHostBase = valid[0].base;
+          currentHostBase = valid[0].base || '';
           if (banner) banner.style.display = 'none';
           setGravityStorage('last_pulse_snapshot', { saved_at: Date.now(), nodes: valid });
           renderMultiHostPulse(valid);
@@ -1428,39 +1396,14 @@
       }
       fleetBar.innerHTML = chips.join('');
 
-      // Merge Gates & Sessions across nodes
-      let allGates = [];
+      // Merge Sessions across nodes
       let allSessions = [];
       for (const n of nodes) {
         const hname = (n.data.workstation && n.data.workstation.hostname) || 'PC';
         if (selectedHostFilter !== 'ALL' && selectedHostFilter !== hname) continue;
-        for (const g of (n.data.pending_gates || [])) {
-          allGates.push({ ...g, _host: hname, _base: n.base });
-        }
         for (const s of (n.data.sessions || [])) {
           allSessions.push({ ...s, _host: hname, _base: n.base });
         }
-      }
-
-      const gatesEl = document.getElementById('approvalGatesContainer');
-      if (allGates.length === 0) {
-        gatesEl.innerHTML = '';
-      } else {
-        gatesEl.innerHTML = allGates.map(g => `
-          <div class="approval-banner">
-            <div class="approval-tag">🔴 Action Required • ${escapeHtml(g._host)} • ${escapeHtml(g.kind)}</div>
-            <h3 class="approval-title">${escapeHtml(g.session_title)}</h3>
-            <p class="approval-desc">${escapeHtml(g.summary || g.title)}</p>
-            <div class="thumb-grid">
-              <button class="thumb-btn approve" onclick="approveGate('${g.conversation_id}', 'Approve & Proceed', '${g._base}')">
-                ✅ Approve & Proceed
-              </button>
-              <button class="thumb-btn secondary" onclick="openConversation('${g.conversation_id}', '${g._base}', '${escapeHtml(g._host)}')">
-                🔍 Inspect Details
-              </button>
-            </div>
-          </div>
-        `).join('');
       }
 
       const sessEl = document.getElementById('sessionsContainer');
@@ -1655,27 +1598,62 @@
       fetchPulse();
     }
 
+    async function fetchConversationWithFallback(convId, preferredBase = '') {
+      const candidates = [];
+      if (preferredBase && !(preferredBase.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+        candidates.push(preferredBase);
+      }
+      for (const ep of getWorkstationEndpoints()) {
+        if (!candidates.includes(ep.base)) candidates.push(ep.base);
+      }
+      for (const base of candidates) {
+        try {
+          const res = await gravityFetch(`${base}/api/v1/conversations/${convId}`);
+          if (res.ok) {
+            currentHostBase = base;
+            return await res.json();
+          }
+        } catch (err) {}
+      }
+      throw new Error('All workstation endpoints unreachable');
+    }
+
     async function openConversation(convId, hostBase = '', hostName = 'PC') {
+      const isSwitching = currentConversationId !== convId;
       currentConversationId = convId;
-      currentHostBase = hostBase || '';
+      if (isSwitching) {
+        window._lastRenderedTrajEtag = null;
+        window._auxOverviewExpanded = false;
+      }
       switchTab('trajectory');
       document.getElementById('trajHostBadge').textContent = `🖥 HOST: ${hostName}`;
-      document.getElementById('stepsContainer').innerHTML = '<div style="padding:20px;color:var(--text-secondary);">Loading trajectory…</div>';
+      if (isSwitching) {
+        document.getElementById('stepsContainer').innerHTML = '<div style="padding:20px;color:var(--text-secondary);">Loading live conversation…</div>';
+      }
       try {
-        const base = currentHostBase || getActiveHostBase();
-        const res = await gravityFetch(`${base}/api/v1/conversations/${convId}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
+        const data = await fetchConversationWithFallback(convId, hostBase || currentHostBase);
         setGravityStorage('traj_' + convId, data);
-        renderTrajectory(data);
+        renderTrajectory(data, isSwitching);
       } catch (e) {
         const cachedTraj = getGravityStorage('traj_' + convId, null);
         if (cachedTraj) {
-          renderTrajectory(cachedTraj);
+          renderTrajectory(cachedTraj, isSwitching);
           showToast('📡 Showing cached offline trajectory');
         } else {
           document.getElementById('stepsContainer').innerHTML = '<div style="color:var(--accent-rose);">Workstation offline & no cached trajectory for this session yet.</div>';
         }
+      }
+    }
+
+    async function syncActiveConversation(manualToast = false) {
+      if (!currentConversationId) return;
+      try {
+        const data = await fetchConversationWithFallback(currentConversationId, currentHostBase);
+        setGravityStorage('traj_' + currentConversationId, data);
+        renderTrajectory(data, manualToast);
+        if (manualToast) showToast('↻ Conversation synced');
+      } catch (e) {
+        if (manualToast) showToast('⚠️ Sync failed — check workstation connection');
       }
     }
 
@@ -1769,25 +1747,35 @@
       return out.join('');
     }
 
-    function renderTrajectory(data) {
-      document.getElementById('trajTitle').textContent = data.title;
-      const subBar = document.getElementById('subagentsBar');
+    function toggleAuxOverview() {
+      window._auxOverviewExpanded = !window._auxOverviewExpanded;
+      const body = document.getElementById('auxOverviewBody');
+      const chev = document.getElementById('auxOverviewChev');
+      if (body) body.style.display = window._auxOverviewExpanded ? 'block' : 'none';
+      if (chev) chev.textContent = window._auxOverviewExpanded ? '▴' : '▾';
+    }
 
-      // Render Antigravity Overview Panel (Background Tasks / Artifacts / Modified Files) matching Desktop Screenshot
+    function renderTrajectory(data, forceScroll = false) {
+      window._lastTrajData = data;
+      document.getElementById('trajTitle').textContent = data.title || 'Conversation';
+      const stateBadge = data.state_label ? ` • ${data.state_label}` : '';
+      document.getElementById('trajHostBadge').textContent =
+        `🖥 ${data.project_name || 'Workspace'} (${data.step_count || 0} steps${stateBadge})`;
+
+      const subBar = document.getElementById('subagentsBar');
       const bgTasks = data.background_tasks || [];
       const artifacts = data.artifacts || [];
       const modFiles = data.modified_files || [];
       const auxSections = [];
 
       if (bgTasks.length > 0) {
-        const showTasks = window._showAllBgTasks ? bgTasks : bgTasks.slice(0, 2);
         auxSections.push(`
           <div class="aux-section">
             <div class="aux-header">
               <span>Background Tasks</span>
               <span class="aux-count-pill">${bgTasks.length}</span>
             </div>
-            ${showTasks.map(t => `
+            ${bgTasks.slice(0, 4).map(t => `
               <div class="aux-row">
                 ${t.status === 'RUNNING'
                   ? `<div class="status-spinning-ring" style="width:13px;height:13px;"></div>`
@@ -1798,11 +1786,6 @@
                 </span>
               </div>
             `).join('')}
-            ${bgTasks.length > 2 ? `
-              <div style="font-size:11.5px;color:#64748b;padding:4px 4px 0 4px;cursor:pointer;" onclick="window._showAllBgTasks=!window._showAllBgTasks;openConversation('${data.conversation_id}', currentHostBase)">
-                ${window._showAllBgTasks ? 'Show less' : 'See all'}
-              </div>
-            ` : ''}
           </div>
         `);
       }
@@ -1825,42 +1808,95 @@
       }
 
       if (modFiles.length > 0) {
-        const showFiles = window._showAllModFiles ? modFiles : modFiles.slice(0, 5);
         auxSections.push(`
           <div class="aux-section">
             <div class="aux-header">
               <span>Modified Files</span>
               <span class="aux-count-pill">${modFiles.length}</span>
             </div>
-            ${showFiles.map(f => `
+            ${modFiles.slice(0, 8).map(f => `
               <div class="aux-row" onclick="openArtifact('${encodeURIComponent(f.path)}', 'md', '${escapeHtml(f.name)}')">
                 ${getFileIcon(f.ext)}
                 <span style="font-weight:500;flex-shrink:0;">${escapeHtml(f.name)}</span>
                 <span class="aux-file-path">${escapeHtml(f.dir)}</span>
               </div>
             `).join('')}
-            ${modFiles.length > 5 ? `
-              <div style="font-size:11.5px;color:#64748b;padding:4px 4px 0 4px;cursor:pointer;" onclick="window._showAllModFiles=!window._showAllModFiles;openConversation('${data.conversation_id}', currentHostBase)">
-                ${window._showAllModFiles ? 'Show less' : `See all (${modFiles.length})`}
-              </div>
-            ` : ''}
           </div>
         `);
       }
 
-      subBar.innerHTML = auxSections.length > 0
-        ? `<div class="aux-overview-card">${auxSections.join('')}</div>`
+      const summaryParts = [];
+      if (artifacts.length > 0) summaryParts.push(`📂 ${artifacts.length} Artifact${artifacts.length > 1 ? 's' : ''}`);
+      if (modFiles.length > 0) summaryParts.push(`📝 ${modFiles.length} Modified File${modFiles.length > 1 ? 's' : ''}`);
+      if (bgTasks.length > 0) summaryParts.push(`⚙️ ${bgTasks.length} Task${bgTasks.length > 1 ? 's' : ''}`);
+
+      const isExp = Boolean(window._auxOverviewExpanded);
+      subBar.innerHTML = summaryParts.length > 0
+        ? `<div class="aux-overview-card">
+             <div style="padding:9px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;font-weight:600;color:#cbd5e1;" onclick="toggleAuxOverview()">
+               <span>${summaryParts.join(' &nbsp;•&nbsp; ')}</span>
+               <span id="auxOverviewChev" style="color:var(--accent-cyan);font-size:12px;">${isExp ? '▴' : '▾'}</span>
+             </div>
+             <div id="auxOverviewBody" style="display:${isExp ? 'block' : 'none'};border-top:1px solid rgba(255,255,255,0.06);">
+               ${auxSections.join('')}
+             </div>
+           </div>`
         : '';
+
+      const newEtag = data.etag || `${data.updated_at}_${(data.steps || []).length}`;
+      if (!forceScroll && window._lastRenderedTrajEtag === newEtag) {
+        return;
+      }
+      const hadPreviousEtag = Boolean(window._lastRenderedTrajEtag);
+      window._lastRenderedTrajEtag = newEtag;
 
       const stepsEl = document.getElementById('stepsContainer');
       const html = [];
+      let pendingPlumbing = [];
+
+      function flushPlumbingGroup() {
+        if (pendingPlumbing.length === 0) return;
+        let thoughtCount = 0;
+        const toolList = [];
+        const detailLines = [];
+        for (const p of pendingPlumbing) {
+          if (p.has_thinking) {
+            thoughtCount++;
+            if (p.thinking_preview) detailLines.push(`🧠 ${p.thinking_preview}`);
+          }
+          for (const t of (p.tool_calls || [])) {
+            toolList.push(t.summary || t.name);
+            detailLines.push(`🔧 ${t.name}: ${t.summary}`);
+          }
+        }
+        const labelParts = [];
+        if (thoughtCount > 0) labelParts.push(`🧠 Thought (${thoughtCount})`);
+        if (toolList.length > 0) {
+          const previewTools = toolList.slice(0, 2).join(', ') + (toolList.length > 2 ? ` +${toolList.length - 2} more` : '');
+          labelParts.push(`🔧 ${toolList.length} tool${toolList.length > 1 ? 's' : ''}: ${previewTools}`);
+        }
+        const summaryHeader = labelParts.join(' • ') || `⚙️ ${pendingPlumbing.length} intermediate steps`;
+        html.push(`
+          <div class="plumbing-pill" onclick="this.classList.toggle('open')">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(summaryHeader)}</span>
+              <span style="font-size:10px;color:var(--accent-cyan);flex-shrink:0;">Details ▾</span>
+            </div>
+            <div class="plumbing-details">${escapeHtml(detailLines.join('\n\n'))}</div>
+          </div>
+        `);
+        pendingPlumbing = [];
+      }
+
       for (const st of (data.steps || [])) {
         if (st.type === 'USER_INPUT' && st.content) {
+          flushPlumbingGroup();
           html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(st.content)}</div></div>`);
         } else if (st.type === 'SYSTEM_MESSAGE' && st.content) {
           const msgMatch = st.content.match(/content=([\s\S]*?)<\/SYSTEM_MESSAGE>/);
           const cleanSys = msgMatch ? msgMatch[1].trim() : st.content;
-          if (!cleanSys.startsWith('Task id "')) {
+          if (!cleanSys.startsWith('Task id "') && !cleanSys.startsWith('[Notice]')) {
+            flushPlumbingGroup();
             html.push(`
               <div class="step-item">
                 <div class="bubble-user" style="background:rgba(56,189,248,0.16);border:1px solid rgba(56,189,248,0.4);color:#e0f2fe;">
@@ -1870,37 +1906,33 @@
             `);
           }
         } else {
-          // Collapsible thinking + tool calls pill
           if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {
-            const toolsLabel = (st.tool_calls || []).map(t => `${t.summary}`).join(' • ');
-            html.push(`
-              <div class="plumbing-pill" onclick="this.classList.toggle('open')">
-                <div>🧠 ${st.has_thinking ? 'Thought' : 'Step'} ${toolsLabel ? '• 🔧 ' + escapeHtml(toolsLabel) : ''} <span style="float:right;font-size:10px;">Details ▾</span></div>
-                <div class="plumbing-details">${escapeHtml(st.thinking_preview || '')}${toolsLabel ? '\nTools: ' + escapeHtml(toolsLabel) : ''}</div>
-              </div>
-            `);
+            pendingPlumbing.push(st);
           }
           if (st.type === 'PLANNER_RESPONSE' && st.content) {
+            flushPlumbingGroup();
             html.push(`<div class="step-item"><div class="bubble-agent">${renderMarkdownFlow(st.content)}</div></div>`);
           }
         }
       }
-      stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
-    }
+      flushPlumbingGroup();
 
-    async function approveGate(convId, message) {
-      await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idempotency_key: uuid4(),
-          conversation_id: convId,
-          action: 'APPROVE',
-          message: message
-        })
-      });
-      showToast('✅ Approval sent to workstation');
-      fetchPulse();
+      if (data.sidebar_indicator === 'BOUNCING_DOTS' || data.state === 'THINKING' || data.state === 'RUNNING_TOOL') {
+        html.push(`
+          <div class="step-item" style="display:flex;align-items:center;gap:8px;padding:8px 12px;color:var(--accent-cyan);font-size:12px;">
+            <div class="status-bouncing-dots"><span></span><span></span><span></span></div>
+            <span>${escapeHtml(data.state_label || 'Agent is working…')}</span>
+          </div>
+        `);
+      }
+
+      stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
+
+      if (forceScroll || hadPreviousEtag) {
+        setTimeout(() => {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: forceScroll ? 'auto' : 'smooth' });
+        }, 40);
+      }
     }
 
     async function sendQuickSteer(action, message) {
@@ -1926,8 +1958,7 @@
       }
       fetchPulse();
       if (document.getElementById('tab-trajectory').classList.contains('active')) {
-        const tRes = await gravityFetch(`${getActiveHostBase()}/api/v1/conversations/${currentConversationId}`);
-        if (tRes.ok) renderTrajectory(await tRes.json());
+        setTimeout(() => syncActiveConversation(false), 600);
       }
     }
 
@@ -2079,10 +2110,7 @@
         document.getElementById('tab-trajectory').classList.contains('active') &&
         document.querySelectorAll('.plumbing-pill.open').length === 0
       ) {
-        try {
-          const tRes = await gravityFetch(`${getActiveHostBase()}/api/v1/conversations/${currentConversationId}`);
-          if (tRes.ok) renderTrajectory(await tRes.json());
-        } catch (e) {}
+        await syncActiveConversation(false);
       }
     }, 3000);
   </script>

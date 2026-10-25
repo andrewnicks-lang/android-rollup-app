@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#080c18" />
+  <title>Sapphire — RollupOS Fiduciary Companion</title>
+  <script src="../../bridge/rollup-bridge.js"></script>
+  <style>
+    body {
+      margin: 0; padding: 14px 14px 92px 14px;
+      background: radial-gradient(circle at top right, #1e1b4b 0%, #080c18 65%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Google Sans', 'Segoe UI', sans-serif;
+    }
+    .shell { max-width: 500px; margin: 0 auto; }
+    .hdr {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(16, 24, 45, 0.9); border: 1px solid #253663; border-radius: 14px; padding: 12px 14px;
+    }
+    .hdr h1 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 6px; }
+    .sub { font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
+    .card {
+      background: #11182d; border: 1px solid #253663; border-radius: 12px; padding: 13px; margin-top: 12px;
+    }
+    .stream { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { padding: 11px 13px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
+    .b-user { align-self: flex-end; background: #1d4ed8; color: #fff; max-width: 85%; }
+    .b-sap {
+      align-self: flex-start; background: linear-gradient(135deg, #17203d, #2b1436);
+      border: 1px solid rgba(236, 72, 153, 0.4); max-width: 92%;
+    }
+    .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+    input[type="text"], select {
+      flex: 1; background: #090e1c; color: #fff; border: 1px solid #253663;
+      border-radius: 8px; padding: 9px 11px; font-size: 13.5px;
+    }
+    button {
+      background: linear-gradient(135deg, #2563eb, #db2777); color: #fff; border: none;
+      border-radius: 8px; padding: 9px 13px; font-weight: 700; font-size: 12.5px; cursor: pointer;
+    }
+    .mini {
+      background: #0b1120; border: 1px solid #3b82f666; color: #93c5fd;
+      padding: 4px 9px; font-size: 11px; margin-top: 7px; margin-right: 6px;
+    }
+    .def-box {
+      margin-top: 8px; padding: 9px; background: #080c18; border-left: 3px solid #f59e0b;
+      border-radius: 6px; font-size: 12px; color: #e2e8f0; display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="shell" id="sapphire-root" style="display:none;">
+  <div class="hdr">
+    <div>
+      <h1>💎 Sapphire</h1>
+      <div class="sub" id="conn-label">New Orleans Velvet • Fiduciary Cartridge</div>
+    </div>
+    <select id="mob-master" style="flex:0 0 auto;width:auto;font-size:12px;">
+      <option value="ACTIVE">🟢 Active</option>
+      <option value="SILENT_INBOX">🌙 Silent</option>
+      <option value="OFF">⛔ Off</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div id="mob-stream" class="stream"></div>
+    <form id="mob-form" class="row">
+      <input type="text" id="mob-input" placeholder="Ask Sapphire on the go..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:13px;">📥 Staged Inbox (Stage, Never Send)</strong>
+      <a id="open-full-studio" href="#" target="_blank" style="font-size:11.5px;color:#60a5fa;">Open Full Slider Studio &rarr;</a>
+    </div>
+    <div id="mob-inbox" style="margin-top:8px;font-size:12.5px;color:#94a3b8;">Checking Cloud Run...</div>
+  </div>
+</div>
+
+<script>
+window.ROLLUP_APP_ID = 'sapphire-companion';
+if (window.RollupBridge && RollupBridge.enforceAccessGate('sapphire-companion', 'admin_only')) {
+  RollupBridge.mountInAppConsolePill({ appId: 'sapphire-companion', visibility: 'admin_only' });
+  document.getElementById('sapphire-root').style.display = 'block';
+
+  const cfg = (RollupBridge.config && RollupBridge.config.getAll) ? RollupBridge.config.getAll('sapphire-companion') : {};
+  const API_BASE = (cfg.sapphire_cloud_url || 'http://127.0.0.1:8085').replace(/\/$/, '');
+  document.getElementById('open-full-studio').href = API_BASE;
+
+  async function sApi(path, opts) {
+    const r = await fetch(API_BASE + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...(opts || {})
+    });
+    return r.json();
+  }
+
+  function addBubble(text, isSapphire, decisionId) {
+    const stream = document.getElementById('mob-stream');
+    const d = document.createElement('div');
+    d.className = 'bubble ' + (isSapphire ? 'b-sap' : 'b-user');
+    d.textContent = text;
+    if (isSapphire && decisionId && decisionId !== 'NONE') {
+      const btnRow = document.createElement('div');
+      const defBtn = document.createElement('button');
+      defBtn.className = 'mini';
+      defBtn.textContent = '🛡️ Defend That';
+      const defBox = document.createElement('div');
+      defBox.className = 'def-box';
+      defBtn.onclick = async () => {
+        if (defBox.style.display === 'block') { defBox.style.display = 'none'; return; }
+        const res = await sApi('/api/decisions/' + decisionId + '/defend', { method: 'POST' });
+        defBox.textContent = res.sapphire_defense || '';
+        defBox.style.display = 'block';
+      };
+      btnRow.appendChild(defBtn);
+      d.appendChild(btnRow);
+      d.appendChild(defBox);
+    }
+    stream.appendChild(d);
+    stream.scrollTop = stream.scrollHeight;
+  }
+
+  async function refreshMobile() {
+    try {
+      const st = await sApi('/api/status');
+      document.getElementById('mob-master').value = st.channels.master_mode;
+      document.getElementById('conn-label').textContent = 'Connected • ' + st.pending_inbox_count + ' Pending in Inbox';
+      const ib = await sApi('/api/inbox?status=PENDING');
+      const box = document.getElementById('mob-inbox');
+      if (!ib.items || !ib.items.length) {
+        box.textContent = 'No pending drafts—Sapphire is watching quietly.';
+      } else {
+        box.innerHTML = ib.items.map(i => `<div style="padding:6px 0;border-bottom:1px solid #1e293b;"><strong>${i.title}</strong> — ${i.summary}</div>`).join('');
+      }
+    } catch (e) {
+      document.getElementById('conn-label').textContent = 'Offline (Configure Cloud Run URL in Hub Settings)';
+    }
+  }
+
+  document.getElementById('mob-master').onchange = async (e) => {
+    const st = await sApi('/api/status');
+    st.channels.master_mode = e.target.value;
+    await sApi('/api/settings/channels', { method: 'PUT', body: JSON.stringify(st.channels) });
+  };
+
+  document.getElementById('mob-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const inp = document.getElementById('mob-input');
+    const msg = inp.value.trim();
+    if (!msg) return;
+    inp.value = '';
+    addBubble(msg, false);
+    const res = await sApi('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: msg, channel: 'rollup', include_audio: false })
+    });
+    addBubble(res.sapphire_reply || res.detail || '', true, res.decision_id);
+    refreshMobile();
+  };
+
+  addBubble("Evening, Andrew. Sapphire's wired into your pocket—say the word whenever you want a second set of eyes.", true, 'NONE');
+  refreshMobile();
+}
+</script>
+</body>
+</html>

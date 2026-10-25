@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-v5';
+const CACHE_NAME = 'rollup-hub-v6';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -33,8 +33,9 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  // Critical: Never intercept cross-origin requests (such as local workstation :8765 sidecar)
   if (!event.request.url.startsWith(self.location.origin)) return;
+  const u = new URL(event.request.url);
+  if (u.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     fetch(event.request, { cache: 'no-cache' })
