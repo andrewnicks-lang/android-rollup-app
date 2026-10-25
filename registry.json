@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.1",
-    "updated_at": "2026-10-24T21:20:56.196226",
+    "version": "1.0.2",
+    "updated_at": "2026-10-24T22:15:40.485020",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -102,9 +102,9 @@
       ]
     },
     "apk_version": "1.0.0",
-    "build_hash": "c75b54bdcb",
-    "stamped_version": "1.0.1",
-    "ota_etag": "24a838a9f4"
+    "build_hash": "0a727a06bf",
+    "stamped_version": "1.0.2",
+    "ota_etag": "a94b764996"
   },
   "apps": [
     {
@@ -115,7 +115,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -144,9 +144,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "0e11f8270e",
-      "stamped_version": "1.3.0",
-      "updated_at": "2026-10-24T21:20:56.196226"
+      "build_hash": "27934efaad",
+      "stamped_version": "1.3.1",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
+      "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
+      "manual_source_hash": "27934efaad",
+      "manual_updated_at": "2026-10-24T22:15:44.969673"
     },
     {
       "id": "fantasy-manager",
@@ -156,7 +160,7 @@
       "icon": "\ud83c\udfc8",
       "accent": "#38bdf8",
       "category": "Sports & Analytics",
-      "version": "2.7.1",
+      "version": "2.7.2",
       "entry": "apps/fantasy-manager/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -186,9 +190,13 @@
           "defaultForAdmin": 60
         }
       ],
-      "build_hash": "a9fd2eae1c",
-      "stamped_version": "2.7.1",
-      "updated_at": "2026-10-24T21:25:01.443139"
+      "build_hash": "a414ebe54e",
+      "stamped_version": "2.7.2",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/fantasy-manager_User_Manual.pdf",
+      "manual_html": "manuals/fantasy-manager_User_Manual.html",
+      "manual_source_hash": "a414ebe54e",
+      "manual_updated_at": "2026-10-24T22:15:49.153948"
     },
     {
       "id": "csc-site-discovery",
@@ -198,7 +206,7 @@
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -223,9 +231,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "1430e834b4",
-      "stamped_version": "1.0.0",
-      "updated_at": "2026-10-24T20:25:59.221110"
+      "build_hash": "aeb188532b",
+      "stamped_version": "1.0.1",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
+      "manual_html": "manuals/csc-site-discovery_User_Manual.html",
+      "manual_source_hash": "aeb188532b",
+      "manual_updated_at": "2026-10-24T22:15:52.788434"
     },
     {
       "id": "field-snap",
@@ -235,7 +247,7 @@
       "icon": "\ud83d\udcf8",
       "accent": "#4ade80",
       "category": "Field & Productivity",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "entry": "apps/field-snap/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -250,9 +262,13 @@
           "defaultForAdmin": "CSC / Personal"
         }
       ],
-      "build_hash": "bcb4765375",
-      "stamped_version": "1.0.0",
-      "updated_at": "2026-10-24T20:25:59.221110"
+      "build_hash": "6ccac51804",
+      "stamped_version": "1.0.1",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/field-snap_User_Manual.pdf",
+      "manual_html": "manuals/field-snap_User_Manual.html",
+      "manual_source_hash": "6ccac51804",
+      "manual_updated_at": "2026-10-24T22:15:56.891085"
     },
     {
       "id": "bridge-lab",
@@ -262,16 +278,20 @@
       "icon": "\ud83e\uddea",
       "accent": "#c084fc",
       "category": "Admin & Dev Tools",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "entry": "apps/bridge-lab/index.html",
       "visibility": "admin_only",
       "offline_assets": [
         "apps/bridge-lab/index.html"
       ],
       "userConfigSchema": [],
-      "build_hash": "b679e3582d",
-      "stamped_version": "1.0.0",
-      "updated_at": "2026-10-24T20:25:59.221110"
+      "build_hash": "7cb3ca3220",
+      "stamped_version": "1.0.1",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/bridge-lab_User_Manual.pdf",
+      "manual_html": "manuals/bridge-lab_User_Manual.html",
+      "manual_source_hash": "7cb3ca3220",
+      "manual_updated_at": "2026-10-24T22:16:00.672398"
     },
     {
       "id": "shd-div2-intel",
@@ -281,7 +301,7 @@
       "icon": "\ud83e\udd85",
       "accent": "#ff6b00",
       "category": "Gaming & Tactical Tools",
-      "version": "4.2.0",
+      "version": "4.2.1",
       "entry": "apps/shd-div2-intel/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -307,9 +327,13 @@
           "defaultForAdmin": "true"
         }
       ],
-      "build_hash": "ce16e3a0d0",
-      "stamped_version": "4.2.0",
-      "updated_at": "2026-10-24T20:25:59.221110"
+      "build_hash": "281d6d1c69",
+      "stamped_version": "4.2.1",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/shd-div2-intel_User_Manual.pdf",
+      "manual_html": "manuals/shd-div2-intel_User_Manual.html",
+      "manual_source_hash": "281d6d1c69",
+      "manual_updated_at": "2026-10-24T22:16:04.902684"
     },
     {
       "id": "sapphire-companion",
@@ -319,7 +343,7 @@
       "icon": "\ud83d\udc8e",
       "accent": "#ec4899",
       "category": "Admin & Dev Tools",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "entry": "apps/sapphire-companion/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -334,9 +358,13 @@
           "defaultForAdmin": "http://127.0.0.1:8085"
         }
       ],
-      "build_hash": "1cc3a9fc15",
-      "stamped_version": "2.0.0",
-      "updated_at": "2026-10-24T20:25:59.221110"
+      "build_hash": "bbc50d9410",
+      "stamped_version": "2.0.1",
+      "updated_at": "2026-10-24T22:15:40.485020",
+      "manual_pdf": "manuals/sapphire-companion_User_Manual.pdf",
+      "manual_html": "manuals/sapphire-companion_User_Manual.html",
+      "manual_source_hash": "bbc50d9410",
+      "manual_updated_at": "2026-10-24T22:16:09.083525"
     }
   ]
 }

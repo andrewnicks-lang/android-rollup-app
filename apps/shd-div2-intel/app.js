@@ -656,6 +656,8 @@ function renderBackupModalContent() {
       <button class="btn-action" onclick="closeBackupModal()">✕ Close</button>
     </div>
 
+    ${window.RollupBridge && window.RollupBridge.manuals ? window.RollupBridge.manuals.renderSettingsCardHtml('shd-div2-intel', 'SHD Build Intelligence Manual') : ''}
+
     <!-- Section 0: Android Rollup Hub Cartridge & PC Sync -->
     <div style="background:linear-gradient(135deg, rgba(255,107,0,0.14), rgba(15,23,42,0.95));border:1px solid var(--shd-orange);border-radius:6px;padding:12px;margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">

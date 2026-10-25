@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
 <title>RollupOS — Multi-User Mobile App Hub</title>
-<script src="./bridge/rollup-bridge.js?v=1.2"></script>
+<script src="./bridge/rollup-bridge.js?v=1.3"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
@@ -970,6 +970,9 @@ function renderAppsDashboard() {
           <div class="badge-row">
             ${syncBadgeHtml}
             ${teamTag}
+            <a class="btn-secondary" href="./${app.manual_pdf || ('manuals/' + app.id + '_User_Manual.pdf')}?h=${encodeURIComponent(app.build_hash || '')}" target="_blank" rel="noopener" style="padding:3px 8px;font-size:10px;text-decoration:none;border-color:#0284c7;color:#7dd3fc;display:inline-flex;align-items:center;gap:4px;" title="Open dynamically maintained PDF User Manual">
+              📖 Manual (PDF)
+            </a>
             <button class="btn-secondary" style="padding:3px 7px;font-size:10px;" onclick="clearMyAppData('${app.id}', '${app.title.replace(/'/g, "\\'")}')" title="Reset your isolated storage for this app">
               🧹 Data (${userKeysCount})
             </button>

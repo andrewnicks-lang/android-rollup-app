@@ -1,0 +1,115 @@
+{
+  "app_id": "sapphire-companion",
+  "title": "Sapphire Fiduciary Companion",
+  "subtitle": "24/7 Personal Ambient Strategist \u2022 New Orleans Velvet Cartridge #01",
+  "description": "Private admin-only StarkCore companion connected to personal Google Workspace with Iceberg [Defend That] receipts, Gemini 1.5c/min audio, and Stage-Never-Send Inbox.",
+  "icon": "\ud83d\udc8e",
+  "accent": "#ec4899",
+  "category": "Admin & Dev Tools",
+  "version": "2.0.1",
+  "build_hash": "bbc50d9410",
+  "visibility": "admin_only",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:16",
+  "tagline": "Private Admin-Only 24/7 Fiduciary Ambient Strategist \u2022 Iceberg `[Defend That]` Receipts & Stage-Never-Send Inbox",
+  "quickstart": [
+    {
+      "step": "Configure Your Sapphire Endpoint (`\u2699\ufe0f Settings`)",
+      "detail": "Tap `\u2699\ufe0f Settings` in the top system strip to set your `sapphire_cloud_url` (Cloud Run URL for 24/7 mobile access or `http://127.0.0.1:8085` when tunneling locally)."
+    },
+    {
+      "step": "Set Your Ambient Operating Posture",
+      "detail": "Use the top-right mode selector (`\ud83d\udfe2 Active`, `\ud83c\udf19 Silent`, or `\u26d4 Off`) to control whether Sapphire proactively surfaces briefings or queues items quietly in your Staged Inbox."
+    },
+    {
+      "step": "Chat & Audit Reasoning via `\ud83d\udee1\ufe0f Defend That`",
+      "detail": "Send concise strategic questions in the mobile stream. Every substantive recommendation carries an Iceberg `\ud83d\udee1\ufe0f Defend That` button that reveals full underlying fiduciary receipts on demand."
+    },
+    {
+      "step": "Review Your Stage-Never-Send Inbox",
+      "detail": "Inspect pending drafts and action items prepared by Sapphire\u2014nothing is ever transmitted externally without your explicit review and approval."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83d\udc8e Ambient Posture Header",
+      "purpose": "Live connection telemetry, pending inbox badge count, and 1-tap `Active / Silent / Off` master mode switch."
+    },
+    {
+      "screen": "\ud83d\udcac Fiduciary Strategy Stream",
+      "purpose": "Low-noise conversational feed with expandable `\ud83d\udee1\ufe0f Defend That` evidentiary receipts."
+    },
+    {
+      "screen": "\ud83d\udce5 Staged Inbox (`Stage, Never Send`)",
+      "purpose": "Queue of drafted responses and flagged workspace items awaiting human sign-off, plus deep link to Full Slider Studio."
+    },
+    {
+      "screen": "\u2699\ufe0f Cartridge Settings Sheet",
+      "purpose": "Configure Cloud Run / Local endpoint URL, reset local cache, and open this User Manual PDF."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "Iceberg Output Pattern (`\ud83d\udee1\ufe0f Defend That`)",
+      "body": "Keeps mobile replies concise and executive-ready on the surface while preserving deterministic citations, calendar/email context, and trade-off math one tap underneath."
+    },
+    {
+      "title": "Strict `Stage, Never Send` Safety Boundary",
+      "body": "Enforces human-in-the-loop governance: Sapphire prepares drafts in your Staged Inbox and never auto-sends external emails or mutates production records unapproved."
+    }
+  ],
+  "pro_tips": [
+    "Switch to `\ud83c\udf19 Silent` during deep-focus meetings so Sapphire continues triaging into your Staged Inbox without interruptions."
+  ],
+  "user_config_schema": [
+    {
+      "key": "sapphire_cloud_url",
+      "label": "Sapphire Cloud Run / Local URL",
+      "type": "text",
+      "default": "http://127.0.0.1:8085",
+      "defaultForAdmin": "http://127.0.0.1:8085"
+    }
+  ],
+  "offline_assets": [
+    "apps/sapphire-companion/index.html"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "sapphire-companion",
+    "file_inventory": [
+      "index.html"
+    ],
+    "tabs": [],
+    "headings": [
+      "\ud83d\udc8e Sapphire"
+    ],
+    "buttons": [
+      {
+        "label": "Send",
+        "action": ""
+      }
+    ],
+    "modals": [],
+    "inputs": [
+      "Ask Sapphire on the go..."
+    ],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)"
+    ],
+    "recent_commits": [
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "ca24880",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:20)"
+      }
+    ]
+  }
+}

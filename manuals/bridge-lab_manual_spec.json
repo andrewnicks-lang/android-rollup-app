@@ -1,0 +1,96 @@
+{
+  "app_id": "bridge-lab",
+  "title": "RollupBridge Inspector",
+  "subtitle": "Admin Sandbox: Multi-Tenant Storage, Vault & Hardware Diagnostics",
+  "description": "Developer diagnostic console to inspect per-user storage isolation, test Android WebAPK capabilities, and verify multi-user permissions.",
+  "icon": "\ud83e\uddea",
+  "accent": "#c084fc",
+  "category": "Admin & Dev Tools",
+  "version": "1.0.1",
+  "build_hash": "7cb3ca3220",
+  "visibility": "admin_only",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:15",
+  "tagline": "Admin Multi-Tenant Diagnostic Console \u2022 Session Verification, Live ACL Matrix & Storage Namespace Inspector",
+  "quickstart": [
+    {
+      "step": "Launch as Hub Administrator",
+      "detail": "Bridge Lab is gated with `visibility: admin_only`. Non-admin testers attempting to open its URL are automatically blocked by `RollupBridge.enforceAccessGate`."
+    },
+    {
+      "step": "Verify Active Session & Impersonation State",
+      "detail": "Check Panel 1 (`Active Session & Role Verification`) to inspect the hydrated user object, Google email, role badge, and admin flags."
+    },
+    {
+      "step": "Audit the Live Access Control Matrix (ACL)",
+      "detail": "Inspect Panel 2 (`Live Hub Access Control Matrix`) to confirm exact `authorized_apps` arrays and `default_app_configs` synced from `registry.json` or mobile Admin edits."
+    },
+    {
+      "step": "Inspect Raw `rollup::v1::*` Device Keys",
+      "detail": "Review Panel 3 to audit every isolated per-user storage key, secret vault key name, and OTA `installed_ledger` entry stored on the current device."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "1. Active Session & Role Card",
+      "purpose": "Displays live JSON output of `RollupBridge.auth.getCurrentUser()`."
+    },
+    {
+      "screen": "2. Live Hub ACL Matrix Card",
+      "purpose": "Displays complete multi-user permission dictionary from `RollupBridge.auth.getACL()`."
+    },
+    {
+      "screen": "3. Device Storage Key Ledger",
+      "purpose": "Sorted inventory of all `rollup::v1::*` keys in `localStorage` for isolation auditing."
+    },
+    {
+      "screen": "\u2699\ufe0f Universal Settings Sheet",
+      "purpose": "Quick access to storage reset tools and this diagnostic User Manual PDF."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "Zero-Trust Namespace Verification",
+      "body": "Confirms visually that every app writes strictly under `rollup::v1::u::<email>::app::<appId>::<key>`, preventing cross-user or cross-cartridge state collisions."
+    }
+  ],
+  "pro_tips": [
+    "Use `\ud83d\udc41\ufe0f Preview as User` in Hub Admin Mode first, then check which apps remain visible\u2014confirming `admin_only` cartridges like Bridge Lab stay hidden from testers."
+  ],
+  "user_config_schema": [],
+  "offline_assets": [
+    "apps/bridge-lab/index.html"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "bridge-lab",
+    "file_inventory": [
+      "index.html"
+    ],
+    "tabs": [],
+    "headings": [
+      "\ud83e\uddea RollupBridge Multi-Tenant Inspector"
+    ],
+    "buttons": [],
+    "modals": [],
+    "inputs": [],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)"
+    ],
+    "recent_commits": [
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "75878e4",
+        "date": "2026-10-24",
+        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
+      }
+    ]
+  }
+}

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHD Build Intelligence — RollupOS User Manual (v4.2.1)</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.48in 0.5in;
+  }
+  :root {
+    --accent: #ff6b00;
+    --bg-page: #070b14;
+    --bg-card: #111827;
+    --bg-subtle: #0f172a;
+    --text-main: #f8fafc;
+    --text-sec: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border: #1e293b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .manual-shell {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .screen-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+  .pdf-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #0284c7;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border-left: 5px solid var(--accent);
+    border-top: 1px solid #334155;
+    border-right: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 16px;
+  }
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .hero-kicker {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+  }
+  .hero h1 {
+    margin: 4px 0 4px 0;
+    font-size: 21px;
+    letter-spacing: -0.3px;
+  }
+  .hero-sub {
+    font-size: 12.5px;
+    color: #cbd5e1;
+  }
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+    font-size: 10.5px;
+  }
+  .meta-pill {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+  }
+  h2 {
+    font-size: 14.5px;
+    margin: 18px 0 9px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-main);
+    page-break-after: avoid;
+  }
+  .step-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .step-card {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    page-break-inside: avoid;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 99px;
+    background: var(--accent);
+    color: #070b14;
+    font-weight: 900;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-title {
+    font-weight: 800;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.8px;
+    margin-top: 6px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 7px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #0f172a;
+    color: #f8fafc;
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .feature-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 9px;
+    padding: 10px 13px;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  .feature-box h3 {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+  }
+  .feature-box p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  .subtle-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-sec);
+    page-break-inside: avoid;
+  }
+  .delta-callout {
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid #f59e0b;
+    border-radius: 9px;
+    padding: 9px 12px;
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .chip {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #bae6fd;
+  }
+  .chip-muted {
+    background: var(--bg-subtle);
+    border-color: var(--border);
+    color: var(--text-sec);
+  }
+  code {
+    font-family: Consolas, 'SFMono-Regular', monospace;
+    font-size: 11px;
+    background: rgba(148, 163, 184, 0.16);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  ul {
+    margin: 6px 0;
+    padding-left: 19px;
+  }
+  li {
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  .muted { color: var(--text-muted); }
+  .footer-stamp {
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Clean Executive Print Stylesheet for Edge Headless PDF Generation */
+  @media print {
+    :root {
+      --bg-page: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-subtle: #f1f5f9;
+      --text-main: #0f172a;
+      --text-sec: #334155;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+    }
+    body {
+      padding: 0;
+      font-size: 9.8pt;
+      line-height: 1.42;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .screen-toolbar { display: none !important; }
+    .hero {
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    th, .step-num {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .step-num { color: #ffffff; background: #0f172a; }
+    .chip {
+      background: #e0f2fe;
+      border-color: #0284c7;
+      color: #075985;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .chip-muted {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    code {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="manual-shell">
+  <div class="screen-toolbar">
+    <span style="font-size:11.5px;font-weight:700;color:#93c5fd;">📖 RollupOS Auto-Maintained Application Manual</span>
+    <a class="pdf-dl-btn" href="./shd-div2-intel_User_Manual.pdf?h=281d6d1c69" target="_blank">📄 Open / Download Official PDF</a>
+  </div>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-kicker">RollupOS Application User Manual • Gaming &amp; Tactical Tools</div>
+        <h1>🦅 SHD Build Intelligence</h1>
+        <div class="hero-sub">100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver &amp; Expertise 413/500 Tracker</div>
+      </div>
+    </div>
+    <div class="meta-strip">
+      <span class="meta-pill">Version: v4.2.1</span>
+      <span class="meta-pill">Build Hash: #281d6d1c</span>
+      <span class="meta-pill">🔒 Per-User Authorized Cartridge</span>
+      <span class="meta-pill">Auto-Synced: 2026-10-24 22:16</span>
+    </div>
+  </div>
+
+  
+
+  <h2>1. ⚡ 60-Second Quickstart Guide</h2>
+  <div class="step-grid">
+    
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Load Your Armory Seed or Import Snapshot (`⚙️ PC Sync / Vault`)</div>
+            <div class="step-desc">Open SHD Build Intelligence and tap `⚙️ PC Sync / Vault` (or the top Sync button) to pull your PC Armory seed or import a saved `.json` gear dump into your isolated Google user profile.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Filter &amp; Inspect Rolled Gear in the Armory</div>
+            <div class="step-desc">Search weapons, exotics, named items, brand sets, and gear sets—tap any item row for Click-to-Verify roll percentages, core attributes, talents, and recalibration potential.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Theorycraft in the 6-Slot Interactive Workbench</div>
+            <div class="step-desc">Equip Mask, Backpack, Chest, Gloves, Holster, and Kneepads (or clone an Admin Showcase Loadout like `Lengmo Pesti Turm`) to see live brand bonuses, CHC/CHD caps, and synergy diagnostics.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Track Countdown Loot &amp; Expertise (`413/500`)</div>
+            <div class="step-desc">Check the Countdown Target Loot Radar to see which brand/slot to farm next, and log proficiency ranks in the Expertise Mastery Tracker.</div>
+          </div>
+        </div>
+  </div>
+
+  <h2>2. 🧭 Screen-by-Screen &amp; Navigation Map</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%;">Screen / Tab / Modal</th>
+        <th>What It Controls &amp; How to Use It</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🎒 Armory Inventory</td>
+          <td>Searchable, filterable gear &amp; weapon database with God-roll badges and Click-to-Verify attribute breakdown modals.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🛠️ 6-Slot Build Workbench</td>
+          <td>Interactive loadout assembler with Admin Showcase templates, live brand-set bonus counters, and stat rollups.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🧠 Build Solver &amp; Target Radar</td>
+          <td>100% EAC-safe deterministic solver matching your owned stash items against target DPS/Skill/Tank archetypes and Countdown farm priorities.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🎖️ Expertise Tracker</td>
+          <td>Category-by-category proficiency checklist toward max Expertise (`413/500+`) saved per user.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">⚙️ Backup Vault &amp; PC &lt;-&gt; Hub Sync</td>
+          <td>1-tap JSON backup export/import and PC-to-Android cartridge synchronization.</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <h2>3. 🔬 In-Depth Feature Guide &amp; Workflows</h2>
+  
+        <div class="feature-box">
+          <h3>100% Easy Anti-Cheat (EAC) Safe Architecture</h3>
+          <p>Operates strictly on exported OCR/JSON inventory snapshots—zero game memory hooks, zero packet inspection, and full offline mobile theorycrafting anywhere.</p>
+        </div>
+
+        <div class="feature-box">
+          <h3>Cloneable Admin Showcase Loadouts</h3>
+          <p>Friends/clanmates authorized on RollupOS can inspect read-only Admin Showcase builds (`Lengmo Pesti Turm`, Striker setups, etc.) and clone them into their own private Workbench without overwriting your stash.</p>
+        </div>
+
+  <h2>4. ⚙️ Settings, Secret Vault &amp; Multi-User Data Isolation</h2>
+  
+        <table>
+          <thead>
+            <tr>
+              <th>Setting Key</th>
+              <th>Field Description</th>
+              <th>Type</th>
+              <th>Default</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>agent_callsign</code></td>
+              <td style="font-weight:600;">SHD Agent Callsign</td>
+              <td><code>text</code></td>
+              <td><code>SHD Agent</code></td>
+            </tr>
+
+            <tr>
+              <td><code>show_admin_showcase</code></td>
+              <td style="font-weight:600;">Show Admin Showcase Loadouts (Read-Only / Cloneable)</td>
+              <td><code>text</code></td>
+              <td><code>true</code></td>
+            </tr></tbody>
+        </table>
+  <div class="subtle-box" style="margin-top:8px;">
+    <div><strong>🔒 Storage Namespace Pattern:</strong> <code>rollup::v1::u::&lt;google-email&gt;::app::shd-div2-intel::*</code></div>
+    <div style="margin-top:4px;"><strong>📦 Active App Storage Keys:</strong> <code>__user_config__</code> (Managed automatically)</div>
+    <div style="margin-top:4px;"><strong>🔐 Private On-Device Vault Secrets:</strong> None required (uses Hub session)</div>
+    <div class="chip-wrap"><span class="chip">Isolated Per-User Storage (RollupBridge)</span></div>
+  </div>
+
+  <h2>5. 🎛️ Live UI Controls Reference &amp; Recent Updates</h2>
+  <div class="subtle-box">
+    <div style="font-weight:700;margin-bottom:4px;">Interactive Controls Detected in Current Build (<code>v4.2.1</code>):</div>
+    <div class="chip-wrap"><span class="chip chip-muted">BUILD MATRIX Ctrl+1</span><span class="chip chip-muted">🛠️ WORKBENCH (1) Ctrl+2</span><span class="chip chip-muted">ARMORY (0) Ctrl+3</span><span class="chip chip-muted">🎖️ EXPERTISE (413/500) Ctrl+4</span><span class="chip chip-muted">FARM RADAR Ctrl+5</span><span class="chip chip-muted">DECONSTRUCT (0) Ctrl+6</span><span class="chip chip-muted">🧪 Demo Stash</span><span class="chip chip-muted">🧹 Clear</span><span class="chip chip-muted">💾 Sync / Vault</span><span class="chip chip-muted">📸 Snap (F9)</span><span class="chip chip-muted">➕ Custom Build</span><span class="chip chip-muted">+ Add</span><span class="chip chip-muted">📋 Builds</span><span class="chip chip-muted">🛡️ 6-Slot Gear</span></div>
+    <div style="font-weight:700;margin:10px 0 4px 0;">Pro Tips &amp; Best Practices:</div>
+    <ul><li>Before deconstructing stash clutter in-game, filter the Build Solver to verify an item isn&#x27;t a unicorn off-brand roll needed for a hybrid chest/backpack slot.</li>
+<li>Export a `.json` backup snapshot after major Countdown farming sessions so your PC and phone stay in lockstep.</li></ul>
+    <div style="font-weight:700;margin:10px 0 4px 0;">Recent Cartridge Update Log (Auto-Tracked on Publish):</div>
+    <ul><li><code>22d612c</code> <span class="muted">(2026-10-24)</span> — RollupOS Hub &amp; Mini-App sync (2026-10-24 19:59)</li>
+<li><code>75878e4</code> <span class="muted">(2026-10-24)</span> — Initial publish: RollupOS Multi-User Android Hub &amp; Mini-Apps</li></ul>
+  </div>
+
+  <div class="footer-stamp">
+    <span>RollupOS Automated Documentation Engine • Cartridge ID: <code>shd-div2-intel</code></span>
+    <span>Canonical PDF: <code>manuals/shd-div2-intel_User_Manual.pdf</code></span>
+  </div>
+</div>
+</body>
+</html>

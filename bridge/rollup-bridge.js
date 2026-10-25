@@ -41,6 +41,15 @@
     return './registry.json';
   }
 
+  function resolveManualUrl(appId, ext = 'pdf', hash = '') {
+    const cleanId = encodeURIComponent(appId || detectAppId());
+    const path = global.location.pathname || '';
+    const idx = path.indexOf('/apps/');
+    const prefix = idx !== -1 ? path.slice(0, idx + 1) : './';
+    const q = hash ? `?h=${encodeURIComponent(hash)}` : '';
+    return `${prefix}manuals/${cleanId}_User_Manual.${ext}${q}`;
+  }
+
   // Decode Google Identity Services JWT credential
   function parseGoogleJwt(token) {
     try {
@@ -852,6 +861,244 @@
     }
   };
 
+  // Dynamic Per-App User Manual Viewer & PDF Accessor
+  const manuals = {
+    _lookupBuildHash(appId) {
+      try {
+        const raw = localStorage.getItem(REGISTRY_CACHE_KEY);
+        if (raw) {
+          const reg = JSON.parse(raw);
+          const found = (reg.apps || []).find((a) => a.id === appId);
+          if (found && found.build_hash) return found.build_hash;
+        }
+      } catch (e) {}
+      const ledger = updates.getLedger();
+      return (ledger.apps && ledger.apps[appId] && ledger.apps[appId].build_hash) || '';
+    },
+
+    getPdfUrl(customAppId = null, customHash = '') {
+      const appId = customAppId || detectAppId();
+      const h = customHash || this._lookupBuildHash(appId);
+      return resolveManualUrl(appId, 'pdf', h);
+    },
+
+    getHtmlUrl(customAppId = null, customHash = '') {
+      const appId = customAppId || detectAppId();
+      const h = customHash || this._lookupBuildHash(appId);
+      return resolveManualUrl(appId, 'html', h);
+    },
+
+    openPdf(customAppId = null) {
+      const url = this.getPdfUrl(customAppId);
+      global.open(url, '_blank', 'noopener');
+    },
+
+    close() {
+      const el = document.getElementById('rollup-manual-drawer');
+      if (el) el.remove();
+    },
+
+    open(customAppId = null, mode = 'hybrid') {
+      const appId = customAppId || detectAppId();
+      if (mode === 'pdf') {
+        this.openPdf(appId);
+        return;
+      }
+      this.close();
+      const pdfUrl = this.getPdfUrl(appId);
+      const htmlUrl = this.getHtmlUrl(appId);
+
+      const overlay = document.createElement('div');
+      overlay.id = 'rollup-manual-drawer';
+      overlay.style.cssText =
+        'position:fixed;inset:0;z-index:10050;background:rgba(3,7,18,0.86);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;font-family:system-ui,-apple-system,sans-serif;';
+
+      overlay.innerHTML = `
+        <div style="width:100%;max-width:680px;height:90vh;background:#070b14;border:1px solid #334155;border-radius:16px 16px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -12px 40px rgba(0,0,0,0.75);">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:#0f172a;border-bottom:1px solid #1e293b;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:7px;min-width:0;">
+              <span style="font-size:15px;">📖</span>
+              <strong style="font-size:13px;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">User Manual &amp; Quickstart</strong>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+              <a href="${pdfUrl}" target="_blank" rel="noopener" style="background:#0284c7;color:#ffffff;text-decoration:none;font-size:11px;font-weight:800;padding:5px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:4px;">
+                📄 Official PDF
+              </a>
+              <button id="rollup-man-share" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;font-size:11px;font-weight:700;padding:5px 9px;border-radius:7px;cursor:pointer;">
+                📤 Share
+              </button>
+              <button id="rollup-man-close" style="background:#1e293b;border:1px solid #334155;color:#f8fafc;font-size:12px;font-weight:800;padding:4px 9px;border-radius:7px;cursor:pointer;">
+                ✕
+              </button>
+            </div>
+          </div>
+          <iframe src="${htmlUrl}" title="Application User Manual" style="flex:1;width:100%;border:none;background:#070b14;"></iframe>
+        </div>
+      `;
+
+      overlay.onclick = (ev) => {
+        if (ev.target === overlay) this.close();
+      };
+      document.body.appendChild(overlay);
+
+      const closeBtn = document.getElementById('rollup-man-close');
+      if (closeBtn) closeBtn.onclick = () => this.close();
+
+      const shareBtn = document.getElementById('rollup-man-share');
+      if (shareBtn) {
+        shareBtn.onclick = () => {
+          const absPdf = new URL(pdfUrl, global.location.href).href;
+          files.share(`${appId} User Manual (PDF)`, `RollupOS User Manual for ${appId}`, absPdf);
+        };
+      }
+    },
+
+    renderSettingsCardHtml(customAppId = null, customHeading = '') {
+      const appId = customAppId || detectAppId();
+      const pdfUrl = this.getPdfUrl(appId);
+      const heading = customHeading || 'Application User Manual &amp; Quickstart';
+      return `
+        <div style="margin:10px 0;padding:10px 12px;background:linear-gradient(135deg,#0f172a,#172554);border:1px solid #0284c7;border-radius:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;text-align:left;">
+          <div style="min-width:170px;flex:1;">
+            <div style="font-size:12px;font-weight:800;color:#f8fafc;">📖 ${heading}</div>
+            <div style="font-size:10.5px;color:#bae6fd;margin-top:2px;">Quickstart steps, feature deep-dives &amp; printable PDF</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+            <button type="button" onclick="window.RollupBridge && RollupBridge.manuals.open('${appId}')" style="background:#0284c7;color:#ffffff;border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;">
+              📖 Read Guide
+            </button>
+            <a href="${pdfUrl}" target="_blank" rel="noopener" style="background:#0f172a;color:#7dd3fc;border:1px solid #38bdf8;text-decoration:none;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:800;">
+              📄 PDF
+            </a>
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  // Universal Cartridge Settings Sheet (Auto-generated for any app without custom settings)
+  const settings = {
+    close() {
+      const el = document.getElementById('rollup-settings-drawer');
+      if (el) el.remove();
+    },
+
+    async open(customAppId = null) {
+      const appId = customAppId || detectAppId();
+      this.close();
+
+      let reg = null;
+      try {
+        const raw = localStorage.getItem(REGISTRY_CACHE_KEY);
+        if (raw) reg = JSON.parse(raw);
+      } catch (e) {}
+      if (!reg) {
+        try {
+          reg = await updates.fetchLiveRegistry();
+        } catch (e) {
+          reg = { apps: [] };
+        }
+      }
+
+      const appMeta = (reg.apps || []).find((a) => a.id === appId) || {
+        id: appId,
+        title: appId,
+        icon: '📱',
+        version: '1.0.0',
+        userConfigSchema: []
+      };
+      const currentUser = auth.getCurrentUser();
+      const currentCfg = user.getAppConfig(appId);
+      const schema = Array.isArray(appMeta.userConfigSchema) ? appMeta.userConfigSchema : [];
+      const keyCount = storage.listKeys(appId).length;
+
+      const fieldsHtml = schema.length
+        ? schema
+            .map((f) => {
+              const val =
+                currentCfg[f.key] !== undefined
+                  ? currentCfg[f.key]
+                  : currentUser && currentUser.is_admin && f.defaultForAdmin !== undefined
+                  ? f.defaultForAdmin
+                  : f.default || '';
+              const safeVal = String(val).replace(/"/g, '&quot;');
+              const inputType = f.type === 'number' ? 'number' : 'text';
+              return `
+                <div style="margin-top:9px;">
+                  <label style="display:block;font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:4px;">${f.label || f.key}</label>
+                  <input data-rollup-cfg-key="${f.key}" data-rollup-cfg-type="${inputType}" type="${inputType}" value="${safeVal}" style="width:100%;box-sizing:border-box;background:#090d16;border:1px solid #334155;border-radius:8px;padding:8px 10px;color:#f8fafc;font-size:12.5px;">
+                </div>
+              `;
+            })
+            .join('')
+        : `<div style="margin-top:8px;padding:9px 11px;background:#090d16;border:1px solid #1e293b;border-radius:8px;font-size:11.5px;color:#94a3b8;">Zero manual configuration fields required — state binds automatically to your Google profile.</div>`;
+
+      const saveBtnHtml = schema.length
+        ? `<button id="rollup-cfg-save-btn" type="button" style="flex:1;background:#2563eb;color:#ffffff;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;">💾 Save Settings &amp; Reload</button>`
+        : '';
+
+      const overlay = document.createElement('div');
+      overlay.id = 'rollup-settings-drawer';
+      overlay.style.cssText =
+        'position:fixed;inset:0;z-index:10040;background:rgba(3,7,18,0.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif;';
+
+      overlay.innerHTML = `
+        <div style="width:100%;max-width:440px;max-height:88vh;overflow-y:auto;background:#111827;border:1px solid #334155;border-radius:16px;padding:16px;color:#f8fafc;box-shadow:0 16px 40px rgba(0,0,0,0.7);">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div>
+              <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Cartridge Settings &amp; Documentation</div>
+              <div style="font-size:16px;font-weight:800;margin-top:2px;">${appMeta.icon || '📱'} ${appMeta.title} <span style="font-size:11px;color:#94a3b8;font-weight:600;">v${appMeta.version || '1.0.0'}</span></div>
+            </div>
+            <button id="rollup-cfg-close-btn" type="button" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:5px 10px;font-weight:800;cursor:pointer;">✕</button>
+          </div>
+
+          <div style="margin-top:10px;padding:7px 10px;background:#052e16;border:1px solid #166534;border-radius:8px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#dcfce7;">
+            <span>👤 <strong>${currentUser ? currentUser.email : 'guest'}</strong></span>
+            <span>🔒 ${keyCount} Isolated Key(s)</span>
+          </div>
+
+          ${manuals.renderSettingsCardHtml(appId)}
+
+          <div style="margin-top:10px;">
+            <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;">App Preferences</div>
+            ${fieldsHtml}
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #1f2937;">
+            ${saveBtnHtml}
+            <button id="rollup-cfg-reset-btn" type="button" style="background:#1e293b;border:1px solid #475569;color:#fca5a5;border-radius:8px;padding:9px 11px;font-size:11.5px;font-weight:700;cursor:pointer;">🧹 Reset App Data</button>
+          </div>
+        </div>
+      `;
+
+      overlay.onclick = (ev) => {
+        if (ev.target === overlay) this.close();
+      };
+      document.body.appendChild(overlay);
+
+      document.getElementById('rollup-cfg-close-btn').onclick = () => this.close();
+      document.getElementById('rollup-cfg-reset-btn').onclick = () => {
+        if (!confirm(`Clear your saved data for "${appMeta.title}" under ${currentUser ? currentUser.email : 'guest'}?`)) return;
+        storage.clearApp(appId);
+        global.location.reload();
+      };
+
+      const saveBtn = document.getElementById('rollup-cfg-save-btn');
+      if (saveBtn) {
+        saveBtn.onclick = () => {
+          const patch = {};
+          overlay.querySelectorAll('[data-rollup-cfg-key]').forEach((inp) => {
+            const k = inp.getAttribute('data-rollup-cfg-key');
+            const t = inp.getAttribute('data-rollup-cfg-type');
+            patch[k] = t === 'number' ? Number(inp.value) : inp.value.trim();
+          });
+          user.setAppConfig(patch, appId);
+          global.location.reload();
+        };
+      }
+    }
+  };
+
   // In-App Security Gate & Floating Hub Switcher Pill
   function enforceAccessGate(appId, visibility = 'restricted') {
     const currentUser = auth.getCurrentUser();
@@ -937,10 +1184,8 @@
       font-family: system-ui, -apple-system, sans-serif;
     `;
 
-    const settingsBtnHtml =
-      typeof options.onOpenSettings === 'function'
-        ? `<button id="rollup-pill-cfg" title="Switch Team / App Settings" style="background:transparent;border:1px solid #334155;color:#93c5fd;border-radius:6px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;">⚙️ ${options.settingsLabel || 'Setup'}</button>`
-        : '';
+    const cfgLabel = options.settingsLabel || (typeof options.onOpenSettings === 'function' ? 'Setup' : 'Settings');
+    const settingsBtnHtml = `<button id="rollup-pill-cfg" title="App Settings &amp; User Manual" style="background:transparent;border:1px solid #334155;color:#93c5fd;border-radius:6px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap;">⚙️ ${cfgLabel}</button>`;
 
     pill.innerHTML = `
       <a href="${hubUrl}" title="Back to RollupOS Hub" style="display:inline-flex;align-items:center;gap:5px;color:#38bdf8;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.1px;white-space:nowrap;">
@@ -962,9 +1207,15 @@
       document.body.prepend(pill);
     }
 
-    if (typeof options.onOpenSettings === 'function') {
-      const cfgBtn = document.getElementById('rollup-pill-cfg');
-      if (cfgBtn) cfgBtn.onclick = () => options.onOpenSettings();
+    const cfgBtn = document.getElementById('rollup-pill-cfg');
+    if (cfgBtn) {
+      cfgBtn.onclick = () => {
+        if (typeof options.onOpenSettings === 'function') {
+          options.onOpenSettings();
+        } else {
+          settings.open(appId);
+        }
+      };
     }
 
     // Activate automatic OTA update watcher for this open mini-app
@@ -992,17 +1243,21 @@
   }
 
   global.RollupBridge = {
-    version: '1.2.0',
+    version: '1.3.0',
     detectAppId,
     resolveHubRootUrl,
     resolveRegistryUrl,
+    resolveManualUrl,
     auth,
     storage,
     user,
+    config: { getAll: (id) => user.getAppConfig(id) },
     vault,
     camera,
     files,
     updates,
+    manuals,
+    settings,
     enforceAccessGate,
     mountInAppConsolePill
   };

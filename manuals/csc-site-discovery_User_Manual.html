@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSC Site Discovery — RollupOS User Manual (v1.0.1)</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.48in 0.5in;
+  }
+  :root {
+    --accent: #0d9488;
+    --bg-page: #070b14;
+    --bg-card: #111827;
+    --bg-subtle: #0f172a;
+    --text-main: #f8fafc;
+    --text-sec: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border: #1e293b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .manual-shell {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .screen-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+  .pdf-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #0284c7;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border-left: 5px solid var(--accent);
+    border-top: 1px solid #334155;
+    border-right: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 16px;
+  }
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .hero-kicker {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+  }
+  .hero h1 {
+    margin: 4px 0 4px 0;
+    font-size: 21px;
+    letter-spacing: -0.3px;
+  }
+  .hero-sub {
+    font-size: 12.5px;
+    color: #cbd5e1;
+  }
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+    font-size: 10.5px;
+  }
+  .meta-pill {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+  }
+  h2 {
+    font-size: 14.5px;
+    margin: 18px 0 9px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-main);
+    page-break-after: avoid;
+  }
+  .step-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .step-card {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    page-break-inside: avoid;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 99px;
+    background: var(--accent);
+    color: #070b14;
+    font-weight: 900;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-title {
+    font-weight: 800;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.8px;
+    margin-top: 6px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 7px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #0f172a;
+    color: #f8fafc;
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .feature-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 9px;
+    padding: 10px 13px;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  .feature-box h3 {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+  }
+  .feature-box p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  .subtle-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-sec);
+    page-break-inside: avoid;
+  }
+  .delta-callout {
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid #f59e0b;
+    border-radius: 9px;
+    padding: 9px 12px;
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .chip {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #bae6fd;
+  }
+  .chip-muted {
+    background: var(--bg-subtle);
+    border-color: var(--border);
+    color: var(--text-sec);
+  }
+  code {
+    font-family: Consolas, 'SFMono-Regular', monospace;
+    font-size: 11px;
+    background: rgba(148, 163, 184, 0.16);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  ul {
+    margin: 6px 0;
+    padding-left: 19px;
+  }
+  li {
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  .muted { color: var(--text-muted); }
+  .footer-stamp {
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Clean Executive Print Stylesheet for Edge Headless PDF Generation */
+  @media print {
+    :root {
+      --bg-page: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-subtle: #f1f5f9;
+      --text-main: #0f172a;
+      --text-sec: #334155;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+    }
+    body {
+      padding: 0;
+      font-size: 9.8pt;
+      line-height: 1.42;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .screen-toolbar { display: none !important; }
+    .hero {
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    th, .step-num {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .step-num { color: #ffffff; background: #0f172a; }
+    .chip {
+      background: #e0f2fe;
+      border-color: #0284c7;
+      color: #075985;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .chip-muted {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    code {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="manual-shell">
+  <div class="screen-toolbar">
+    <span style="font-size:11.5px;font-weight:700;color:#93c5fd;">📖 RollupOS Auto-Maintained Application Manual</span>
+    <a class="pdf-dl-btn" href="./csc-site-discovery_User_Manual.pdf?h=aeb188532b" target="_blank">📄 Open / Download Official PDF</a>
+  </div>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-kicker">RollupOS Application User Manual • Field &amp; Productivity</div>
+        <h1>🧭 CSC Site Discovery</h1>
+        <div class="hero-sub">Offline-First HVAC/BAS Field Survey Companion • Division 23 Checklists, CLAHE Nameplate OCR &amp; Building Mapper</div>
+      </div>
+    </div>
+    <div class="meta-strip">
+      <span class="meta-pill">Version: v1.0.1</span>
+      <span class="meta-pill">Build Hash: #aeb18853</span>
+      <span class="meta-pill">🔒 Per-User Authorized Cartridge</span>
+      <span class="meta-pill">Auto-Synced: 2026-10-24 22:15</span>
+    </div>
+  </div>
+
+  
+
+  <h2>1. ⚡ 60-Second Quickstart Guide</h2>
+  <div class="step-grid">
+    
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Initialize Your Site Walk (`⚙️ Walk / API Vault`)</div>
+            <div class="step-desc">Tap `⚙️ Walk / API Vault` (or `Walk / Export`) to enter the Facility Name, CSC Job/Estimate Number (`CSC-26-xxxx`), and optionally save a personal Gemini API key in your private on-device Vault.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Add Equipment Stations &amp; Select System Type</div>
+            <div class="step-desc">Create stations for AHUs, RTUs, Chillers, Boilers, Hydronic Pumps, VAVs, or Main BAS TCPs. The app dynamically loads the matchingCSC Division 23 (`RFI-23-001` through `RFI-23-011`) engineering checklist.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Capture 3-Slot Burst Photos w/ Stamped-Metal CLAHE</div>
+            <div class="step-desc">Snap (1) Wide Equipment Context, (2) Rusted/Stamped Nameplate (auto-enhanced via local CLAHE contrast boosting + serial vintage decoding), and (3) Inside Control Cabinet / Termination Strip.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Pin Evacuation Floorplan &amp; Export Survey Package</div>
+            <div class="step-desc">Snap the wall-mounted Building Evacuation Map, tap to drop equipment pins with GNSS/Compass bearings, record 150Hz high-pass filtered voice walkthroughs, and export the complete JSON/CSV package via Android Share Sheet.</div>
+          </div>
+        </div>
+  </div>
+
+  <h2>2. 🧭 Screen-by-Screen &amp; Navigation Map</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%;">Screen / Tab / Modal</th>
+        <th>What It Controls &amp; How to Use It</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">📋 Equipment Station List (Left/Top)</td>
+          <td>Add, filter, and switch between rooftop, mechanical room, and terminal unit stations during a walk.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🔍 Multimodal Station Inspector</td>
+          <td>Dynamic RFI-23-001..011 checklists, 3-slot CLAHE camera capture, serial age decoder, and 150Hz filtered voice notes.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🗺️ 4-Layer Building &amp; Evac Mapper</td>
+          <td>Pin equipment stations directly onto photographed floorplans/evacuation maps with compass orientation and Laplacian video sharpness scoring.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🧮 Field Valve / VA / Labor Sizers</td>
+          <td>On-site deterministic Cv valve sizer (4–5 psi ΔP / β ≥ 0.50), NEC Art. 725 80% Class 2 panel VA sizer, and rough-in labor estimator.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">⚙️ Session Manager, Vault &amp; Export</td>
+          <td>Manage walk metadata, optional Gemini OCR key, Golden Demo Walk loader, and 1-tap JSON/CSV exports.</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <h2>3. 🔬 In-Depth Feature Guide &amp; Workflows</h2>
+  
+        <div class="feature-box">
+          <h3>CSC Overlay &amp; Safety Checklist Enforcement (`RFI-23-001`..`011`)</h3>
+          <p>Prompts field engineers to verify factory OEM BACnet cards (`Overlay, Never Gut`), hardwired VFD HOA/speed split (`RFI-23-006`), DPDT manual-reset serpentine freeze stats (`RFI-23-007`), Div 23 21 13 inline valve/well boundaries (`RFI-23-005`), and dedicated Div 26 120VAC 15A TCP circuits (`RFI-23-009`).</p>
+        </div>
+
+        <div class="feature-box">
+          <h3>CLAHE Stamped-Aluminum Nameplate Enhancer &amp; Offline Queue</h3>
+          <p>Applies local canvas Contrast-Limited Adaptive Histogram Equalization so sun-bleached or rusted outdoor RTU/chiller data plates become legible instantly—working 100% offline in mechanical basements.</p>
+        </div>
+
+        <div class="feature-box">
+          <h3>150Hz Mechanical-Room High-Pass Audio Filter</h3>
+          <p>Uses WebAudio high-pass filtering to strip low-frequency fan/pump rumble (`&lt;150Hz`) from walk-and-talk voice memos for crystal-clear Whisper transcription back at the office.</p>
+        </div>
+
+  <h2>4. ⚙️ Settings, Secret Vault &amp; Multi-User Data Isolation</h2>
+  
+        <table>
+          <thead>
+            <tr>
+              <th>Setting Key</th>
+              <th>Field Description</th>
+              <th>Type</th>
+              <th>Default</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>default_job_number</code></td>
+              <td style="font-weight:600;">Default CSC Job / Estimate Number</td>
+              <td><code>text</code></td>
+              <td><code>CSC-26-NEW</code></td>
+            </tr>
+
+            <tr>
+              <td><code>engineer_name</code></td>
+              <td style="font-weight:600;">Lead Engineer / Estimator Name</td>
+              <td><code>text</code></td>
+              <td><code>CSC Field Engineer</code></td>
+            </tr></tbody>
+        </table>
+  <div class="subtle-box" style="margin-top:8px;">
+    <div><strong>🔒 Storage Namespace Pattern:</strong> <code>rollup::v1::u::&lt;google-email&gt;::app::csc-site-discovery::*</code></div>
+    <div style="margin-top:4px;"><strong>📦 Active App Storage Keys:</strong> <code>__user_config__</code> (Managed automatically)</div>
+    <div style="margin-top:4px;"><strong>🔐 Private On-Device Vault Secrets:</strong> None required (uses Hub session)</div>
+    <div class="chip-wrap"><span class="chip">Isolated Per-User Storage (RollupBridge)</span><span class="chip">Mobile Camera / Multimodal Capture</span><span class="chip">WebAudio / Voice Recording Pipeline</span><span class="chip">Live GNSS / Compass Telemetry</span><span class="chip">Android Share Sheet &amp; CSV/JSON Export</span><span class="chip">Encrypted On-Device Secret Vault</span></div>
+  </div>
+
+  <h2>5. 🎛️ Live UI Controls Reference &amp; Recent Updates</h2>
+  <div class="subtle-box">
+    <div style="font-weight:700;margin-bottom:4px;">Interactive Controls Detected in Current Build (<code>v1.0.1</code>):</div>
+    <div class="chip-wrap"><span class="chip chip-muted">🚨 RFI-23-011 HARD-STOP ACTIVE</span><span class="chip chip-muted">📡 Lock GPS/Compass</span><span class="chip chip-muted">⬆️+1</span><span class="chip chip-muted">⬇️-1</span><span class="chip chip-muted">☀️/🌙 Glare</span><span class="chip chip-muted">⚙️ Walk / Export</span><span class="chip chip-muted">📷 Snap Evacuation / Floor Map</span><span class="chip chip-muted">🗑️ Clear Map</span><span class="chip chip-muted">📤 Export CSV</span><span class="chip chip-muted">🗑️ Delete Pin</span><span class="chip chip-muted">☑️ 1. Checklists</span><span class="chip chip-muted">📸 2. Nameplate &amp; OCR</span><span class="chip chip-muted">🎥 3. Video Mapper</span><span class="chip chip-muted">🎙️ 4. Walk-Talk Mic</span></div>
+    <div style="font-weight:700;margin:10px 0 4px 0;">Pro Tips &amp; Best Practices:</div>
+    <ul><li>Always enforce NFPA 70E Lockout/Tagout (LOTO) and PPE before opening live control cabinets for internal termination photos.</li>
+<li>No cell signal in a sub-basement chiller plant? Leave the API key blank—every photo, checklist, and voice clip saves to IndexedDB/RollupBridge offline.</li></ul>
+    <div style="font-weight:700;margin:10px 0 4px 0;">Recent Cartridge Update Log (Auto-Tracked on Publish):</div>
+    <ul><li><code>22d612c</code> <span class="muted">(2026-10-24)</span> — RollupOS Hub &amp; Mini-App sync (2026-10-24 19:59)</li>
+<li><code>0c21c6e</code> <span class="muted">(2026-10-24)</span> — RollupOS Hub &amp; Mini-App sync (2026-10-24 16:38)</li></ul>
+  </div>
+
+  <div class="footer-stamp">
+    <span>RollupOS Automated Documentation Engine • Cartridge ID: <code>csc-site-discovery</code></span>
+    <span>Canonical PDF: <code>manuals/csc-site-discovery_User_Manual.pdf</code></span>
+  </div>
+</div>
+</body>
+</html>

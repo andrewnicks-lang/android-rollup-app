@@ -1,0 +1,231 @@
+{
+  "app_id": "csc-site-discovery",
+  "title": "CSC Site Discovery",
+  "subtitle": "HVAC/BAS Checklists, CLAHE Nameplate OCR, 150Hz Audio & 4-Layer Building Mapper",
+  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion: 7 Dynamic RFI-23-001..011 Checklists, 3-Slot Camera Burst w/ CLAHE Stamped-Metal Contrast & Serial Vintage Decoder, 150Hz Filtered Walk-Talk Audio, Video Laplacian Sharpness Mapper, Evacuation Map Pinning, Live GNSS+Compass, and Valve/VA/Labor Sizers.",
+  "icon": "\ud83e\udded",
+  "accent": "#0d9488",
+  "category": "Field & Productivity",
+  "version": "1.0.1",
+  "build_hash": "aeb188532b",
+  "visibility": "restricted",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:15",
+  "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
+  "quickstart": [
+    {
+      "step": "Initialize Your Site Walk (`\u2699\ufe0f Walk / API Vault`)",
+      "detail": "Tap `\u2699\ufe0f Walk / API Vault` (or `Walk / Export`) to enter the Facility Name, CSC Job/Estimate Number (`CSC-26-xxxx`), and optionally save a personal Gemini API key in your private on-device Vault."
+    },
+    {
+      "step": "Add Equipment Stations & Select System Type",
+      "detail": "Create stations for AHUs, RTUs, Chillers, Boilers, Hydronic Pumps, VAVs, or Main BAS TCPs. The app dynamically loads the matchingCSC Division 23 (`RFI-23-001` through `RFI-23-011`) engineering checklist."
+    },
+    {
+      "step": "Capture 3-Slot Burst Photos w/ Stamped-Metal CLAHE",
+      "detail": "Snap (1) Wide Equipment Context, (2) Rusted/Stamped Nameplate (auto-enhanced via local CLAHE contrast boosting + serial vintage decoding), and (3) Inside Control Cabinet / Termination Strip."
+    },
+    {
+      "step": "Pin Evacuation Floorplan & Export Survey Package",
+      "detail": "Snap the wall-mounted Building Evacuation Map, tap to drop equipment pins with GNSS/Compass bearings, record 150Hz high-pass filtered voice walkthroughs, and export the complete JSON/CSV package via Android Share Sheet."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83d\udccb Equipment Station List (Left/Top)",
+      "purpose": "Add, filter, and switch between rooftop, mechanical room, and terminal unit stations during a walk."
+    },
+    {
+      "screen": "\ud83d\udd0d Multimodal Station Inspector",
+      "purpose": "Dynamic RFI-23-001..011 checklists, 3-slot CLAHE camera capture, serial age decoder, and 150Hz filtered voice notes."
+    },
+    {
+      "screen": "\ud83d\uddfa\ufe0f 4-Layer Building & Evac Mapper",
+      "purpose": "Pin equipment stations directly onto photographed floorplans/evacuation maps with compass orientation and Laplacian video sharpness scoring."
+    },
+    {
+      "screen": "\ud83e\uddee Field Valve / VA / Labor Sizers",
+      "purpose": "On-site deterministic Cv valve sizer (4\u20135 psi \u0394P / \u03b2 \u2265 0.50), NEC Art. 725 80% Class 2 panel VA sizer, and rough-in labor estimator."
+    },
+    {
+      "screen": "\u2699\ufe0f Session Manager, Vault & Export",
+      "purpose": "Manage walk metadata, optional Gemini OCR key, Golden Demo Walk loader, and 1-tap JSON/CSV exports."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "CSC Overlay & Safety Checklist Enforcement (`RFI-23-001`..`011`)",
+      "body": "Prompts field engineers to verify factory OEM BACnet cards (`Overlay, Never Gut`), hardwired VFD HOA/speed split (`RFI-23-006`), DPDT manual-reset serpentine freeze stats (`RFI-23-007`), Div 23 21 13 inline valve/well boundaries (`RFI-23-005`), and dedicated Div 26 120VAC 15A TCP circuits (`RFI-23-009`)."
+    },
+    {
+      "title": "CLAHE Stamped-Aluminum Nameplate Enhancer & Offline Queue",
+      "body": "Applies local canvas Contrast-Limited Adaptive Histogram Equalization so sun-bleached or rusted outdoor RTU/chiller data plates become legible instantly\u2014working 100% offline in mechanical basements."
+    },
+    {
+      "title": "150Hz Mechanical-Room High-Pass Audio Filter",
+      "body": "Uses WebAudio high-pass filtering to strip low-frequency fan/pump rumble (`<150Hz`) from walk-and-talk voice memos for crystal-clear Whisper transcription back at the office."
+    }
+  ],
+  "pro_tips": [
+    "Always enforce NFPA 70E Lockout/Tagout (LOTO) and PPE before opening live control cabinets for internal termination photos.",
+    "No cell signal in a sub-basement chiller plant? Leave the API key blank\u2014every photo, checklist, and voice clip saves to IndexedDB/RollupBridge offline."
+  ],
+  "user_config_schema": [
+    {
+      "key": "default_job_number",
+      "label": "Default CSC Job / Estimate Number",
+      "type": "text",
+      "default": "CSC-26-NEW",
+      "defaultForAdmin": "CSC-26-4182"
+    },
+    {
+      "key": "engineer_name",
+      "label": "Lead Engineer / Estimator Name",
+      "type": "text",
+      "default": "CSC Field Engineer",
+      "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
+    }
+  ],
+  "offline_assets": [
+    "apps/csc-site-discovery/index.html",
+    "apps/csc-site-discovery/css/field_ui.css",
+    "apps/csc-site-discovery/js/discovery_storage_adapter.js",
+    "apps/csc-site-discovery/js/app.js"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "csc-site-discovery",
+    "file_inventory": [
+      "css/field_ui.css",
+      "index.html",
+      "js/app.js",
+      "js/discovery_storage_adapter.js",
+      "manifest.json"
+    ],
+    "tabs": [
+      "checklist",
+      "nameplate",
+      "video",
+      "audio",
+      "calculators"
+    ],
+    "headings": [
+      "\ud83e\udded CSC Site Discovery & Field Survey Companion",
+      "\ud83d\uddfa\ufe0f 4-Layer Spatial Building Mapper (Pin + Video Crumb + GNSS)",
+      "\u26a1 Equipment Stations (Tap Map to Add Pin)"
+    ],
+    "buttons": [
+      {
+        "label": "\ud83d\udea8 RFI-23-011 HARD-STOP ACTIVE",
+        "action": "toggleRfi23011HardStop()"
+      },
+      {
+        "label": "\ud83d\udce1 Lock GPS/Compass",
+        "action": "toggleLiveSensors()"
+      },
+      {
+        "label": "\u2b06\ufe0f+1",
+        "action": "simulateStairClimb(1)"
+      },
+      {
+        "label": "\u2b07\ufe0f-1",
+        "action": "simulateStairClimb(-1)"
+      },
+      {
+        "label": "\u2600\ufe0f/\ud83c\udf19 Glare",
+        "action": "toggleSunlightMode()"
+      },
+      {
+        "label": "\u2699\ufe0f Walk / Export",
+        "action": "openSessionManagerModal()"
+      },
+      {
+        "label": "\ud83d\udcf7 Snap Evacuation / Floor Map",
+        "action": "captureFloorEvacuationMap()"
+      },
+      {
+        "label": "\ud83d\uddd1\ufe0f Clear Map",
+        "action": "clearCustomFloorMap()"
+      },
+      {
+        "label": "\ud83d\udce4 Export CSV",
+        "action": "exportScheduleCsv()"
+      },
+      {
+        "label": "\ud83d\uddd1\ufe0f Delete Pin",
+        "action": "deleteActiveStation()"
+      },
+      {
+        "label": "\u2611\ufe0f 1. Checklists",
+        "action": "switchTab('checklist')"
+      },
+      {
+        "label": "\ud83d\udcf8 2. Nameplate & OCR",
+        "action": "switchTab('nameplate')"
+      },
+      {
+        "label": "\ud83c\udfa5 3. Video Mapper",
+        "action": "switchTab('video')"
+      },
+      {
+        "label": "\ud83c\udf99\ufe0f 4. Walk-Talk Mic",
+        "action": "switchTab('audio')"
+      },
+      {
+        "label": "\ud83d\udcd0 5. Valve/VA/Labor",
+        "action": "switchTab('calculators')"
+      },
+      {
+        "label": "\ud83e\udd16 Auto-Read Plate (Live Vision / Offline Queue)",
+        "action": "runLiveVisionOcrOnSlot2()"
+      },
+      {
+        "label": "\u26a1 Grab Keyframe & Map Position",
+        "action": "grabLiveVideoKeyframe()"
+      },
+      {
+        "label": "\ud83c\udf99\ufe0f Start Walk-Talk Mic (150Hz Filter)",
+        "action": "toggleWalkTalkMic()"
+      }
+    ],
+    "modals": [
+      "photoZoomModal",
+      "zoomModalTitle",
+      "zoomModalImg",
+      "sessionModal"
+    ],
+    "inputs": [
+      "e.g., +2 unscheduled VAVs in Chem Prep; CMU walls need Wiremold...",
+      "Try: DX-9100, Symbio 700, Spyder, Pneumatic...",
+      "Door Sign / Equipment Tag (e.g., RM 206 / VAV-206)",
+      "Spoken observation...",
+      "Live speech draft or type site-pro remark to pin to station...",
+      "e.g., North Kansas City Hospital Tower",
+      "e.g., CSC-26-4200",
+      "AIza... (Leave blank for 100% Offline Queue Mode)"
+    ],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)",
+      "Mobile Camera / Multimodal Capture",
+      "WebAudio / Voice Recording Pipeline",
+      "Live GNSS / Compass Telemetry",
+      "Android Share Sheet & CSV/JSON Export",
+      "Encrypted On-Device Secret Vault"
+    ],
+    "recent_commits": [
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "0c21c6e",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 16:38)"
+      }
+    ]
+  }
+}

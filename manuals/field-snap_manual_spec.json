@@ -1,0 +1,124 @@
+{
+  "app_id": "field-snap",
+  "title": "Field Snap & Notes",
+  "subtitle": "Camera Capture, Project Tagging & Instant JSON/CSV Export",
+  "description": "Quick mobile photo & field note logger using RollupBridge Camera, Isolated Per-User Storage, and Android Share Sheet export.",
+  "icon": "\ud83d\udcf8",
+  "accent": "#4ade80",
+  "category": "Field & Productivity",
+  "version": "1.0.1",
+  "build_hash": "6ccac51804",
+  "visibility": "restricted",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:15",
+  "tagline": "Fast Mobile Photo & Field Note Logger \u2022 Hardware Camera Compression, Project Tagging & Instant CSV Export",
+  "quickstart": [
+    {
+      "step": "Set Your Default Project Tag (`\u2699\ufe0f Settings`)",
+      "detail": "Tap `\u2699\ufe0f Settings` in the top system strip to configure your default Project / Job Tag (pre-fills automatically on every new note) or type a custom tag per entry."
+    },
+    {
+      "step": "Snap a Compressed Rear-Camera Photo (`\ud83d\udcf7`)",
+      "detail": "Tap `\ud83d\udcf7 Snap / Attach Photo` to launch your Android rear camera. RollupBridge automatically resizes (`1280px` max width) and JPEG-compresses (`82%`) images so hundreds of snaps fit comfortably on device."
+    },
+    {
+      "step": "Log Observation & Save Privately (`\ud83d\udcbe`)",
+      "detail": "Enter a quick field observation and tap `\ud83d\udcbe Save Entry`. Entries are stored strictly under your signed-in Google email namespace."
+    },
+    {
+      "step": "Export Structured CSV (`\ud83d\udce4 Export CSV`)",
+      "detail": "Tap `\ud83d\udce4 Export CSV` at the top right to download a clean spreadsheet of timestamps, project tags, notes, and photo flags."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83d\udcf8 Capture & Quick Note Card",
+      "purpose": "Project tag input, multi-line field observation box, live camera thumbnail preview, and 1-tap save."
+    },
+    {
+      "screen": "\ud83d\uddc2\ufe0f Isolated Entries Feed",
+      "purpose": "Chronological timeline of your saved photos and notes with per-item delete (`\u2715`) controls."
+    },
+    {
+      "screen": "\ud83d\udce4 CSV Exporter & \u2699\ufe0f Settings",
+      "purpose": "1-tap CSV report download, default project configuration, and User Manual PDF access."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "Client-Side Canvas Photo Compression (`RollupBridge.camera`)",
+      "body": "Raw 12MP\u201350MP phone photos (`5\u201312 MB` each) would quickly exhaust browser storage quotas. Field Snap compresses captures on-device into crisp `~120\u2013220 KB` JPEGs in milliseconds."
+    },
+    {
+      "title": "Zero Cross-User Leakage",
+      "body": "Two technicians signing into the same shared tablet or their own phones each see only their own `rollup::v1::u::<email>::app::field-snap::entries` bucket."
+    }
+  ],
+  "pro_tips": [
+    "Use consistent project prefixes (e.g., `CSC-26-4182`) so exported CSVs sort and pivot cleanly in Excel."
+  ],
+  "user_config_schema": [
+    {
+      "key": "default_project",
+      "label": "Default Project / Job Tag",
+      "type": "text",
+      "default": "General Sandbox",
+      "defaultForAdmin": "CSC / Personal"
+    }
+  ],
+  "offline_assets": [
+    "apps/field-snap/index.html"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "field-snap",
+    "file_inventory": [
+      "index.html"
+    ],
+    "tabs": [],
+    "headings": [
+      "\ud83d\udcf8 Field Snap & Quick Notes"
+    ],
+    "buttons": [
+      {
+        "label": "\ud83d\udce4 Export CSV",
+        "action": "exportUserNotes()"
+      },
+      {
+        "label": "\ud83d\udcf7 Snap / Attach Photo",
+        "action": "snapPhoto()"
+      },
+      {
+        "label": "\ud83d\udcbe Save Entry",
+        "action": "saveEntry()"
+      }
+    ],
+    "modals": [],
+    "inputs": [
+      "Project / Tag (e.g., Job Walk, Receipt, Prototype)",
+      "Type quick field note or observation..."
+    ],
+    "storage_keys": [
+      "entries"
+    ],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)",
+      "Mobile Camera / Multimodal Capture",
+      "Android Share Sheet & CSV/JSON Export"
+    ],
+    "recent_commits": [
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "75878e4",
+        "date": "2026-10-24",
+        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
+      }
+    ]
+  }
+}

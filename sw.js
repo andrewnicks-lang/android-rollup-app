@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-24a838a9';
+const CACHE_NAME = 'rollup-hub-a94b7649';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -9,20 +9,27 @@ const CORE_ASSETS = [
   './assets/icon-512.png',
   './bridge/rollup-bridge.js',
   './apps/gravity-agent-monitor/index.html',
+  './manuals/gravity-agent-monitor_User_Manual.html',
   './apps/fantasy-manager/index.html',
   './apps/fantasy-manager/data/league_945552.json',
+  './manuals/fantasy-manager_User_Manual.html',
   './apps/csc-site-discovery/index.html',
   './apps/csc-site-discovery/css/field_ui.css',
   './apps/csc-site-discovery/js/discovery_storage_adapter.js',
   './apps/csc-site-discovery/js/app.js',
+  './manuals/csc-site-discovery_User_Manual.html',
   './apps/field-snap/index.html',
+  './manuals/field-snap_User_Manual.html',
   './apps/bridge-lab/index.html',
+  './manuals/bridge-lab_User_Manual.html',
   './apps/shd-div2-intel/index.html',
   './apps/shd-div2-intel/styles.css',
   './apps/shd-div2-intel/shd_solver_portable.js',
   './apps/shd-div2-intel/shd_storage_adapter.js',
   './apps/shd-div2-intel/app.js',
-  './apps/sapphire-companion/index.html'
+  './manuals/shd-div2-intel_User_Manual.html',
+  './apps/sapphire-companion/index.html',
+  './manuals/sapphire-companion_User_Manual.html'
 ];
 
 self.addEventListener('install', (event) => {

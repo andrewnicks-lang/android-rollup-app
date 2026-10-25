@@ -1,0 +1,237 @@
+{
+  "app_id": "gravity-agent-monitor",
+  "title": "Gravity Agent Monitor",
+  "subtitle": "Live Antigravity Desktop Sidebar Replica, Trajectory & AgentAPI Bridge",
+  "description": "Real-time multi-workstation telemetry, bouncing/spinning/unread status indicators, Auxiliary Overview panel, and live 2-way prompt dispatch to DESKTOP-UHI3BO3 & Work PC.",
+  "icon": "\ud83d\udef0\ufe0f",
+  "accent": "#38bdf8",
+  "category": "Admin & Dev Tools",
+  "version": "1.3.1",
+  "build_hash": "27934efaad",
+  "visibility": "admin_only",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:15",
+  "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
+  "quickstart": [
+    {
+      "step": "Verify Workstation Connection",
+      "detail": "Sign into RollupOS as Admin and launch Gravity Agent Monitor. The app automatically unlocks via your Admin session and connects to your primary LAN sidecar (`192.168.86.47:8765`) or Tailscale mesh node."
+    },
+    {
+      "step": "Monitor Live Conversations (Pulse Tab)",
+      "detail": "Check the live status indicators on every active desktop conversation: spinning rings indicate active tool execution, bouncing badges signal unread completions, and amber alerts highlight steps awaiting user approval."
+    },
+    {
+      "step": "Inspect Full Step-by-Step Trajectories",
+      "detail": "Tap any conversation card on the Pulse tab to jump into Trajectory view\u2014read full user/agent messages, expand collapsible reasoning/tool blocks, and preview generated Markdown artifacts in the slide-up sheet."
+    },
+    {
+      "step": "Reply or Launch New Tasks Remotely",
+      "detail": "Type directly into the bottom composer inside Trajectory view to reply to a live session, or open the Ops & Launcher tab (`\u2699\ufe0f Nodes`) to start a brand-new conversation in any project workspace with 1-tap Skill injection."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83d\udce1 Pulse (Sidebar Replica)",
+      "purpose": "Mirrors your desktop Antigravity conversation list across active PCs with unread/running status badges and Auxiliary Overview rollup."
+    },
+    {
+      "screen": "\ud83d\udcdc Trajectory",
+      "purpose": "Full chronological transcript viewer with tool-call inspection, artifact preview modal, and live 2-way reply bar."
+    },
+    {
+      "screen": "\ud83d\uddc4\ufe0f Vault / Artifacts",
+      "purpose": "Browse recent Markdown plans, reports, and generated workspace deliverables without remoting into your PC."
+    },
+    {
+      "screen": "\u2699\ufe0f Ops & Launcher (`Nodes`)",
+      "purpose": "CPU/RAM host vitals, Multi-PC 'Follow-Me' fleet configuration, Keep-Awake toggle, and new project/skill task dispatcher."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "Multi-PC 'Follow-Me' Dynamic Fleet",
+      "body": "Add both your Home PC and Office PC (via LAN IP or `100.x.y.z` Tailscale IP) under Ops & Launcher. Gravity polls all configured nodes in parallel and automatically highlights whichever workstation is actively executing turns."
+    },
+    {
+      "title": "Direct 2-Way AgentAPI Prompt & Skill Dispatch",
+      "body": "Uses your workstation's authenticated `X-Gravity-Token` header to dispatch replies into an existing conversation or spin up a new chat scoped to any registered project (`FF_2026`, `Div2`, `CSC Skills`, etc.) with optional pre-populated skill prompts."
+    },
+    {
+      "title": "Coffee / WakeLock Mode for Unattended Builds",
+      "body": "Tap `\u2615 Toggle Keep-Awake` in Ops & Launcher to hold an Android screen WakeLock while monitoring long `/goal` builds or deployments."
+    }
+  ],
+  "pro_tips": [
+    "When away from home Wi-Fi, paste your Tailscale IP (`http://100.x.y.z:8765`) in Ops -> Multi-PC Fleet for seamless 5G remote steering.",
+    "Tap any artifact link inside a trajectory step to open the formatted Artifact Preview bottom sheet without leaving the chat."
+  ],
+  "user_config_schema": [
+    {
+      "key": "primary_workstation_url",
+      "label": "Primary Workstation Sidecar URL (LAN)",
+      "type": "text",
+      "default": "http://192.168.86.47:8765",
+      "defaultForAdmin": "http://192.168.86.47:8765"
+    },
+    {
+      "key": "tailscale_workstation_url",
+      "label": "Tailscale Workstation URL (Optional)",
+      "type": "text",
+      "default": "",
+      "defaultForAdmin": ""
+    },
+    {
+      "key": "sidecar_token",
+      "label": "X-Gravity-Token Shared Secret",
+      "type": "text",
+      "default": "csc-gravity-admin-2026-x9f4k2",
+      "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
+    }
+  ],
+  "offline_assets": [
+    "apps/gravity-agent-monitor/index.html"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "gravity-agent-monitor",
+    "file_inventory": [
+      "index.html",
+      "manifest.json"
+    ],
+    "tabs": [
+      "tab-trajectory",
+      "tab-vault",
+      "tab-ops",
+      "pulse",
+      "trajectory",
+      "vault",
+      "ops"
+    ],
+    "headings": [
+      "Gravity for Android"
+    ],
+    "buttons": [
+      {
+        "label": "\ud83d\udd13 Unlock with Passkey",
+        "action": "unlockWithPasskey()"
+      },
+      {
+        "label": "\u2615 Awake: OFF",
+        "action": "toggleWakeLock()"
+      },
+      {
+        "label": "\ud83d\udd12",
+        "action": "lockApp()"
+      },
+      {
+        "label": "\ud83c\udf10 All PCs (Auto Follow-Me)",
+        "action": "setHostFilter('ALL')"
+      },
+      {
+        "label": "\u21bb Sync",
+        "action": "syncActiveConversation(true)"
+      },
+      {
+        "label": "\ud83d\udccb Handoff",
+        "action": "exportHandoffBundle()"
+      },
+      {
+        "label": "\u2190 Back",
+        "action": "switchTab('pulse')"
+      },
+      {
+        "label": "\u2705 Approve & Proceed",
+        "action": "sendQuickSteer('APPROVE', 'Proceed with the recommended plan.')"
+      },
+      {
+        "label": "\ud83d\udcc4 Export PDF",
+        "action": "sendQuickSteer('STEER', 'Compile findings into a clean PDF report in the workspa"
+      },
+      {
+        "label": "\ud83e\uddea Run Tests",
+        "action": "sendQuickSteer('STEER', 'Run tests and verify deterministic output.')"
+      },
+      {
+        "label": "\ud83d\udddc\ufe0f /compact",
+        "action": "sendQuickSteer('SLASH_COMMAND', '/compact')"
+      },
+      {
+        "label": "\ud83c\udfaf /goal",
+        "action": "sendQuickSteer('SLASH_COMMAND', '/goal')"
+      },
+      {
+        "label": "\ud83c\udf99\ufe0f",
+        "action": "toggleVoiceInput()"
+      },
+      {
+        "label": "\u2191",
+        "action": "submitSteerInput()"
+      },
+      {
+        "label": "\u21bb Refresh",
+        "action": "loadVault()"
+      },
+      {
+        "label": "\ud83d\udcd6 Read Guide",
+        "action": "window.RollupBridge ? RollupBridge.manuals.open('gravity-agent-monitor') : windo"
+      },
+      {
+        "label": "\u2795 Add Workstation Node",
+        "action": "addPeerNode()"
+      },
+      {
+        "label": "\ud83d\ude80 Dispatch Live",
+        "action": "launchNewTask()"
+      }
+    ],
+    "modals": [
+      "previewModal",
+      "modalTitle",
+      "modalBody"
+    ],
+    "inputs": [
+      "Steer agent or type /command\u2026",
+      "Name (e.g. Office-PC)",
+      "http://100.x.y.z:8765",
+      "Type message or new conversation prompt\u2026"
+    ],
+    "storage_keys": [],
+    "vault_secrets": [
+      "GRAVITY_SIDECAR_TOKEN"
+    ],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)",
+      "Screen WakeLock Keep-Awake",
+      "Encrypted On-Device Secret Vault"
+    ],
+    "recent_commits": [
+      {
+        "sha": "f2d02aa",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 21:20)"
+      },
+      {
+        "sha": "c21e297",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 20:18)"
+      },
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "3601f35",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:55)"
+      },
+      {
+        "sha": "ca24880",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:20)"
+      }
+    ]
+  }
+}

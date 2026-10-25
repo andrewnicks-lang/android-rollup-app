@@ -1,0 +1,225 @@
+{
+  "app_id": "fantasy-manager",
+  "title": "The League Pro",
+  "subtitle": "Multi-User ESPN Fantasy Manager \u2022 60/40 Moneyball + War Room",
+  "description": "Full-PPR 2-FLEX Command Center with dynamic per-user Team Selection (all 12 Weekend Warriors teams or custom ESPN League ID), Personal Rockstar Lock, Multi-Horizon Opponent War Room, and Isolated User Watchlist.",
+  "icon": "\ud83c\udfc8",
+  "accent": "#38bdf8",
+  "category": "Sports & Analytics",
+  "version": "2.7.2",
+  "build_hash": "a414ebe54e",
+  "visibility": "restricted",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:15",
+  "tagline": "Multi-User 12-Team ESPN Fantasy Football Command Center (`Weekend Warriors #945552`) \u2022 Moneyball + War Room",
+  "quickstart": [
+    {
+      "step": "Bind Your Personal Team (`\u2699\ufe0f Switch Team`)",
+      "detail": "Tap `\u2699\ufe0f Switch Team` in the top system strip to pick any of the 12 Weekend Warriors franchises. Your selection is saved privately to your Google account profile without affecting any other league-mate."
+    },
+    {
+      "step": "Dial In Your Moneyball vs. Consensus Blend",
+      "detail": "Use the interactive Blend Slider (default `60% Moneyball / 40% Expert Consensus`) on your Roster tab to rank starters, flex options, and waiver targets using usage-weighted expected fantasy points."
+    },
+    {
+      "step": "Lock Your Protected Core (`\u2b50`) & Test Sandbox Swaps",
+      "detail": "Tap the star/lock toggle on untouchable studs so waiver/drop recommendations never suggest cutting your core players, and test lineup swaps safely in your isolated Sandbox."
+    },
+    {
+      "step": "Track Live Matchups & NFL Game Center",
+      "detail": "Open the Matchup tab or tap any game pill in the docked NFL Scoreboard ribbon at the bottom to inspect live play-by-play scoring, win probability swings, and active fantasy starters."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83c\udfc8 My Roster & Lineup Optimizer",
+      "purpose": "Optimal 1-QB / 2-RB / 2-WR / 1-TE / 2-FLEX / D-ST lineup solver (No-Kicker format), Blend Slider, and Protected Core locks."
+    },
+    {
+      "screen": "\u2694\ufe0f Live Matchup",
+      "purpose": "Head-to-head real-time ESPN scoring, starter-vs-starter positional comparison, and live win projection."
+    },
+    {
+      "screen": "\ud83c\udfaf Opponent War Room",
+      "purpose": "Multi-week opponent vulnerability scanner\u2014identifies upcoming opponents' positional holes to execute defensive waiver blocks."
+    },
+    {
+      "screen": "\ud83d\udcc8 Waivers & Watchlist",
+      "purpose": "Filtered free-agent targets ranked by Blended ROS/Weekly value, injury replacement urgency, and your private starred Watchlist."
+    },
+    {
+      "screen": "\ud83d\udcf0 Intel, Standings & NFL Dock",
+      "purpose": "League power rankings, player injury news feed, private player scouting notes, and live NFL Game Center boxscores."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "60/40 Moneyball Blend Engine (Full-PPR, 2-FLEX, No Kicker)",
+      "body": "Combines target share, snap share, red-zone opportunity, and Vegas implied team totals (Moneyball) with consensus projections. Sliding toward 100% Moneyball favors volume breakouts before consensus catches up."
+    },
+    {
+      "title": "Multi-Horizon Opponent Counter-Pick War Room",
+      "body": "Scans your current and upcoming opponents' bye weeks and injury designations, flagging high-leverage waiver claims that simultaneously upgrade your bench and block your opponent's weakest starter."
+    },
+    {
+      "title": "100% Isolated Multi-User Profiles",
+      "body": "Every signed-in user gets an isolated `RollupBridge.storage` bucket for their chosen Team ID, Protected Core locks, Watchlist stars, Sandbox roster moves, and private player scouting notes."
+    }
+  ],
+  "pro_tips": [
+    "Check the War Room every Tuesday night before waivers process to spot opponents missing a QB/TE due to bye weeks.",
+    "Tap any player row to open the Player Dossier modal and jot down private scouting notes saved strictly to your device profile."
+  ],
+  "user_config_schema": [
+    {
+      "key": "league_id",
+      "label": "ESPN League ID",
+      "type": "number",
+      "default": 945552,
+      "defaultForAdmin": 945552
+    },
+    {
+      "key": "team_id",
+      "label": "Your Fantasy Team (Weekend Warriors #945552)",
+      "type": "team_select",
+      "default": 4,
+      "defaultForAdmin": 4
+    },
+    {
+      "key": "blend_weight",
+      "label": "Default Moneyball Blend % (0-100)",
+      "type": "number",
+      "default": 60,
+      "defaultForAdmin": 60
+    }
+  ],
+  "offline_assets": [
+    "apps/fantasy-manager/index.html",
+    "apps/fantasy-manager/data/league_945552.json"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "fantasy-manager",
+    "file_inventory": [
+      "data/league_945552.json",
+      "index.html"
+    ],
+    "tabs": [
+      "matchup",
+      "news",
+      "team",
+      "waivers",
+      "warroom"
+    ],
+    "headings": [],
+    "buttons": [
+      {
+        "label": "\ud83d\udd04",
+        "action": "refreshLiveTelemetry(true)"
+      },
+      {
+        "label": "\ud83d\udd12 Team \u25be",
+        "action": "openTeamSelectorModal()"
+      },
+      {
+        "label": "Reset to ESPN Live",
+        "action": "resetUserSandboxEdits()"
+      },
+      {
+        "label": "\u2694\ufe0f Current Matchup",
+        "action": "setWarRoomHorizon('curr')"
+      },
+      {
+        "label": "\ud83d\udd2d Near-Term (+1..+3 Wks)",
+        "action": "setWarRoomHorizon('near')"
+      },
+      {
+        "label": "\ud83c\udfc6 Far / Playoff Radar",
+        "action": "setWarRoomHorizon('far')"
+      },
+      {
+        "label": "All Pos",
+        "action": "setFaPos('ALL', this)"
+      },
+      {
+        "label": "\u2b50 My Watchlist",
+        "action": "setFaPos('WATCHLIST', this)"
+      },
+      {
+        "label": "\ud83d\udd35 Moneyball Sleepers",
+        "action": "setFaPos('SLEEPER', this)"
+      },
+      {
+        "label": "WR",
+        "action": "setFaPos('WR', this)"
+      },
+      {
+        "label": "RB",
+        "action": "setFaPos('RB', this)"
+      },
+      {
+        "label": "TE",
+        "action": "setFaPos('TE', this)"
+      },
+      {
+        "label": "QB",
+        "action": "setFaPos('QB', this)"
+      },
+      {
+        "label": "D/ST",
+        "action": "setFaPos('DST', this)"
+      },
+      {
+        "label": "\ud83c\udfc8 NFL Scores \u25b4",
+        "action": "openNflScoreboardDrawer()"
+      }
+    ],
+    "modals": [
+      "dossier-backdrop",
+      "dossier-drawer-el",
+      "nfl-drawer-backdrop",
+      "nfl-drawer-el",
+      "nfl-drawer-body",
+      "team-modal-backdrop",
+      "team-modal-body",
+      "tag-backdrop"
+    ],
+    "inputs": [],
+    "storage_keys": [
+      "player_notes",
+      "watchlist_player_ids"
+    ],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)"
+    ],
+    "recent_commits": [
+      {
+        "sha": "77c228d",
+        "date": "2026-10-24",
+        "subject": "fix(fantasy-manager): unify bottom-chrome stack for zero NFL scores overlap & crisp score pills"
+      },
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "8086e6b",
+        "date": "2026-10-24",
+        "subject": "feat(fantasy-manager): v2.7.0 live scoring, clean ESPN Matchup tab, NFL Game Center & sticky player ribbon"
+      },
+      {
+        "sha": "7b6b26f",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 17:33)"
+      },
+      {
+        "sha": "75878e4",
+        "date": "2026-10-24",
+        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
+      }
+    ]
+  }
+}

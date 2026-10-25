@@ -1,0 +1,221 @@
+{
+  "app_id": "shd-div2-intel",
+  "title": "SHD Build Intelligence",
+  "subtitle": "Division 2 Armory, 6-Slot Workbench & Expertise 413/500 Tracker",
+  "description": "100% EAC-Safe Division 2 Build Solver, Interactive 6-Slot Theorycraft Workbench with Admin Showcase Loadouts ('Lengmo Pesti Turm'), Countdown Target Loot Radar, and Expertise 413/500 Mastery Tracker with per-user Google Auth isolation.",
+  "icon": "\ud83e\udd85",
+  "accent": "#ff6b00",
+  "category": "Gaming & Tactical Tools",
+  "version": "4.2.1",
+  "build_hash": "281d6d1c69",
+  "visibility": "restricted",
+  "updated_at": "2026-10-24T22:15:40.485020",
+  "generated_at": "2026-10-24 22:16",
+  "tagline": "100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver & Expertise 413/500 Tracker",
+  "quickstart": [
+    {
+      "step": "Load Your Armory Seed or Import Snapshot (`\u2699\ufe0f PC Sync / Vault`)",
+      "detail": "Open SHD Build Intelligence and tap `\u2699\ufe0f PC Sync / Vault` (or the top Sync button) to pull your PC Armory seed or import a saved `.json` gear dump into your isolated Google user profile."
+    },
+    {
+      "step": "Filter & Inspect Rolled Gear in the Armory",
+      "detail": "Search weapons, exotics, named items, brand sets, and gear sets\u2014tap any item row for Click-to-Verify roll percentages, core attributes, talents, and recalibration potential."
+    },
+    {
+      "step": "Theorycraft in the 6-Slot Interactive Workbench",
+      "detail": "Equip Mask, Backpack, Chest, Gloves, Holster, and Kneepads (or clone an Admin Showcase Loadout like `Lengmo Pesti Turm`) to see live brand bonuses, CHC/CHD caps, and synergy diagnostics."
+    },
+    {
+      "step": "Track Countdown Loot & Expertise (`413/500`)",
+      "detail": "Check the Countdown Target Loot Radar to see which brand/slot to farm next, and log proficiency ranks in the Expertise Mastery Tracker."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83c\udf92 Armory Inventory",
+      "purpose": "Searchable, filterable gear & weapon database with God-roll badges and Click-to-Verify attribute breakdown modals."
+    },
+    {
+      "screen": "\ud83d\udee0\ufe0f 6-Slot Build Workbench",
+      "purpose": "Interactive loadout assembler with Admin Showcase templates, live brand-set bonus counters, and stat rollups."
+    },
+    {
+      "screen": "\ud83e\udde0 Build Solver & Target Radar",
+      "purpose": "100% EAC-safe deterministic solver matching your owned stash items against target DPS/Skill/Tank archetypes and Countdown farm priorities."
+    },
+    {
+      "screen": "\ud83c\udf96\ufe0f Expertise Tracker",
+      "purpose": "Category-by-category proficiency checklist toward max Expertise (`413/500+`) saved per user."
+    },
+    {
+      "screen": "\u2699\ufe0f Backup Vault & PC <-> Hub Sync",
+      "purpose": "1-tap JSON backup export/import and PC-to-Android cartridge synchronization."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "100% Easy Anti-Cheat (EAC) Safe Architecture",
+      "body": "Operates strictly on exported OCR/JSON inventory snapshots\u2014zero game memory hooks, zero packet inspection, and full offline mobile theorycrafting anywhere."
+    },
+    {
+      "title": "Cloneable Admin Showcase Loadouts",
+      "body": "Friends/clanmates authorized on RollupOS can inspect read-only Admin Showcase builds (`Lengmo Pesti Turm`, Striker setups, etc.) and clone them into their own private Workbench without overwriting your stash."
+    }
+  ],
+  "pro_tips": [
+    "Before deconstructing stash clutter in-game, filter the Build Solver to verify an item isn't a unicorn off-brand roll needed for a hybrid chest/backpack slot.",
+    "Export a `.json` backup snapshot after major Countdown farming sessions so your PC and phone stay in lockstep."
+  ],
+  "user_config_schema": [
+    {
+      "key": "agent_callsign",
+      "label": "SHD Agent Callsign",
+      "type": "text",
+      "default": "SHD Agent",
+      "defaultForAdmin": "rangerd7 (SHD 2793)"
+    },
+    {
+      "key": "show_admin_showcase",
+      "label": "Show Admin Showcase Loadouts (Read-Only / Cloneable)",
+      "type": "text",
+      "default": "true",
+      "defaultForAdmin": "true"
+    }
+  ],
+  "offline_assets": [
+    "apps/shd-div2-intel/index.html",
+    "apps/shd-div2-intel/styles.css",
+    "apps/shd-div2-intel/shd_solver_portable.js",
+    "apps/shd-div2-intel/shd_storage_adapter.js",
+    "apps/shd-div2-intel/app.js"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "shd-div2-intel",
+    "file_inventory": [
+      "app.js",
+      "index.html",
+      "shd_solver_portable.js",
+      "shd_storage_adapter.js",
+      "styles.css"
+    ],
+    "tabs": [
+      "mpanel-matrix-list",
+      "mpanel-matrix-center",
+      "mpanel-matrix-right",
+      "mpanel-wb-list",
+      "mpanel-wb-center",
+      "mpanel-wb-right",
+      "mpanel-exp-list",
+      "mpanel-exp-center",
+      "mpanel-exp-right"
+    ],
+    "headings": [],
+    "buttons": [
+      {
+        "label": "BUILD MATRIX Ctrl+1",
+        "action": "switchView('matrix')"
+      },
+      {
+        "label": "\ud83d\udee0\ufe0f WORKBENCH (1) Ctrl+2",
+        "action": "switchView('workbench')"
+      },
+      {
+        "label": "ARMORY (0) Ctrl+3",
+        "action": "switchView('armory')"
+      },
+      {
+        "label": "\ud83c\udf96\ufe0f EXPERTISE (413/500) Ctrl+4",
+        "action": "switchView('expertise')"
+      },
+      {
+        "label": "FARM RADAR Ctrl+5",
+        "action": "switchView('radar')"
+      },
+      {
+        "label": "DECONSTRUCT (0) Ctrl+6",
+        "action": "switchView('decon')"
+      },
+      {
+        "label": "\ud83e\uddea Demo Stash",
+        "action": "loadDemoStash()"
+      },
+      {
+        "label": "\ud83e\uddf9 Clear",
+        "action": "clearAllStash()"
+      },
+      {
+        "label": "\ud83d\udcbe Sync / Vault",
+        "action": "openBackupModal()"
+      },
+      {
+        "label": "\ud83d\udcf8 Snap (F9)",
+        "action": "triggerF9Capture()"
+      },
+      {
+        "label": "\u2795 Custom Build",
+        "action": "openBuilderModal()"
+      },
+      {
+        "label": "+ Add",
+        "action": "submitShorthand()"
+      },
+      {
+        "label": "\ud83d\udccb Builds",
+        "action": "switchMobileSubPanel('matrix', 'list')"
+      },
+      {
+        "label": "\ud83d\udee1\ufe0f 6-Slot Gear",
+        "action": "switchMobileSubPanel('matrix', 'center')"
+      },
+      {
+        "label": "\u26a1 Telemetry & Recipe",
+        "action": "switchMobileSubPanel('matrix', 'right')"
+      },
+      {
+        "label": "\ud83d\udd12 Locker & Showcase",
+        "action": "switchMobileSubPanel('wb', 'list')"
+      },
+      {
+        "label": "\ud83d\udee0\ufe0f 6-Slot Workbench",
+        "action": "switchMobileSubPanel('wb', 'center')"
+      },
+      {
+        "label": "\ud83d\udcca Live Stats",
+        "action": "switchMobileSubPanel('wb', 'right')"
+      }
+    ],
+    "modals": [
+      "verify-modal",
+      "verify-modal-content",
+      "backup-modal",
+      "backup-modal-content",
+      "builder-modal",
+      "builder-modal-content",
+      "slot-picker-modal",
+      "slot-picker-content"
+    ],
+    "inputs": [
+      "Type shorthand (e.g. 'lengmo backpack wd 22.5 chc 9 chd 12') or Ctrl+V screenshot...",
+      "Search Brand, Item Name, Talent..."
+    ],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)"
+    ],
+    "recent_commits": [
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+      },
+      {
+        "sha": "75878e4",
+        "date": "2026-10-24",
+        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
+      }
+    ]
+  }
+}

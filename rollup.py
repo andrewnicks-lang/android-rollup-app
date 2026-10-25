@@ -126,6 +126,12 @@ def sync_service_worker(reg: Dict[str, Any], ota_etag: str) -> bool:
             if norm not in seen:
                 seen.add(norm)
                 core_assets.append(norm)
+        m_html = app.get("manual_html", "")
+        if m_html:
+            m_norm = m_html if m_html.startswith("./") else f"./{m_html.lstrip('/')}"
+            if m_norm not in seen:
+                seen.add(m_norm)
+                core_assets.append(m_norm)
 
     assets_js = ",\n".join(f"  '{a}'" for a in core_assets)
     cache_name = f"rollup-hub-{ota_etag[:8]}"
@@ -231,12 +237,33 @@ def stamp_build_hashes(persist: bool = True) -> Dict[str, Any]:
         changed = True
 
     if persist:
+        manuals_mutated, regen_ids = _run_manual_sync(reg, force=False)
+        if manuals_mutated:
+            changed = True
         if changed:
             REGISTRY_PATH.write_text(json.dumps(reg, indent=2), encoding="utf-8")
         sw_changed = sync_service_worker(reg, ota_etag)
-        if changed or sw_changed:
-            print(f"[RollupOS] Stamped deterministic OTA hashes (etag={ota_etag}, hub=v{hub['version']}#{new_hub_hash[:6]})")
+        if changed or sw_changed or regen_ids:
+            print(f"[RollupOS] Stamped deterministic OTA hashes (etag={ota_etag}, hub=v{hub['version']}#{new_hub_hash[:6]}, manuals_updated={len(regen_ids)})")
     return reg
+
+
+def _run_manual_sync(reg: Dict[str, Any], force: bool = False, target_app: str = "") -> Any:
+    scripts_dir = ROOT_DIR / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from manual_generator import sync_app_manuals  # type: ignore
+
+    return sync_app_manuals(reg, ROOT_DIR, force=force, target_app=target_app or None)
+
+
+def cmd_manuals(app_id: str = "", force: bool = False) -> None:
+    reg = stamp_build_hashes(persist=False)
+    mutated, regen_ids = _run_manual_sync(reg, force=force, target_app=app_id)
+    if mutated or regen_ids:
+        REGISTRY_PATH.write_text(json.dumps(reg, indent=2), encoding="utf-8")
+        sync_service_worker(reg, reg.get("hub", {}).get("ota_etag", "manual00"))
+    print(f"[RollupOS] Manual check complete — {len(regen_ids)} manual(s) built/updated.")
 
 
 def get_lan_ip() -> str:
@@ -271,7 +298,7 @@ def cmd_create_app(app_id: str, title: str, subtitle: str, icon: str, category: 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#090d16">
 <title>{title} — RollupOS Mini-App</title>
-<script src="../../bridge/rollup-bridge.js"></script>
+<script src="../../bridge/rollup-bridge.js?v=1.3"></script>
 <style>
   body {{
     margin: 0; padding: 16px 16px 90px 16px;
@@ -325,7 +352,8 @@ if (RollupBridge.enforceAccessGate('{app_id}', 'restricted')) {{
             if u.get("role") == "admin" and app_id not in u.get("authorized_apps", []):
                 u.setdefault("authorized_apps", []).append(app_id)
         save_registry(reg)
-    print(f"[RollupOS] Created mini-app '{app_id}' at {html_file} and registered in registry.json")
+        stamp_build_hashes(persist=True)
+    print(f"[RollupOS] Created mini-app '{app_id}' at {html_file}, registered in registry.json, and built initial PDF manual")
 
 
 def cmd_authorize_user(email: str, app_id: str, name: str = "", team_id: int = 14) -> None:
@@ -542,6 +570,10 @@ def main() -> None:
 
     sub.add_parser("stamp", help="Deterministically compute SHA-256 build_hash for Hub & Mini-Apps and sync sw.js")
 
+    p_man = sub.add_parser("manuals", help="Inspect hosted apps and build/update per-app PDF & HTML User Manuals")
+    p_man.add_argument("--app", default="", help="Optional single app-id to build")
+    p_man.add_argument("--force", action="store_true", help="Force rebuild all manuals even if build_hash is unchanged")
+
     args = parser.parse_args()
     if args.cmd == "serve":
         cmd_serve(args.port)
@@ -555,6 +587,8 @@ def main() -> None:
         cmd_publish(args.repo)
     elif args.cmd == "stamp":
         stamp_build_hashes(persist=True)
+    elif args.cmd == "manuals":
+        cmd_manuals(args.app, args.force)
     else:
         parser.print_help()
 
