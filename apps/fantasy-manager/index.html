@@ -668,33 +668,34 @@
     background: #172554;
     border-color: #38bdf8;
   }
+  .lg-info-card { margin: 8px 12px; background: linear-gradient(155deg, #0f172a 0%, #111827 70%, #172554 100%); border: 1px solid #1e3a8a; border-radius: 12px; padding: 12px; }
+  .lg-kv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 9px; }
+  .lg-kv-cell { background: rgba(9, 13, 22, 0.72); border: 1px solid #1f2937; border-radius: 8px; padding: 7px 9px; }
+  .lg-kv-k { font-size: 9.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; }
+  .lg-kv-v { font-size: 11.5px; font-weight: 800; color: #f8fafc; margin-top: 2px; line-height: 1.3; }
+  .act-card { margin: 6px 12px; background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 10px 12px; }
+  .act-card.mine { border-color: #0284c7; background: linear-gradient(145deg, #0f172a 0%, #111827 100%); }
+  .act-move-row { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 5px; flex-wrap: wrap; }
+  .preset-chip { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; border-radius: 99px; padding: 4px 9px; font-size: 10.5px; font-weight: 800; cursor: pointer; }
+  .preset-chip.active { background: #0c4a6e; border-color: #38bdf8; color: #ffffff; }
 </style>
 </head>
 <body>
 <div class="app-shell">
-  <!-- TOP STICKY HEADER + MULTI-USER TEAM SWITCHER + 60/40 SLIDER -->
+  <!-- TOP STICKY HEADER (SLIDER RELOCATED INTO TOP-RIGHT PILL DRAWER) -->
   <div class="top-bar">
     <div class="brand-row">
-      <div class="brand-title">
+      <div class="brand-title" onclick="openTeamSelectorModal()" style="cursor:pointer;">
         <span>🏈</span>
         <span class="team-title-txt" id="hdr-team-name">Loading Team...</span>
         <span class="rec-pill" id="hdr-record">--</span>
       </div>
       <div class="top-actions">
-        <button class="top-btn" onclick="refreshLiveTelemetry(true)" title="Refresh Live NFL Scores &amp; Stats">🔄</button>
-        <button class="top-btn top-btn-accent" id="btn-team-pill" onclick="openTeamSelectorModal()" title="Active Profile &amp; Isolated Sandbox">
-          <span class="iso-dot"></span><span id="hdr-pill-lbl">🔒 Team</span> ▾
+        <button class="top-btn" onclick="refreshLiveTelemetry(true)" title="Refresh Live NFL Scores &amp; League Activity">🔄</button>
+        <button class="top-btn top-btn-accent" id="btn-team-pill" onclick="openTeamSelectorModal()" title="Active Profile, Valuation Blend &amp; Options">
+          <span class="iso-dot"></span><span id="hdr-pill-lbl">🔒 Team • ⚡60%</span> ▾
         </button>
       </div>
-    </div>
-
-    <div class="slider-box" id="top-slider-box">
-      <div class="slider-labels">
-        <span style="color:#c084fc;">📊 Consensus (<span id="lbl-cs-pct">40</span>%)</span>
-        <span style="color:#f8fafc;" id="lbl-mode-title">Blended Alpha (60/40)</span>
-        <span style="color:#4ade80;">⚡ Moneyball (<span id="lbl-mb-pct">60</span>%)</span>
-      </div>
-      <input type="range" min="0" max="100" step="5" value="60" class="slider-input" id="blend-slider" oninput="onBlendSliderChange(this.value)">
     </div>
   </div>
 
@@ -773,25 +774,53 @@
     <div id="fa-list-container"></div>
   </div>
 
-  <!-- TAB 4: LEAGUE STANDINGS & HARD NEWS -->
+  <!-- TAB 4: LEAGUE HUB (LEAGUE INFO, RECENT ACTIVITY, STANDINGS & NFL WIRE) -->
   <div id="tab-news" class="tab-view" style="display:none;">
-    <div class="sec-hdr">
-      <span>🏆 Weekend Warriors (#945552) — Tap Any Team to Inspect</span>
-      <span>Proj / PF</span>
+    <div class="filter-bar" id="lg-subtab-bar">
+      <button class="filter-pill active" onclick="setLeagueSubTab('ALL', this)">🌐 All</button>
+      <button class="filter-pill" onclick="setLeagueSubTab('ACTIVITY', this)">⚡ Activity</button>
+      <button class="filter-pill" onclick="setLeagueSubTab('INFO', this)">📋 League Info</button>
+      <button class="filter-pill" onclick="setLeagueSubTab('STANDINGS', this)">🏆 Standings</button>
+      <button class="filter-pill" onclick="setLeagueSubTab('WIRE', this)">📰 NFL Wire</button>
     </div>
-    <div id="league-directory-container"></div>
 
-    <div class="sec-hdr" style="margin-top:10px;">
-      <span>🦈 Active NFL O-Line Injury Clusters (&ge;2 Vet OL Out)</span>
-      <span>Trench Impact</span>
+    <div id="league-sec-info">
+      <div class="sec-hdr">
+        <span>📋 League Info &amp; Rules</span>
+        <span id="lg-hdr-meta">ESPN #945552</span>
+      </div>
+      <div id="league-info-container"></div>
     </div>
-    <div id="oline-cluster-container"></div>
 
-    <div class="sec-hdr" style="margin-top:8px;">
-      <span>📰 Breaking NFL Beat News &amp; Injury Wire</span>
-      <span>Live Feed</span>
+    <div id="league-sec-activity">
+      <div class="sec-hdr" style="margin-top:6px;">
+        <span>⚡ Recent League Activity</span>
+        <span id="lg-act-count-lbl" style="color:#38bdf8;cursor:pointer;" onclick="refreshLiveTelemetry(true)">Waivers • FA • IR 🔄</span>
+      </div>
+      <div id="league-activity-container"></div>
     </div>
-    <div id="breaking-news-container" style="padding:0 12px;"></div>
+
+    <div id="league-sec-standings">
+      <div class="sec-hdr" style="margin-top:6px;">
+        <span>🏆 Weekend Warriors (#945552) — Tap Any Team to Inspect</span>
+        <span>Proj / PF</span>
+      </div>
+      <div id="league-directory-container"></div>
+    </div>
+
+    <div id="league-sec-wire">
+      <div class="sec-hdr" style="margin-top:10px;">
+        <span>🦈 Active NFL O-Line Injury Clusters (&ge;2 Vet OL Out)</span>
+        <span>Trench Impact</span>
+      </div>
+      <div id="oline-cluster-container"></div>
+
+      <div class="sec-hdr" style="margin-top:8px;">
+        <span>📰 Breaking NFL Beat News &amp; Injury Wire</span>
+        <span>Live Feed</span>
+      </div>
+      <div id="breaking-news-container" style="padding:0 12px;"></div>
+    </div>
   </div>
 
   <!-- UNIFIED FIXED BOTTOM CHROME (ZERO-OVERLAP LIVE NFL SCORES DOCK + 5-TAB NAVIGATION) -->
@@ -867,6 +896,7 @@ let CURRENT_GC_EVENT_ID = null;
 let CURRENT_GC_DATA = null;
 let CURRENT_GC_SUBTAB = 'plays';
 let CURRENT_GC_BOX_SIDE = 'away';
+let CURRENT_LEAGUE_SUBTAB = 'ALL';
 
 // In-Memory Registries (Fixes apostrophe click bug on 100% of players + powers Tag Popups)
 const PLAYER_REGISTRY = new Map();
@@ -1153,20 +1183,35 @@ function quadClass(code) {
   return '';
 }
 
-function onBlendSliderChange(val) {
-  const mbPct = Number(val);
+function updateHubPillBadge() {
+  const currentUser = RollupBridge.auth.getCurrentUser();
+  const shortEmail = currentUser && currentUser.email ? currentUser.email.split('@')[0] : 'Profile';
+  const mbPct = Math.round(MB_WEIGHT * 100);
   const csPct = 100 - mbPct;
-  MB_WEIGHT = mbPct / 100.0;
-  document.getElementById('lbl-mb-pct').textContent = mbPct;
-  document.getElementById('lbl-cs-pct').textContent = csPct;
-
+  const pillLbl = document.getElementById('hdr-pill-lbl');
+  if (pillLbl) pillLbl.textContent = `${shortEmail} #${ACTIVE_TEAM_ID} • ⚡${mbPct}%`;
+  const mbEl = document.getElementById('lbl-mb-pct');
+  const csEl = document.getElementById('lbl-cs-pct');
+  const titleEl = document.getElementById('lbl-mode-title');
+  const sliderEl = document.getElementById('blend-slider');
+  if (mbEl) mbEl.textContent = mbPct;
+  if (csEl) csEl.textContent = csPct;
+  if (sliderEl && Number(sliderEl.value) !== mbPct) sliderEl.value = mbPct;
   let modeTitle = `Blended Alpha (${mbPct}/${csPct})`;
   if (mbPct >= 95) modeTitle = 'Pure Moneyball VORP (100%)';
   else if (mbPct <= 5) modeTitle = 'Pure Expert/Market Consensus (100%)';
   else if (mbPct === 50) modeTitle = 'Balanced 50/50 Split';
-  document.getElementById('lbl-mode-title').textContent = modeTitle;
+  if (titleEl) titleEl.textContent = modeTitle;
+  document.querySelectorAll('.preset-chip').forEach(btn => {
+    btn.classList.toggle('active', Number(btn.getAttribute('data-pct')) === mbPct);
+  });
+}
 
-  RollupBridge.user.setAppConfig({ blend_weight: mbPct });
+function onBlendSliderChange(val) {
+  const mbPct = Number(val);
+  MB_WEIGHT = mbPct / 100.0;
+  updateHubPillBadge();
+  if (window.RollupBridge && RollupBridge.user) RollupBridge.user.setAppConfig({ blend_weight: mbPct });
   renderAll();
 }
 
@@ -1178,8 +1223,6 @@ function switchTab(tab) {
     if (el) el.style.display = (t === tab) ? 'block' : 'none';
     if (nv) nv.classList.toggle('active', t === tab);
   });
-  const sliderBox = document.getElementById('top-slider-box');
-  if (sliderBox) sliderBox.style.display = (tab === 'matchup') ? 'none' : 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1370,9 +1413,7 @@ function renderTeamTab() {
   const wk = LEAGUE_BUNDLE.week || 7;
   document.getElementById('hdr-team-name').textContent = teamData.team_name;
   document.getElementById('hdr-record').textContent = `${teamData.record_str} • Wk ${wk}`;
-  const shortEmail = currentUser && currentUser.email ? currentUser.email.split('@')[0] : 'Profile';
-  const pillLbl = document.getElementById('hdr-pill-lbl');
-  if (pillLbl) pillLbl.textContent = `${shortEmail} • #${teamData.team_id}`;
+  updateHubPillBadge();
 
   const roster = getActiveRosterForUser(teamData);
   const protectedSet = getUserProtectedSet(teamData);
@@ -1589,19 +1630,191 @@ function renderWarRoomTab() {
   }
 }
 
+function setLeagueSubTab(sub, btnEl) {
+  CURRENT_LEAGUE_SUBTAB = sub;
+  document.querySelectorAll('#lg-subtab-bar .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  const showAll = sub === 'ALL';
+  const sInfo = document.getElementById('league-sec-info');
+  const sAct = document.getElementById('league-sec-activity');
+  const sStd = document.getElementById('league-sec-standings');
+  const sWire = document.getElementById('league-sec-wire');
+  if (sInfo) sInfo.style.display = (showAll || sub === 'INFO') ? 'block' : 'none';
+  if (sAct) sAct.style.display = (showAll || sub === 'ACTIVITY') ? 'block' : 'none';
+  if (sStd) sStd.style.display = (showAll || sub === 'STANDINGS') ? 'block' : 'none';
+  if (sWire) sWire.style.display = (showAll || sub === 'WIRE') ? 'block' : 'none';
+}
+
+function openActivityPlayer(pid, name, pos, nflTeam) {
+  if (!LEAGUE_BUNDLE) return;
+  const numId = Number(pid || 0);
+  const nKey = normName(name);
+  let found = null;
+  let isFa = false;
+  const teamsObj = LEAGUE_BUNDLE.teams || {};
+  for (const tk of Object.keys(teamsObj)) {
+    const rList = (teamsObj[tk] && teamsObj[tk].roster) || [];
+    const hit = rList.find(p => (numId && Number(p.player_id) === numId) || normName(p.name) === nKey);
+    if (hit) {
+      found = hit;
+      isFa = Number(tk) !== Number(ACTIVE_TEAM_ID);
+      break;
+    }
+  }
+  if (!found) {
+    const faHit = (LEAGUE_BUNDLE.free_agents || []).find(f => (numId && Number(f.player_id) === numId) || normName(f.name) === nKey);
+    if (faHit) { found = faHit; isFa = true; }
+  }
+  if (!found) {
+    found = {
+      player_id: numId,
+      name: name || 'Player',
+      pos: pos || 'WR',
+      nfl_team: nflTeam || 'FA',
+      slot: 'FA',
+      availability: 'FREEAGENT',
+      quadrant_label: 'League Wire Player',
+      season_ppg: 0,
+      recent_ppg: 0,
+      wk_proj: 0,
+      moneyball_ppg: 0,
+      consensus_ppg: 0,
+      moneyball_vorp: 0,
+      consensus_vorp: 0
+    };
+    isFa = true;
+  }
+  const regKey = 'act_' + (numId || nKey);
+  PLAYER_REGISTRY.set(regKey, found);
+  openDossierByKey(regKey, isFa);
+}
+
 function renderNewsAndLeagueTab() {
-  // 1. All 12 Teams Standings & Quick Switcher
+  const li = LEAGUE_BUNDLE.league_info || {};
+  const lgFallback = LEAGUE_BUNDLE.league || {};
+  const lgName = li.name || lgFallback.name || 'Weekend Warriors';
+  const lgId = li.league_id || lgFallback.league_id || 945552;
+  const plat = li.platform || 'ESPN';
+  const sz = li.size || (LEAGUE_BUNDLE.teams_directory || []).length || 12;
+  const scoringStr = li.scoring_summary || lgFallback.scoring_format || 'Full PPR (1.0) • Pass TD 4pt';
+  const lineupStr = li.lineup_summary || '1 QB • 2 RB • 2 WR • 1 TE • 2 FLEX • 1 D/ST • 4 BN • 1 IR';
+  const wvrStr = li.waiver_rule || 'Rolling Priority (24h Clear)';
+  const trdDeadline = li.trade_deadline || 'Dec 04, 2026';
+  const trdRule = li.trade_rule || '48h Review';
+  const regWks = li.reg_season_weeks || 14;
+  const poTeams = li.playoff_teams || 6;
+  const divs = Array.isArray(li.divisions) && li.divisions.length ? li.divisions.join(' / ') : 'Single Table';
+  const totMoves = li.total_moves !== undefined ? li.total_moves : '--';
+  const totTrades = li.total_trades !== undefined ? li.total_trades : 0;
+
+  const hdrMeta = document.getElementById('lg-hdr-meta');
+  if (hdrMeta) hdrMeta.textContent = `${plat} #${lgId} • ${sz}-Team`;
+
+  // 0A. League Info & Rules Card
+  const infoBox = document.getElementById('league-info-container');
+  if (infoBox) {
+    infoBox.innerHTML = `
+      <div class="lg-info-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;letter-spacing:0.5px;">${escHtml(plat)} Fantasy League • Season ${escHtml(li.season || 2026)}</div>
+            <div style="font-size:16px;font-weight:900;color:#ffffff;margin-top:1px;">🏆 ${escHtml(lgName)} <span style="font-size:11px;color:#94a3b8;font-weight:700;">(#${escHtml(lgId)})</span></div>
+          </div>
+          <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:#0c4a6e;color:#bae6fd;border:1px solid #0284c7;">${li.is_public ? '🌐 Public' : '🔒 Private'}</span>
+        </div>
+        <div class="lg-kv-grid">
+          <div class="lg-kv-cell">
+            <div class="lg-kv-k">Scoring Rules</div>
+            <div class="lg-kv-v" style="color:#4ade80;">${escHtml(scoringStr)}</div>
+          </div>
+          <div class="lg-kv-cell">
+            <div class="lg-kv-k">Schedule &amp; Playoffs</div>
+            <div class="lg-kv-v">${poTeams} of ${sz} Make Playoffs • ${regWks} Wks</div>
+          </div>
+          <div class="lg-kv-cell">
+            <div class="lg-kv-k">Waiver System</div>
+            <div class="lg-kv-v" style="color:#7dd3fc;">${escHtml(wvrStr)}</div>
+          </div>
+          <div class="lg-kv-cell">
+            <div class="lg-kv-k">Trade Deadline &amp; Veto</div>
+            <div class="lg-kv-v" style="color:#fbbf24;">${escHtml(trdDeadline)} <span style="font-weight:600;color:#94a3b8;font-size:10px;">(${escHtml(trdRule)})</span></div>
+          </div>
+          <div class="lg-kv-cell">
+            <div class="lg-kv-k">Divisions</div>
+            <div class="lg-kv-v">${escHtml(divs)}</div>
+          </div>
+          <div class="lg-kv-cell">
+            <div class="lg-kv-k">Season Transactions</div>
+            <div class="lg-kv-v">${escHtml(totMoves)} Moves • ${escHtml(totTrades)} Trades</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding:7px 9px;background:rgba(9,13,22,0.72);border:1px solid #1f2937;border-radius:8px;">
+          <div class="lg-kv-k">Active Roster &amp; Lineup Configuration</div>
+          <div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-top:2px;">${escHtml(lineupStr)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 0B. Recent League Activity Feed
+  const acts = LEAGUE_BUNDLE.recent_activity || [];
+  const actLbl = document.getElementById('lg-act-count-lbl');
+  if (actLbl) actLbl.textContent = acts.length ? `${acts.length} Recent Moves 🔄` : 'Sync Activity 🔄';
+  const actBox = document.getElementById('league-activity-container');
+  if (actBox) {
+    if (!acts.length) {
+      actBox.innerHTML = `<div style="margin:6px 12px;padding:14px;background:#111827;border:1px solid #1f2937;border-radius:10px;color:#94a3b8;font-size:12px;">No recent waiver or free-agent transactions cached yet. Tap 🔄 to refresh live league activity.</div>`;
+    } else {
+      const limit = CURRENT_LEAGUE_SUBTAB === 'ACTIVITY' ? 30 : 12;
+      actBox.innerHTML = acts.slice(0, limit).map(a => {
+        const isMine = Number(a.team_id) === Number(ACTIVE_TEAM_ID);
+        const addRows = (a.added || []).map(p => {
+          const safeNm = escHtml(p.name || '').replace(/'/g, "\'");
+          return `<div class="act-move-row"><span style="font-size:10px;font-weight:900;padding:1.5px 6px;border-radius:4px;background:#052e16;color:#4ade80;border:1px solid #16a34a;">+ ADD</span><span onclick="openActivityPlayer(${Number(p.player_id||0)}, '${safeNm}', '${escHtml(p.pos||'')}', '${escHtml(p.nfl_team||'')}')" style="font-weight:800;color:#f8fafc;cursor:pointer;text-decoration:underline;text-decoration-color:#334155;">${escHtml(p.name)}</span><span style="font-size:10.5px;color:#94a3b8;">${escHtml(p.pos)}${p.nfl_team ? ' • ' + escHtml(p.nfl_team) : ''}</span></div>`;
+        }).join('');
+        const dropRows = (a.dropped || []).map(p => {
+          const safeNm = escHtml(p.name || '').replace(/'/g, "\'");
+          return `<div class="act-move-row"><span style="font-size:10px;font-weight:900;padding:1.5px 6px;border-radius:4px;background:#450a0a;color:#fca5a5;border:1px solid #991b1b;">- DROP</span><span onclick="openActivityPlayer(${Number(p.player_id||0)}, '${safeNm}', '${escHtml(p.pos||'')}', '${escHtml(p.nfl_team||'')}')" style="font-weight:700;color:#cbd5e1;cursor:pointer;text-decoration:underline;text-decoration-color:#334155;">${escHtml(p.name)}</span><span style="font-size:10.5px;color:#64748b;">${escHtml(p.pos)}${p.nfl_team ? ' • ' + escHtml(p.nfl_team) : ''}</span></div>`;
+        }).join('');
+        const detRows = (a.details || []).map(d => `<div class="act-move-row"><span style="font-size:11px;color:#fde047;font-weight:700;">• ${escHtml(d)}</span></div>`).join('');
+        return `
+          <div class="act-card ${isMine ? 'mine' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+                <span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:#1e293b;color:#7dd3fc;border:1px solid #334155;">${escHtml(a.badge || '⚡ Move')}</span>
+                <span style="font-size:12.5px;font-weight:800;color:#ffffff;cursor:pointer;" onclick="selectTeamForUser(${Number(a.team_id || 4)});switchTab('team');">${escHtml(a.team_name)} ${isMine ? '<span class="chip chip-core" style="margin-left:3px;">YOUR TEAM</span>' : ''}</span>
+              </div>
+              <span style="font-size:10px;color:#64748b;font-weight:700;">${escHtml(a.time_display || '')}</span>
+            </div>
+            ${addRows}${dropRows}${detRows}
+          </div>
+        `;
+      }).join('') + (CURRENT_LEAGUE_SUBTAB !== 'ACTIVITY' && acts.length > 12
+        ? `<div style="margin:6px 12px;"><button onclick="setLeagueSubTab('ACTIVITY', document.querySelectorAll('#lg-subtab-bar .filter-pill')[1])" style="width:100%;padding:8px;border-radius:8px;background:#1e293b;border:1px solid #334155;color:#38bdf8;font-size:11.5px;font-weight:800;cursor:pointer;">View All ${acts.length} Recent League Transactions ➔</button></div>`
+        : '');
+    }
+  }
+
+  // 1. All 12 Teams Standings & Waiver Priority
+  const wvrMap = {};
+  (li.waiver_standings || []).forEach(w => { wvrMap[Number(w.team_id)] = w; });
   const dir = [...(LEAGUE_BUNDLE.teams_directory || [])];
   dir.sort((a, b) => b.points_for - a.points_for);
   const dirHtml = dir.map((t, idx) => {
     const isMe = Number(t.team_id) === Number(ACTIVE_TEAM_ID);
+    const wm = wvrMap[Number(t.team_id)] || {};
+    const wvrTxt = wm.faab_remaining !== undefined && wm.faab_remaining !== null
+      ? `$${wm.faab_remaining} FAAB`
+      : (wm.waiver_rank && wm.waiver_rank < 99 ? `Waiver #${wm.waiver_rank}` : '');
+    const mvTxt = wm.acquisitions !== undefined ? ` • ${wm.acquisitions} Moves` : '';
+    const strk = wm.streak ? ` • ${wm.streak}` : '';
     return `
       <div class="p-card" style="${isMe ? 'border-color:#38bdf8;background:#172554;' : ''}" onclick="selectTeamForUser(${t.team_id}); switchTab('team');">
         <div class="p-left">
           <div class="slot-pill" style="${isMe ? 'background:#0284c7;color:#fff;' : ''}">#${idx + 1}</div>
           <div class="p-info">
             <div class="p-name">${escHtml(t.team_name)} ${isMe ? '<span class="chip chip-core">YOUR TEAM</span>' : ''}</div>
-            <div class="p-sub">Record: ${escHtml(t.record_str)} • Team ID #${t.team_id} (Tap to load team)</div>
+            <div class="p-sub">Record: <strong>${escHtml(t.record_str)}</strong>${escHtml(strk)}${wvrTxt ? ' • <span style="color:#7dd3fc;">' + escHtml(wvrTxt) + '</span>' : ''}${escHtml(mvTxt)}</div>
           </div>
         </div>
         <div class="p-right">
@@ -2468,21 +2681,46 @@ function openTeamSelectorModal() {
     `;
   }).join('');
 
+  const curMbPct = Math.round(MB_WEIGHT * 100);
+  const curCsPct = 100 - curMbPct;
+  let curModeTitle = `Blended Alpha (${curMbPct}/${curCsPct})`;
+  if (curMbPct >= 95) curModeTitle = 'Pure Moneyball VORP (100%)';
+  else if (curMbPct <= 5) curModeTitle = 'Pure Expert/Market Consensus (100%)';
+  else if (curMbPct === 50) curModeTitle = 'Balanced 50/50 Split';
+
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Multi-User Profile Binding</div>
-        <h2 style="margin:3px 0 0 0;font-size:18px;color:#ffffff;">Select Your Fantasy Team</h2>
+        <div style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Options, Valuation Blend &amp; Profile</div>
+        <h2 style="margin:3px 0 0 0;font-size:18px;color:#ffffff;">Blend &amp; Active Fantasy Team</h2>
       </div>
       <button onclick="closeDrawerModal('team-modal-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
     </div>
-    <div style="margin:8px 0 10px 0;padding:8px 11px;background:#052e16;border:1px solid #16a34a;border-radius:9px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#dcfce7;">
+
+    <div style="margin:10px 0;background:#111827;border:1px solid #0284c7;border-radius:11px;padding:11px 12px;">
+      <div style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;margin-bottom:6px;">⚡ Player Valuation Blend</div>
+      <div class="slider-labels">
+        <span style="color:#c084fc;">📊 Consensus (<span id="lbl-cs-pct">${curCsPct}</span>%)</span>
+        <span style="color:#f8fafc;" id="lbl-mode-title">${curModeTitle}</span>
+        <span style="color:#4ade80;">⚡ Moneyball (<span id="lbl-mb-pct">${curMbPct}</span>%)</span>
+      </div>
+      <input type="range" min="0" max="100" step="5" value="${curMbPct}" class="slider-input" id="blend-slider" oninput="onBlendSliderChange(this.value)">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">
+        <button class="preset-chip ${curMbPct === 0 ? 'active' : ''}" data-pct="0" onclick="onBlendSliderChange(0)">0% Consensus</button>
+        <button class="preset-chip ${curMbPct === 50 ? 'active' : ''}" data-pct="50" onclick="onBlendSliderChange(50)">50/50</button>
+        <button class="preset-chip ${curMbPct === 60 ? 'active' : ''}" data-pct="60" onclick="onBlendSliderChange(60)">60/40 Default</button>
+        <button class="preset-chip ${curMbPct === 80 ? 'active' : ''}" data-pct="80" onclick="onBlendSliderChange(80)">80/20 Sharp</button>
+        <button class="preset-chip ${curMbPct === 100 ? 'active' : ''}" data-pct="100" onclick="onBlendSliderChange(100)">100% Moneyball</button>
+      </div>
+    </div>
+
+    <div style="margin:8px 0 8px 0;padding:8px 11px;background:#052e16;border:1px solid #16a34a;border-radius:9px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#dcfce7;">
       <span>👤 <strong>${escHtml(currentUser ? currentUser.email : 'Guest')}</strong></span>
       <span style="color:#4ade80;font-weight:800;">🔒 Isolated Profile Active</span>
     </div>
     ${window.RollupBridge && RollupBridge.manuals ? RollupBridge.manuals.renderSettingsCardHtml('fantasy-manager', 'The League Pro User Manual') : ''}
-    <p style="font-size:11px;color:#94a3b8;margin:0 0 10px 0;">
-      Your selected team, Protected Core locks, Watchlist, and Sandbox Lineup moves are saved strictly to your isolated profile.
+    <p style="font-size:11px;color:#94a3b8;margin:0 0 8px 0;">
+      Your Valuation Blend, selected team, Protected Core locks, Watchlist, and Sandbox Lineup moves are saved strictly to your isolated profile.
     </p>
     <div class="team-pick-grid">
       ${teamsHtml}
@@ -2524,7 +2762,7 @@ async function initFantasyApp() {
   RollupBridge.mountInAppConsolePill({
     appId: 'fantasy-manager',
     visibility: 'restricted',
-    settingsLabel: 'Switch Team',
+    settingsLabel: 'Options & Blend',
     onOpenSettings: openTeamSelectorModal
   });
 
@@ -2536,11 +2774,8 @@ async function initFantasyApp() {
   if (userCfg && userCfg.blend_weight !== undefined) {
     const bw = Number(userCfg.blend_weight);
     MB_WEIGHT = bw / 100.0;
-    const slider = document.getElementById('blend-slider');
-    if (slider) slider.value = String(bw);
-    document.getElementById('lbl-mb-pct').textContent = bw;
-    document.getElementById('lbl-cs-pct').textContent = 100 - bw;
   }
+  updateHubPillBadge();
 
   try {
     const resp = await fetch('./data/league_945552.json');
