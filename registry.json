@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.3",
-    "updated_at": "2026-10-24T22:21:00.438992",
+    "updated_at": "2026-10-25T02:10:47.159887",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -104,7 +104,7 @@
     "apk_version": "1.0.0",
     "build_hash": "7647f99a99",
     "stamped_version": "1.0.3",
-    "ota_etag": "f3b0d7ea42"
+    "ota_etag": "632df9ce2c"
   },
   "apps": [
     {
@@ -155,12 +155,12 @@
     {
       "id": "fantasy-manager",
       "title": "The League Pro",
-      "subtitle": "Multi-User ESPN Fantasy Manager \u2022 60/40 Moneyball + War Room",
+      "subtitle": "Multi-User ESPN Fantasy Manager \u2022 v3.0 Dual-Horizon Moneyball + War Room",
       "description": "Full-PPR 2-FLEX Command Center with dynamic per-user Team Selection (all 12 Weekend Warriors teams or custom ESPN League ID), Personal Rockstar Lock, Multi-Horizon Opponent War Room, and Isolated User Watchlist.",
       "icon": "\ud83c\udfc8",
       "accent": "#38bdf8",
       "category": "Sports & Analytics",
-      "version": "2.7.3",
+      "version": "3.0.0",
       "entry": "apps/fantasy-manager/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -190,9 +190,9 @@
           "defaultForAdmin": 60
         }
       ],
-      "build_hash": "8cd5b5df15",
-      "stamped_version": "2.7.3",
-      "updated_at": "2026-10-24T22:37:59.219874",
+      "build_hash": "6e29b2b7c8",
+      "stamped_version": "3.0.0",
+      "updated_at": "2026-10-25T02:10:47.159887",
       "manual_pdf": "manuals/fantasy-manager_User_Manual.pdf",
       "manual_html": "manuals/fantasy-manager_User_Manual.html",
       "manual_source_hash": "8cd5b5df15",

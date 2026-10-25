@@ -702,6 +702,7 @@
   <!-- TAB 1: MY TEAM (ESPN CLUTTER-FREE MIRROR) -->
   <div id="tab-team" class="tab-view">
     <div class="h2h-strip" id="team-h2h-banner"></div>
+    <div id="lineup-audit-banner"></div>
     <div id="team-rec-banner"></div>
     <div id="sandbox-reset-bar" style="display:none;margin:6px 12px;padding:7px 11px;background:#422006;border:1px solid #ca8a04;border-radius:8px;font-size:11px;color:#fef08a;justify-content:space-between;align-items:center;">
       <span>🧪 Sandbox Lineup / Roster Edits Active for Your Profile</span>
@@ -710,13 +711,13 @@
 
     <div class="sec-hdr">
       <span>Starting Lineup (Full-PPR • 2-FLEX)</span>
-      <span>Blended PPG / VORP</span>
+      <span>Weekly PPG / VORP</span>
     </div>
     <div id="roster-starters"></div>
 
     <div class="sec-hdr" style="margin-top:8px;">
       <span>Bench &amp; Stashes (Tap Player to Lock 🛡️ or Swap)</span>
-      <span>Blended PPG / VORP</span>
+      <span>ROS Stash PPG / VORP</span>
     </div>
     <div id="roster-bench"></div>
   </div>
@@ -883,7 +884,7 @@
 
 <script>
 window.ROLLUP_APP_ID = 'fantasy-manager';
-const CLOUD_API_BASE = 'https://ff-2026-manager-d7jwjq5hna-uc.a.run.app';
+const CLOUD_API_BASE = new URLSearchParams(window.location.search).get('api_base') || 'https://ff-2026-manager-d7jwjq5hna-uc.a.run.app';
 
 let LEAGUE_BUNDLE = null;
 let LIVE_NFL_SLATE = null;
@@ -945,9 +946,38 @@ function shortPlayerName(name) {
   return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
 }
 
+function parseGameRemainingFraction(scoreClockLine, state) {
+  if (state === 'post') return 0.0;
+  if (state !== 'in') return 1.0;
+  const s = String(scoreClockLine || '').toUpperCase();
+  if (!s) return 0.38;
+  if (s.includes('HALF')) return 0.50;
+  if (s.includes('END OF 1ST') || s.includes('END 1ST')) return 0.75;
+  if (s.includes('END OF 3RD') || s.includes('END 3RD')) return 0.25;
+  if (s.includes('OT')) return 0.08;
+  const qMatch = s.match(/(?:Q|([1-4])(?:ST|ND|RD|TH))\s*(\d{1,2}):(\d{2})|(\d{1,2}):(\d{2})\s*-\s*([1-4])(?:ST|ND|RD|TH)/i);
+  let qNum = null;
+  let mins = 7.5;
+  const cMatch = s.match(/(\d{1,2}):(\d{2})/);
+  if (cMatch) {
+    mins = Math.min(15, Number(cMatch[1]) + (Number(cMatch[2]) / 60.0));
+  }
+  if (/\b1ST\b|\bQ1\b/.test(s)) qNum = 1;
+  else if (/\b2ND\b|\bQ2\b/.test(s)) qNum = 2;
+  else if (/\b3RD\b|\bQ3\b/.test(s)) qNum = 3;
+  else if (/\b4TH\b|\bQ4\b/.test(s)) qNum = 4;
+  if (qNum !== null) {
+    const remMins = ((4 - qNum) * 15.0) + mins;
+    return Math.max(0.02, Math.min(1.0, remMins / 60.0));
+  }
+  if (qMatch) return 0.38;
+  return 0.38;
+}
+
 function resolvePlayerLiveMeta(p) {
-  if (!p) return { state: 'pre', eventId: '', scoreClockLine: '', statLine: '', actualPts: null, dynamicProj: 0 };
-  const wkProj = Number(p.wk_proj || p.season_ppg || 0);
+  if (!p) return { state: 'pre', eventId: '', scoreClockLine: '', statLine: '', actualPts: null, dynamicProj: 0, remFrac: 1.0 };
+  const b = calcBlend(p);
+  const wkProj = Number(b.wkPpg || p.wk_proj || p.season_ppg || 0);
   const tAbbr = canonNflAbbr(p.nfl_team);
   const pMap = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.player_live_map) || {};
   const tMap = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.team_live_map) || {};
@@ -968,25 +998,27 @@ function resolvePlayerLiveMeta(p) {
   if (state === 'in' || state === 'post') {
     if (pLive && typeof pLive.live_ppr_pts === 'number') {
       actualPts = pLive.live_ppr_pts;
-    }
-    if (p.pos === 'DST' && actualPts === null && teamLive && typeof teamLive.dst_live_ppr_pts === 'number') {
+    } else if (p.pos === 'DST' && teamLive && typeof teamLive.dst_live_ppr_pts === 'number') {
       actualPts = teamLive.dst_live_ppr_pts;
-    }
-    if (typeof p.wk_actual === 'number') {
-      actualPts = (actualPts !== null) ? Math.max(actualPts, p.wk_actual) : p.wk_actual;
+    } else if (typeof p.wk_actual === 'number') {
+      actualPts = p.wk_actual;
     }
     if (actualPts === null) actualPts = 0.0;
   }
 
+  const remFrac = parseGameRemainingFraction(scoreClockLine, state);
   let dynamicProj = wkProj;
   if (state === 'post' && actualPts !== null) {
     dynamicProj = actualPts;
   } else if (state === 'in' && actualPts !== null) {
-    // Blend actual scored so far + ~40% remaining baseline projection
-    dynamicProj = Math.max(actualPts, actualPts + (0.38 * wkProj));
+    if (p.pos === 'DST') {
+      dynamicProj = (actualPts * (1.0 - remFrac)) + (wkProj * remFrac);
+    } else {
+      dynamicProj = actualPts + (remFrac * wkProj);
+    }
   }
 
-  return { state, eventId, scoreClockLine, statLine, actualPts, dynamicProj };
+  return { state, eventId, scoreClockLine, statLine, actualPts, dynamicProj, remFrac };
 }
 
 // Per-user storage helpers via RollupBridge
@@ -1055,10 +1087,16 @@ function calcBlend(p) {
   const csPpg = Number(p.consensus_ppg || p.wk_proj || p.season_ppg || 0);
   const mbVorp = Number(p.moneyball_vorp || 0);
   const csVorp = Number(p.consensus_vorp || 0);
+  const wkMbPpg = p.weekly_moneyball_ppg !== undefined ? Number(p.weekly_moneyball_ppg) : (p.is_bye ? 0 : mbPpg);
+  const wkCsPpg = p.weekly_consensus_ppg !== undefined ? Number(p.weekly_consensus_ppg) : (p.is_bye ? 0 : Number(p.wk_proj || csPpg));
+  const wkMbVorp = p.weekly_moneyball_vorp !== undefined ? Number(p.weekly_moneyball_vorp) : (wkMbPpg - (mbPpg - mbVorp));
+  const wkCsVorp = p.weekly_consensus_vorp !== undefined ? Number(p.weekly_consensus_vorp) : (wkCsPpg - (csPpg - csVorp));
   return {
     ppg: (MB_WEIGHT * mbPpg) + ((1 - MB_WEIGHT) * csPpg),
     vorp: (MB_WEIGHT * mbVorp) + ((1 - MB_WEIGHT) * csVorp),
-    mbPpg, csPpg, mbVorp, csVorp
+    wkPpg: (MB_WEIGHT * wkMbPpg) + ((1 - MB_WEIGHT) * wkCsPpg),
+    wkVorp: (MB_WEIGHT * wkMbVorp) + ((1 - MB_WEIGHT) * wkCsVorp),
+    mbPpg, csPpg, mbVorp, csVorp, wkMbPpg, wkCsPpg
   };
 }
 
@@ -1068,11 +1106,12 @@ function calcBlend(p) {
 function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = false) {
   const roster = getActiveRosterForUser(teamData);
   const protectedSet = getUserProtectedSet(teamData);
-  const unlockedDroppable = roster.filter(p => !p.is_locked_played && !protectedSet.has(normName(p.name)));
+  // Official IR slots are zero-roster-cost stashes — never auto-selected as drop candidates!
+  const unlockedDroppable = roster.filter(p => p.slot !== 'IR' && !p.is_locked_played && !protectedSet.has(normName(p.name)));
 
   // 1. D/ST compares strictly 1-for-1 against active/rostered D/ST unless fringe stash is checked
   if (candidatePos === 'DST' && !allowCrossBucketStash) {
-    const myDsts = roster.filter(p => p.pos === 'DST' && !p.is_locked_played);
+    const myDsts = roster.filter(p => p.pos === 'DST' && p.slot !== 'IR' && !p.is_locked_played);
     if (myDsts.length > 0) {
       myDsts.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
       const d = myDsts[0];
@@ -1089,7 +1128,7 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
       const q = myQbs[0];
       return { id: q.player_id, name: q.name, pos: q.pos, player: q, bucket_label: '1-for-1 QB Swap', valid: true, blended_vorp: calcBlend(q).vorp };
     }
-    const anyQb = roster.filter(p => p.pos === 'QB');
+    const anyQb = roster.filter(p => p.pos === 'QB' && p.slot !== 'IR');
     const refQb = anyQb[0];
     return {
       id: refQb ? refQb.player_id : 0,
@@ -1105,7 +1144,7 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
   // 3. Skill Pool (RB / WR / TE): Same-Position first, or Cross-FLEX only when starter positional minimums stay intact
   const posMinimums = { RB: 2, WR: 2, TE: 1 };
   const posCounts = { RB: 0, WR: 0, TE: 0 };
-  roster.forEach(p => { if (posCounts[p.pos] !== undefined) posCounts[p.pos]++; });
+  roster.forEach(p => { if (p.slot !== 'IR' && posCounts[p.pos] !== undefined) posCounts[p.pos]++; });
 
   const validSkillDrops = unlockedDroppable.filter(p => {
     if (!['RB', 'WR', 'TE'].includes(p.pos)) return false;
@@ -1142,6 +1181,151 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
 
 function computeDynamicBenchAnchor(teamData) {
   return resolveSmartDropAnchor('WR', teamData, false);
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic Weekly Start/Sit Lineup Optimizer (v3.0 Dual-Horizon)
+// ---------------------------------------------------------------------------
+function computeOptimalLineupAudit(rosterArr) {
+  const slotsCfg = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.league_info && LEAGUE_BUNDLE.league_info.lineup_slots) || {
+    QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 2, DST: 1, K: 0
+  };
+  const activePool = (rosterArr || []).filter(p => p.slot !== 'IR');
+  const curStarters = activePool.filter(p => p.slot !== 'BENCH');
+  const curStarterIds = new Set(curStarters.map(p => Number(p.player_id)));
+  const lockedStarters = curStarters.filter(p => p.is_locked_played);
+  const unlockedPool = activePool.filter(p => !p.is_locked_played);
+
+  const remSlots = {
+    QB: Number(slotsCfg.QB ?? 1),
+    RB: Number(slotsCfg.RB ?? 2),
+    WR: Number(slotsCfg.WR ?? 2),
+    TE: Number(slotsCfg.TE ?? 1),
+    FLEX: Number(slotsCfg.FLEX ?? 2),
+    SUPERFLEX: Number(slotsCfg.SUPERFLEX ?? 0),
+    DST: Number(slotsCfg.DST ?? 1),
+    K: Number(slotsCfg.K ?? 0)
+  };
+  lockedStarters.forEach(p => {
+    const sl = String(p.slot || p.pos || '').toUpperCase();
+    if (remSlots[sl] > 0) remSlots[sl]--;
+    else if (remSlots[p.pos] > 0) remSlots[p.pos]--;
+    else if (['RB', 'WR', 'TE'].includes(p.pos) && remSlots.FLEX > 0) remSlots.FLEX--;
+  });
+
+  const usedIds = new Set(lockedStarters.map(p => Number(p.player_id)));
+  const optUnlocked = [];
+  ['QB', 'RB', 'WR', 'TE', 'DST', 'K'].forEach(pos => {
+    const need = Math.max(0, remSlots[pos] || 0);
+    if (!need) return;
+    const cands = unlockedPool
+      .filter(p => p.pos === pos && !usedIds.has(Number(p.player_id)))
+      .sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+    cands.slice(0, need).forEach(c => {
+      usedIds.add(Number(c.player_id));
+      optUnlocked.push({ slot: pos, p: c });
+    });
+  });
+
+  const flexNeed = Math.max(0, remSlots.FLEX || 0);
+  if (flexNeed > 0) {
+    const flexCands = unlockedPool
+      .filter(p => ['RB', 'WR', 'TE'].includes(p.pos) && !usedIds.has(Number(p.player_id)))
+      .sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+    flexCands.slice(0, flexNeed).forEach(c => {
+      usedIds.add(Number(c.player_id));
+      optUnlocked.push({ slot: 'FLEX', p: c });
+    });
+  }
+
+  const sflexNeed = Math.max(0, remSlots.SUPERFLEX || 0);
+  if (sflexNeed > 0) {
+    const sfCands = unlockedPool
+      .filter(p => ['QB', 'RB', 'WR', 'TE'].includes(p.pos) && !usedIds.has(Number(p.player_id)))
+      .sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+    sfCands.slice(0, sflexNeed).forEach(c => {
+      usedIds.add(Number(c.player_id));
+      optUnlocked.push({ slot: 'SUPERFLEX', p: c });
+    });
+  }
+
+  const optIds = new Set([...lockedStarters.map(p => Number(p.player_id)), ...optUnlocked.map(x => Number(x.p.player_id))]);
+  const curUnlockedBenched = curStarters.filter(p => !p.is_locked_played && !optIds.has(Number(p.player_id)));
+  const newPromoted = optUnlocked.filter(x => !curStarterIds.has(Number(x.p.player_id)));
+
+  const swaps = [];
+  const usedBenchOut = new Set();
+  newPromoted.forEach(prom => {
+    const bIn = prom.p;
+    const matchOut = curUnlockedBenched
+      .filter(st => !usedBenchOut.has(Number(st.player_id)) && (
+        st.pos === bIn.pos ||
+        (st.slot === 'FLEX' && ['RB', 'WR', 'TE'].includes(bIn.pos)) ||
+        (['RB', 'WR', 'TE'].includes(st.pos) && prom.slot === 'FLEX')
+      ))
+      .sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg)[0]
+      || curUnlockedBenched.find(st => !usedBenchOut.has(Number(st.player_id)));
+    if (matchOut) {
+      usedBenchOut.add(Number(matchOut.player_id));
+      const gain = calcBlend(bIn).wkPpg - calcBlend(matchOut).wkPpg;
+      const outInj = String(matchOut.injury_status || matchOut.espn_injury_status || 'Healthy').toUpperCase();
+      const urgent = Boolean(matchOut.is_bye || ['OUT', 'IR', 'DOUBTFUL', 'SUSPENDED'].includes(outInj));
+      if (gain >= 0.35 || urgent) {
+        swaps.push({ start: bIn, sit: matchOut, slot: matchOut.slot || prom.slot, gain, urgent });
+      }
+    }
+  });
+
+  const curPts = curStarters.reduce((acc, p) => acc + calcBlend(p).wkPpg, 0);
+  const optPts = lockedStarters.reduce((acc, p) => acc + calcBlend(p).wkPpg, 0)
+    + optUnlocked.reduce((acc, x) => acc + calcBlend(x.p).wkPpg, 0);
+  const delta = Math.max(0, optPts - curPts);
+  return { isOptimal: swaps.length === 0, delta, swaps };
+}
+
+function applyAuditSwapSandbox(startId, sitId, targetSlot) {
+  const teamData = getActiveTeamData();
+  const roster = getActiveRosterForUser(teamData);
+  const pIn = roster.find(p => Number(p.player_id) === Number(startId));
+  const pOut = roster.find(p => Number(p.player_id) === Number(sitId));
+  if (pIn && pOut) {
+    const slotToTake = pOut.slot && pOut.slot !== 'BENCH' ? pOut.slot : (targetSlot || pIn.pos);
+    pOut.slot = 'BENCH';
+    pIn.slot = slotToTake;
+    saveUserSandboxRoster(roster);
+  }
+}
+
+function renderLineupAuditBanner(rosterArr) {
+  const audit = computeOptimalLineupAudit(rosterArr);
+  if (audit.isOptimal) {
+    return `
+      <div style="margin:6px 12px 4px 12px;padding:7px 11px;background:#052e1666;border:1px solid #166534;border-radius:9px;font-size:11px;color:#bbf7d0;display:flex;justify-content:space-between;align-items:center;">
+        <span>✅ <strong>Starting Lineup Optimal</strong> for your ${Math.round(MB_WEIGHT * 100)}/${Math.round((1 - MB_WEIGHT) * 100)} Blend</span>
+        <span style="font-size:10px;color:#4ade80;font-weight:800;">+0.0 Wk Gain Left</span>
+      </div>
+    `;
+  }
+  const hasUrgent = audit.swaps.some(s => s.urgent);
+  const bg = hasUrgent ? '#450a0a99' : '#42200699';
+  const brd = hasUrgent ? '#ef4444' : '#f59e0b';
+  const titleCol = hasUrgent ? '#fecaca' : '#fde68a';
+  const rows = audit.swaps.map(s => {
+    const sitReason = s.sit.is_bye ? 'BYE' : ((s.sit.injury_status && s.sit.injury_status !== 'Healthy') ? s.sit.injury_status : `${calcBlend(s.sit).wkPpg.toFixed(1)} Wk`);
+    return `<div style="margin-top:4px;font-size:11.5px;color:#f8fafc;display:flex;justify-content:space-between;align-items:center;gap:6px;">
+      <span>🔄 Start <strong style="color:#4ade80;">${escHtml(s.start.name)}</strong> (${calcBlend(s.start).wkPpg.toFixed(1)}) over <strong style="color:#fca5a5;">${escHtml(s.sit.name)}</strong> (${escHtml(sitReason)}) in <strong>${escHtml(s.slot)}</strong></span>
+      <button onclick="applyAuditSwapSandbox(${Number(s.start.player_id)}, ${Number(s.sit.player_id)}, '${escHtml(s.slot)}')" style="background:#0c4a6e;color:#bae6fd;border:1px solid #38bdf8;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;">+${s.gain.toFixed(1)} Swap</button>
+    </div>`;
+  }).join('');
+  return `
+    <div style="margin:6px 12px 4px 12px;padding:9px 11px;background:${bg};border:1px solid ${brd};border-radius:9px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;color:${titleCol};">
+        <span>${hasUrgent ? '🚨 URGENT START/SIT ALERT' : '💡 START/SIT LINEUP UPGRADE'}</span>
+        <span style="color:#4ade80;">+${audit.delta.toFixed(1)} Wk Pts Available</span>
+      </div>
+      ${rows}
+    </div>
+  `;
 }
 
 // ---------------------------------------------------------------------------
@@ -1233,9 +1417,13 @@ function getActiveTeamData() {
 
 function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSet = new Set(), comparisonOverride = null) {
   const b = calcBlend(p);
-  const vorpSign = b.vorp >= 0 ? '+' : '';
   const slot = isFa ? (p.availability === 'FREEAGENT' ? 'FA' : 'WVR') : (p.slot || 'BENCH');
-  const isBench = slot === 'BENCH';
+  const isBench = slot === 'BENCH' || slot === 'IR';
+  const isStarterSlot = !isFa && !isBench;
+  const dispPpg = isStarterSlot ? b.wkPpg : b.ppg;
+  const dispVorp = isStarterSlot ? b.wkVorp : b.vorp;
+  const horizonBadge = isStarterSlot ? 'WK' : 'ROS';
+  const vorpSign = dispVorp >= 0 ? '+' : '';
   const isProtected = !isFa && protectedSet.has(normName(p.name));
   const isStarred = watchlistSet.has(Number(p.player_id));
   const userNoteText = getUserPlayerNote(p.player_id);
@@ -1245,7 +1433,13 @@ function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSe
   PLAYER_REGISTRY.set(pKey, p);
 
   let chipsHtml = '';
-  if (isProtected) {
+  if (slot === 'IR') {
+    chipsHtml += makeInteractiveChip(
+      '🏥 IR Stash', 'chip-core', 'Official IR Slot Stash',
+      'IR-stashed players occupy zero active bench spots and are automatically excluded from drop anchors.',
+      `${p.name} is stashed in an IR slot with ${b.ppg.toFixed(1)} ROS PPG upside.`
+    );
+  } else if (isProtected) {
     chipsHtml += makeInteractiveChip(
       '🛡️ Core Locked', 'chip-core', 'Protected Core Star',
       'Protected players are locked against automatic drop suggestions so your core starters & stashes are never cut.',
@@ -1289,8 +1483,8 @@ function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSe
   if (p.is_bye) {
     chipsHtml += makeInteractiveChip(
       'BYE', 'chip-trap', 'Scheduled NFL Bye Week',
-      'Players on Bye score 0.00 points this week, but Empirical Bayes Season PPG protects their true rest-of-season stash value.',
-      `${p.name} (${p.nfl_team}) is on Bye in Week ${LEAGUE_BUNDLE.week || 7}. Season PPG (${Number(p.season_ppg || 0).toFixed(1)}) preserves his baseline.`
+      'Players on Bye score 0.00 points this week (WK), while Empirical Bayes ROS PPG protects their rest-of-season bench/stash value.',
+      `${p.name} (${p.nfl_team}) is on Bye in Week ${LEAGUE_BUNDLE.week || 7}. Weekly PPG is 0.0; ROS Stash PPG (${b.ppg.toFixed(1)}) preserves baseline.`
     );
   }
   const injStatus = p.injury_status || p.espn_injury_status || 'Healthy';
@@ -1311,7 +1505,7 @@ function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSe
     });
   }
 
-  let rightSubLine = `${vorpSign}${b.vorp.toFixed(2)} ${p.pos} VORP`;
+  let rightSubLine = `${vorpSign}${dispVorp.toFixed(2)} ${p.pos} VORP`;
   if (isFa && comparisonOverride) {
     if (comparisonOverride.valid && comparisonOverride.player) {
       const net = b.vorp - comparisonOverride.blended_vorp;
@@ -1333,16 +1527,19 @@ function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSe
     gameStatBanner = `<div><span class="${cls}" ${clickAttr} title="Tap for Live NFL Box Score">${dot}${escHtml(liveMeta.scoreClockLine || p.matchup || 'Final')}${stPart}</span></div>`;
   }
 
+  const altHorizonLine = isStarterSlot
+    ? `ROS: ${b.ppg.toFixed(1)} | Own: ${Number(p.percent_owned || 0).toFixed(0)}%`
+    : `Wk: ${b.wkPpg.toFixed(1)} | Own: ${Number(p.percent_owned || 0).toFixed(0)}%`;
   let rightBlockHtml = `
-    <div class="p-blend-val">${b.ppg.toFixed(1)} <span style="font-size:10px;font-weight:600;color:#94a3b8;">PPG</span></div>
+    <div class="p-blend-val">${dispPpg.toFixed(1)} <span style="font-size:9.5px;font-weight:700;color:#94a3b8;">${horizonBadge}</span></div>
     <div class="p-vorp-val">${rightSubLine}</div>
-    <div class="p-proj-val">Wk Proj: ${Number(p.wk_proj || 0).toFixed(1)} | Own: ${Number(p.percent_owned || 0).toFixed(0)}%</div>
+    <div class="p-proj-val">${altHorizonLine}</div>
   `;
   if (!isFa && (liveMeta.state === 'in' || liveMeta.state === 'post') && liveMeta.actualPts !== null) {
     const scoreCol = liveMeta.state === 'in' ? '#4ade80' : '#ffffff';
     rightBlockHtml = `
       <div class="p-blend-val" style="color:${scoreCol};">${liveMeta.actualPts.toFixed(1)} <span style="font-size:9.5px;font-weight:700;color:#94a3b8;">PTS</span></div>
-      <div class="p-vorp-val">Proj ${Number(p.wk_proj || 0).toFixed(1)} • ${b.ppg.toFixed(1)} B-PPG</div>
+      <div class="p-vorp-val">Proj ${liveMeta.dynamicProj.toFixed(1)} • ${b.ppg.toFixed(1)} ROS</div>
       <div class="p-proj-val">${rightSubLine}</div>
     `;
   }
@@ -1392,17 +1589,20 @@ function summarizeLineupLiveTotals(rosterArr) {
   let dynProjSum = 0;
   let anyStarted = false;
   let unplayedCount = 0;
+  let remFracSum = 0;
   starters.forEach(p => {
     const lm = resolvePlayerLiveMeta(p);
     if (lm.state === 'in' || lm.state === 'post') {
       anyStarted = true;
       actualSum += Number(lm.actualPts || 0);
+      if (lm.state === 'in') remFracSum += Number(lm.remFrac ?? 0.38);
     } else {
       unplayedCount += 1;
+      remFracSum += 1.0;
     }
     dynProjSum += Number(lm.dynamicProj || 0);
   });
-  return { actualSum, dynProjSum, anyStarted, unplayedCount, starters };
+  return { actualSum, dynProjSum, anyStarted, unplayedCount, remFracSum, starters };
 }
 
 function renderTeamTab() {
@@ -1420,13 +1620,16 @@ function renderTeamTab() {
   const watchlistSet = getUserWatchlist();
   const benchAnchor = computeDynamicBenchAnchor(teamData);
 
+  const auditEl = document.getElementById('lineup-audit-banner');
+  if (auditEl) auditEl.innerHTML = renderLineupAuditBanner(roster);
+
   const myTotals = summarizeLineupLiveTotals(roster);
   const oppTeam = resolveCurrentOpponentTeam(teamData);
   const wr = teamData.war_room || {};
   const currOpp = wr.current_opponent || {};
   const oppTotals = oppTeam
     ? summarizeLineupLiveTotals(oppTeam.roster || [])
-    : { actualSum: 0, dynProjSum: Number(currOpp.projected_starter_pts || 110.0), anyStarted: false };
+    : { actualSum: 0, dynProjSum: Number(currOpp.projected_starter_pts || 110.0), anyStarted: false, remFracSum: 9 };
 
   const oppName = (oppTeam && oppTeam.team_name) || currOpp.opponent_name || 'Week Opponent';
   const oppRec = (oppTeam && oppTeam.record_str) || currOpp.opponent_record || 'Opponent';
@@ -1957,18 +2160,29 @@ async function openDossierByKey(playerKey, isFa) {
       `;
     }
   } else {
-    const isBench = p.slot === 'BENCH';
+    const isBench = p.slot === 'BENCH' || p.slot === 'IR';
     const targetSlot = isBench ? (['RB', 'WR', 'TE'].includes(p.pos) ? 'FLEX' : p.pos) : 'BENCH';
-    userActionsHtml = `
-      <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;">
-        <button class="cp-action-btn" style="background:${isProtected ? '#1e3a8a' : '#1e293b'};border:1px solid #38bdf8;margin-top:0;flex:1;" onclick="toggleProtectByKey('${playerKey}', false)">
-          ${isProtected ? '🛡️ Core Locked (Tap to Unlock)' : '🔓 Unlocked (Tap to Protect)'}
-        </button>
-        <button class="cp-action-btn" style="background:#0f766e;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${p.player_id}, '${targetSlot}'); closeDrawerModal('dossier-backdrop');">
-          🔄 Move to ${targetSlot}
-        </button>
-      </div>
-    `;
+    if (p.slot === 'IR') {
+      userActionsHtml = `
+        <div style="background:#0c4a6e33;border:1px solid #0284c7;border-radius:9px;padding:9px 11px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="font-size:11.5px;color:#bae6fd;flex:2;"><strong>🏥 Official IR Slot Stash:</strong> Zero active roster cost — automatically protected from drop anchors.</div>
+          <button class="cp-action-btn" style="background:#0f766e;margin-top:0;width:auto;white-space:nowrap;" onclick="togglePlayerLineupSlot(${p.player_id}, 'BENCH'); closeDrawerModal('dossier-backdrop');">
+            🔄 Activate to BENCH
+          </button>
+        </div>
+      `;
+    } else {
+      userActionsHtml = `
+        <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;">
+          <button class="cp-action-btn" style="background:${isProtected ? '#1e3a8a' : '#1e293b'};border:1px solid #38bdf8;margin-top:0;flex:1;" onclick="toggleProtectByKey('${playerKey}', false)">
+            ${isProtected ? '🛡️ Core Locked (Tap to Unlock)' : '🔓 Unlocked (Tap to Protect)'}
+          </button>
+          <button class="cp-action-btn" style="background:#0f766e;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${p.player_id}, '${targetSlot}'); closeDrawerModal('dossier-backdrop');">
+            🔄 Move to ${targetSlot}
+          </button>
+        </div>
+      `;
+    }
   }
 
   const outlookText = p.weekly_outlook || p.season_outlook || '';
@@ -1997,7 +2211,7 @@ async function openDossierByKey(playerKey, isFa) {
   const liveMeta = resolvePlayerLiveMeta(p);
   const ribbonScoreTxt = (liveMeta.state === 'in' || liveMeta.state === 'post') && liveMeta.actualPts !== null
     ? `${liveMeta.actualPts.toFixed(1)} pts (${liveMeta.state === 'in' ? 'LIVE' : 'FINAL'})`
-    : `${b.ppg.toFixed(1)} B-PPG`;
+    : `${b.ppg.toFixed(1)} ROS • ${b.wkPpg.toFixed(1)} Wk`;
 
   const liveDossierBanner = (liveMeta.state === 'in' || liveMeta.state === 'post')
     ? `<div style="margin:6px 0 8px 0;padding:8px 11px;background:${liveMeta.state==='in'?'#052e16':'#111827'};border:1px solid ${liveMeta.state==='in'?'#16a34a':'#334155'};border-radius:9px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" ${liveMeta.eventId ? `onclick="openNflGameCenter('${escHtml(liveMeta.eventId)}')"` : ''}>
@@ -2040,24 +2254,24 @@ async function openDossierByKey(playerKey, isFa) {
 
     <div class="dossier-grid">
       <div class="d-cell">
-        <div class="d-k">Blended PPG</div>
-        <div class="d-v" style="color:#4ade80;">${b.ppg.toFixed(2)}</div>
+        <div class="d-k">ROS Stash PPG</div>
+        <div class="d-v" style="color:#4ade80;">${b.ppg.toFixed(2)} <span style="font-size:10px;">(${b.vorp >= 0 ? '+' : ''}${b.vorp.toFixed(1)}V)</span></div>
       </div>
       <div class="d-cell">
-        <div class="d-k">Moneyball PPG</div>
-        <div class="d-v" style="color:#38bdf8;">${b.mbPpg.toFixed(2)} <span style="font-size:10px;">(${b.mbVorp >= 0 ? '+' : ''}${b.mbVorp.toFixed(1)}V)</span></div>
+        <div class="d-k">Wk ${LEAGUE_BUNDLE.week || 7} Blended</div>
+        <div class="d-v" style="color:#fbbf24;">${b.wkPpg.toFixed(2)} <span style="font-size:10px;">(${b.wkVorp >= 0 ? '+' : ''}${b.wkVorp.toFixed(1)}V)</span></div>
       </div>
       <div class="d-cell">
-        <div class="d-k">Consensus PPG</div>
-        <div class="d-v" style="color:#c084fc;">${b.csPpg.toFixed(2)} <span style="font-size:10px;">(${b.csVorp >= 0 ? '+' : ''}${b.csVorp.toFixed(1)}V)</span></div>
+        <div class="d-k">Moneyball (ROS/Wk)</div>
+        <div class="d-v" style="color:#38bdf8;font-size:11.5px;">${b.mbPpg.toFixed(1)} / ${b.wkMbPpg.toFixed(1)}</div>
+      </div>
+      <div class="d-cell">
+        <div class="d-k">Consensus (ROS/Wk)</div>
+        <div class="d-v" style="color:#c084fc;font-size:11.5px;">${b.csPpg.toFixed(1)} / ${b.wkCsPpg.toFixed(1)}</div>
       </div>
       <div class="d-cell">
         <div class="d-k">Season / L3 PPG</div>
         <div class="d-v">${Number(p.season_ppg || 0).toFixed(1)} / ${Number(p.recent_ppg || 0).toFixed(1)}</div>
-      </div>
-      <div class="d-cell">
-        <div class="d-k">Wk ${LEAGUE_BUNDLE.week || 7} Proj</div>
-        <div class="d-v">${Number(p.wk_proj || 0).toFixed(2)}</div>
       </div>
       <div class="d-cell">
         <div class="d-k">Own / Start / 7d</div>
@@ -2211,14 +2425,14 @@ function toggleMatchupBench() {
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-function computeWinProbPct(myDyn, oppDyn, myUnplayed, oppUnplayed) {
+function computeWinProbPct(myDyn, oppDyn, myRemFrac, oppRemFrac) {
   const diff = myDyn - oppDyn;
-  const remCount = Math.max(0, Number(myUnplayed || 0) + Number(oppUnplayed || 0));
-  if (remCount === 0) {
+  const remUnits = Math.max(0, Number(myRemFrac || 0) + Number(oppRemFrac || 0));
+  if (remUnits <= 0.01) {
     if (Math.abs(diff) < 0.05) return 50;
     return diff > 0 ? 99 : 1;
   }
-  const sigma = Math.max(6.5, Math.sqrt(remCount) * 7.2);
+  const sigma = Math.max(2.2, Math.sqrt(remUnits) * 7.2);
   const z = diff / sigma;
   const p = 1 / (1 + Math.exp(-1.702 * z));
   return Math.min(99, Math.max(1, Math.round(p * 100)));
@@ -2275,7 +2489,7 @@ function renderMatchupPlayerSide(p, isRight) {
     ? lm.actualPts.toFixed(1)
     : '-';
   const scoreColor = lm.state === 'in' ? '#4ade80' : (lm.state === 'post' ? '#ffffff' : '#64748b');
-  const projTxt = Number(p.wk_proj || 0).toFixed(2);
+  const projTxt = Number(lm.dynamicProj ?? p.wk_proj ?? 0).toFixed(2);
 
   return `
     <div class="mu-cell ${isRight ? 'right' : ''}" onclick="openDossierByKey('${pKey}', false)">
@@ -2304,7 +2518,7 @@ function renderMatchupTab() {
 
   const myTot = summarizeLineupLiveTotals(myRoster);
   const oppTot = summarizeLineupLiveTotals(oppRoster);
-  const myWp = computeWinProbPct(myTot.dynProjSum, oppTot.dynProjSum, myTot.unplayedCount, oppTot.unplayedCount);
+  const myWp = computeWinProbPct(myTot.dynProjSum, oppTot.dynProjSum, myTot.remFracSum ?? myTot.unplayedCount, oppTot.remFracSum ?? oppTot.unplayedCount);
   const oppWp = 100 - myWp;
 
   document.getElementById('matchup-hero-box').innerHTML = `
