@@ -6,3 +6,9 @@
 ====================================================================
 127.0.0.1 - - [24/Oct/2026 19:21:25] "GET /api/gravity-proxy/api/v1/pulse HTTP/1.1" 200 -
 127.0.0.1 - - [24/Oct/2026 19:21:25] "GET /api/gravity-proxy/api/v1/conversations/3f3fb953-83d5-4abd-b638-5d8aa02a6902 HTTP/1.1" 200 -
+====================================================================
+🚀 RollupOS Multi-User Android App Hub Server Running!
+   • Local PC Browser : http://localhost:8090
+   • Phone on Wi-Fi   : http://192.168.86.47:8090
+   • Fantasy Manager  : http://localhost:8090/apps/fantasy-manager/index.html
+====================================================================

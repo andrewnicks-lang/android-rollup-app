@@ -662,42 +662,61 @@
       };
     }
 
-    // Floating Pill in bottom-left / top-right
+    // Remove any existing bar if re-mounted
+    const existingPill = document.getElementById('rollup-console-pill');
+    if (existingPill) existingPill.remove();
+
+    // Docked, zero-obstruction 28px Top System Strip in normal document flow
+    // (Never floats over send buttons, chat inputs, bottom navs, or cards!)
+    const bodyComp = global.getComputedStyle(document.body);
+    const padTop = parseFloat(bodyComp.paddingTop) || 0;
+    const padLeft = parseFloat(bodyComp.paddingLeft) || 0;
+    const padRight = parseFloat(bodyComp.paddingRight) || 0;
+
     const pill = document.createElement('div');
     pill.id = 'rollup-console-pill';
     pill.style.cssText = `
-      position: fixed;
-      bottom: ${options.bottomOffset || '74px'};
-      right: 12px;
-      z-index: 9990;
+      position: relative;
+      z-index: 35;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 6px;
-      background: rgba(15, 23, 42, 0.94);
-      backdrop-filter: blur(12px);
-      border: 1px solid #38bdf8;
-      border-radius: 999px;
-      padding: 5px 10px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+      width: calc(100% + ${padLeft + padRight}px);
+      margin-top: -${padTop}px;
+      margin-left: -${padLeft}px;
+      margin-right: -${padRight}px;
+      margin-bottom: ${padTop > 0 ? '10px' : '0px'};
+      min-height: 29px;
+      padding: 3px 12px;
+      box-sizing: border-box;
+      flex-shrink: 0;
+      background: #050811;
+      border-bottom: 1px solid #1e293b;
       font-family: system-ui, -apple-system, sans-serif;
     `;
 
     const settingsBtnHtml =
       typeof options.onOpenSettings === 'function'
-        ? `<button id="rollup-pill-cfg" title="Switch Team / User Settings" style="background:#1e293b;border:1px solid #334155;color:#bae6fd;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;">⚙️ ${options.settingsLabel || 'Team / Setup'}</button>`
+        ? `<button id="rollup-pill-cfg" title="Switch Team / App Settings" style="background:transparent;border:1px solid #334155;color:#93c5fd;border-radius:6px;padding:2px 7px;font-size:10.5px;font-weight:700;cursor:pointer;">⚙️ ${options.settingsLabel || 'Setup'}</button>`
         : '';
 
     pill.innerHTML = `
-      <a href="${hubUrl}" title="Back to RollupOS Hub" style="display:inline-flex;align-items:center;gap:4px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;">
-        🏠 Hub
+      <a href="${hubUrl}" title="Back to RollupOS Hub" style="display:inline-flex;align-items:center;gap:5px;color:#38bdf8;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.1px;">
+        <span>←</span> <span>Rollup Hub</span>
       </a>
-      ${settingsBtnHtml}
-      <span style="font-size:10px;color:#94a3b8;font-weight:700;padding:0 3px;" title="Signed in as ${currentUser.email}">
-        ${currentUser.avatar || '👤'}
-      </span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${settingsBtnHtml}
+        <span style="font-size:10px;color:#64748b;font-weight:700;" title="Signed in as ${currentUser.email}">
+          ${currentUser.avatar || '👤'}
+        </span>
+      </div>
     `;
 
-    document.body.appendChild(pill);
+    if (isImp && document.body.firstElementChild) {
+      document.body.firstElementChild.insertAdjacentElement('afterend', pill);
+    } else {
+      document.body.prepend(pill);
+    }
 
     if (typeof options.onOpenSettings === 'function') {
       const cfgBtn = document.getElementById('rollup-pill-cfg');
@@ -706,7 +725,7 @@
   }
 
   global.RollupBridge = {
-    version: '1.0.0',
+    version: '1.1.0',
     detectAppId,
     resolveHubRootUrl,
     resolveRegistryUrl,
