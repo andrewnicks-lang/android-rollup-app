@@ -25,7 +25,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
-    padding: 0 0 92px 0;
+    padding: 0 0 calc(130px + env(safe-area-inset-bottom, 0px)) 0;
     background: var(--bg-amoled);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'Google Sans', 'Segoe UI', Roboto, sans-serif;
@@ -100,20 +100,195 @@
     background: #0c4a6e;
     border-color: #0284c7;
     color: #bae6fd;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 195px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  /* User Context Subbar */
-  .user-context-strip {
+  .iso-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 6px #4ade80;
+    flex-shrink: 0;
+  }
+  .live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .p-live-line {
+    font-size: 10.5px;
+    color: #86efac;
+    background: rgba(5, 46, 22, 0.55);
+    border: 1px solid #14532d;
+    border-radius: 5px;
+    padding: 2px 6px;
+    margin-top: 3px;
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .p-final-line {
+    font-size: 10.5px;
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.65);
+    border: 1px solid #334155;
+    border-radius: 5px;
+    padding: 2px 6px;
+    margin-top: 3px;
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* ESPN Clean Head-to-Head Matchup Tab */
+  .mu-hero {
+    margin: 10px 12px 8px 12px;
+    background: linear-gradient(145deg, #0f172a 0%, #111827 60%, #172554 100%);
+    border: 1px solid #1e3a8a;
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .mu-teams-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .mu-side { flex: 1; min-width: 0; }
+  .mu-side.right { text-align: right; }
+  .mu-tname { font-size: 13px; font-weight: 800; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mu-trec { font-size: 10px; color: #94a3b8; margin-top: 1px; }
+  .mu-big-pts { font-size: 24px; font-weight: 900; color: #ffffff; line-height: 1.1; margin-top: 4px; }
+  .mu-proj-pts { font-size: 10.5px; color: #93c5fd; font-weight: 700; margin-top: 2px; }
+  .mu-wp-wrap { margin-top: 10px; }
+  .mu-wp-labels { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; color: #cbd5e1; margin-bottom: 4px; }
+  .mu-wp-track { height: 7px; background: #334155; border-radius: 99px; overflow: hidden; display: flex; }
+  .mu-wp-left { background: linear-gradient(90deg, #38bdf8, #4ade80); height: 100%; transition: width 0.3s ease; }
+  .mu-wp-right { background: #64748b; height: 100%; flex: 1; }
+  .mu-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    align-items: stretch;
+    margin: 4px 10px;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .mu-cell {
+    padding: 8px 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 6px;
-    padding: 4px 8px;
-    background: rgba(30, 41, 59, 0.55);
-    border: 1px solid #1f2937;
-    border-radius: 7px;
-    font-size: 10.5px;
-    color: #94a3b8;
+    gap: 6px;
+    min-width: 0;
+    cursor: pointer;
   }
+  .mu-cell:active { background: #1e293b; }
+  .mu-cell.right { flex-direction: row-reverse; text-align: right; }
+  .mu-pinfo { min-width: 0; flex: 1; }
+  .mu-pname { font-size: 12px; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mu-pgame { font-size: 9.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .mu-pstat { font-size: 9.5px; color: #38bdf8; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1.5px; }
+  .mu-pscore { flex-shrink: 0; text-align: right; min-width: 34px; }
+  .mu-cell.right .mu-pscore { text-align: left; }
+  .mu-actual { font-size: 13.5px; font-weight: 900; color: #f8fafc; line-height: 1.1; }
+  .mu-proj { font-size: 9.5px; color: #64748b; font-weight: 700; margin-top: 1px; }
+  .mu-slot-spine {
+    background: #0b1120;
+    border-left: 1px solid #1f2937;
+    border-right: 1px solid #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9.5px;
+    font-weight: 900;
+    color: #94a3b8;
+    letter-spacing: 0.3px;
+  }
+  /* Docked NFL Scores Bar (Above Bottom Nav) */
+  .nfl-scores-dock {
+    position: fixed;
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    z-index: 49;
+    max-width: 480px;
+    margin: 0 auto;
+    background: rgba(15, 23, 42, 0.97);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid #1e3a8a;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 -4px 14px rgba(0,0,0,0.45);
+  }
+  .nfl-dock-btn {
+    background: #1e3a8a;
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    border-radius: 7px;
+    padding: 4px 8px;
+    font-size: 10.5px;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .nfl-dock-ticker {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+  }
+  .nfl-dock-ticker::-webkit-scrollbar { display: none; }
+  .nfl-mini-pill {
+    background: #090d16;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #e2e8f0;
+    white-space: nowrap;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .nfl-mini-pill.live { border-color: #ef4444; background: #2a0a0a; color: #fecaca; }
+  /* Sticky Player Ribbon inside Dossier & Game Center */
+  .dossier-sticky-ribbon {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0 -16px 10px -16px;
+    padding: 10px 16px 9px 16px;
+    background: rgba(15, 23, 42, 0.97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid #1e293b;
+  }
+  .box-tbl { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px; }
+  .box-tbl th { text-align: right; color: #94a3b8; font-size: 9.5px; padding: 5px 4px; border-bottom: 1px solid #334155; text-transform: uppercase; }
+  .box-tbl th:first-child { text-align: left; }
+  .box-tbl td { text-align: right; color: #e2e8f0; padding: 5px 4px; border-bottom: 1px solid #1e293b; font-variant-numeric: tabular-nums; }
+  .box-tbl td:first-child { text-align: left; font-weight: 700; color: #ffffff; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .box-tbl tr.rostered-hl td { background: rgba(14, 116, 144, 0.25); color: #bae6fd; }
   /* Interactive 60/40 Blend Slider Bar */
   .slider-box {
     margin-top: 7px;
@@ -395,7 +570,7 @@
     background: #0f172a;
     border-top: 2px solid #38bdf8;
     border-radius: 18px 18px 0 0;
-    padding: 16px 16px calc(44px + env(safe-area-inset-bottom, 0px)) 16px;
+    padding: 0 16px calc(44px + env(safe-area-inset-bottom, 0px)) 16px;
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -493,16 +668,14 @@
         <span class="rec-pill" id="hdr-record">--</span>
       </div>
       <div class="top-actions">
-        <button class="top-btn top-btn-accent" onclick="openTeamSelectorModal()" title="Switch Your Fantasy Team">👥 Team</button>
+        <button class="top-btn" onclick="refreshLiveTelemetry(true)" title="Refresh Live NFL Scores &amp; Stats">🔄</button>
+        <button class="top-btn top-btn-accent" id="btn-team-pill" onclick="openTeamSelectorModal()" title="Active Profile &amp; Isolated Sandbox">
+          <span class="iso-dot"></span><span id="hdr-pill-lbl">🔒 Team</span> ▾
+        </button>
       </div>
     </div>
 
-    <div class="user-context-strip">
-      <span id="hdr-user-email">👤 Signed in</span>
-      <span id="hdr-sandbox-status" style="color:#38bdf8;font-weight:700;">🔒 Isolated Profile Active</span>
-    </div>
-
-    <div class="slider-box">
+    <div class="slider-box" id="top-slider-box">
       <div class="slider-labels">
         <span style="color:#c084fc;">📊 Consensus (<span id="lbl-cs-pct">40</span>%)</span>
         <span style="color:#f8fafc;" id="lbl-mode-title">Blended Alpha (60/40)</span>
@@ -532,6 +705,21 @@
       <span>Blended PPG / VORP</span>
     </div>
     <div id="roster-bench"></div>
+  </div>
+
+  <!-- TAB 1B: CLEAN ESPN HEAD-TO-HEAD MATCHUP (ZERO MONEYBALL TAG CLUTTER) -->
+  <div id="tab-matchup" class="tab-view" style="display:none;">
+    <div id="matchup-hero-box"></div>
+    <div class="sec-hdr">
+      <span>Starting Lineups (Tap Any Player for Intel)</span>
+      <span>Score / Proj</span>
+    </div>
+    <div id="matchup-starters-rows"></div>
+    <div class="sec-hdr" style="margin-top:8px;cursor:pointer;" onclick="toggleMatchupBench()">
+      <span>Bench Comparison</span>
+      <span id="matchup-bench-chev" style="color:#38bdf8;">Show / Hide ▾</span>
+    </div>
+    <div id="matchup-bench-rows" style="display:block;"></div>
   </div>
 
   <!-- TAB 2: WAR ROOM (MULTI-HORIZON OPPONENT COUNTER-PICKS) -->
@@ -593,10 +781,21 @@
     <div id="breaking-news-container" style="padding:0 12px;"></div>
   </div>
 
-  <!-- BOTTOM 4-TAB NAVIGATION -->
+  <!-- DOCKED LIVE NFL SCORES BAR (EXPANDS INTO FULL NFL SCOREBOARD & BOX SCORE GAME CENTER) -->
+  <div class="nfl-scores-dock" id="nfl-scores-dock">
+    <button class="nfl-dock-btn" onclick="openNflScoreboardDrawer()">🏈 NFL Scores ▴</button>
+    <div class="nfl-dock-ticker" id="nfl-dock-ticker">
+      <span class="nfl-mini-pill" onclick="openNflScoreboardDrawer()">Loading live NFL scoreboard...</span>
+    </div>
+  </div>
+
+  <!-- BOTTOM 5-TAB NAVIGATION -->
   <div class="bottom-nav">
     <div class="nav-item active" id="nav-team" onclick="switchTab('team')">
       <span class="nav-icon">🏈</span>My Team
+    </div>
+    <div class="nav-item" id="nav-matchup" onclick="switchTab('matchup')">
+      <span class="nav-icon">🆚</span>Matchup
     </div>
     <div class="nav-item" id="nav-warroom" onclick="switchTab('warroom')">
       <span class="nav-icon">⚔️</span>War Room
@@ -605,22 +804,28 @@
       <span class="nav-icon">💎</span>Waivers
     </div>
     <div class="nav-item" id="nav-news" onclick="switchTab('news')">
-      <span class="nav-icon">🏆</span>League &amp; News
+      <span class="nav-icon">🏆</span>League
     </div>
   </div>
 </div>
 
 <!-- SLIDE-UP PLAYER INTEL DOSSIER DRAWER -->
 <div class="drawer-backdrop" id="dossier-backdrop" onclick="closeDossier(event)">
-  <div class="drawer" onclick="event.stopPropagation()">
-    <div class="drawer-handle"></div>
+  <div class="drawer" id="dossier-drawer-el" onclick="event.stopPropagation()">
     <div id="dossier-body"></div>
+  </div>
+</div>
+
+<!-- SLIDE-UP NFL LIVE SCOREBOARD & EXPANDABLE BOX SCORE GAME CENTER DRAWER -->
+<div class="drawer-backdrop" id="nfl-drawer-backdrop" onclick="if(event.target.id==='nfl-drawer-backdrop') closeDrawerModal('nfl-drawer-backdrop')">
+  <div class="drawer" id="nfl-drawer-el" onclick="event.stopPropagation()">
+    <div id="nfl-drawer-body"></div>
   </div>
 </div>
 
 <!-- SLIDE-UP MULTI-USER TEAM SELECTOR & SETUP DRAWER -->
 <div class="drawer-backdrop" id="team-modal-backdrop" onclick="closeTeamModal(event)">
-  <div class="drawer" onclick="event.stopPropagation()">
+  <div class="drawer" style="padding-top:14px;" onclick="event.stopPropagation()">
     <div class="drawer-handle"></div>
     <div id="team-modal-body"></div>
   </div>
@@ -638,10 +843,16 @@ window.ROLLUP_APP_ID = 'fantasy-manager';
 const CLOUD_API_BASE = 'https://ff-2026-manager-d7jwjq5hna-uc.a.run.app';
 
 let LEAGUE_BUNDLE = null;
+let LIVE_NFL_SLATE = null;
 let ACTIVE_TEAM_ID = 4;
 let MB_WEIGHT = 0.60;
 let CURRENT_FA_FILTER = 'ALL';
 let CURRENT_WR_HORIZON = 'curr';
+let ACTIVE_TAB = 'team';
+let CURRENT_GC_EVENT_ID = null;
+let CURRENT_GC_DATA = null;
+let CURRENT_GC_SUBTAB = 'plays';
+let CURRENT_GC_BOX_SIDE = 'away';
 
 // In-Memory Registries (Fixes apostrophe click bug on 100% of players + powers Tag Popups)
 const PLAYER_REGISTRY = new Map();
@@ -672,7 +883,66 @@ function closeDrawerModal(id) {
 }
 
 function normName(s) {
-  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return String(s || '').toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+function canonNflAbbr(ab) {
+  const u = String(ab || '').trim().toUpperCase();
+  if (u === 'WAS') return 'WSH';
+  if (u === 'JAC') return 'JAX';
+  if (u === 'LA') return 'LAR';
+  return u;
+}
+
+function shortPlayerName(name) {
+  const parts = String(name || '').trim().split(/\s+/);
+  if (parts.length <= 1) return name || '';
+  if (String(name || '').includes('D/ST')) return name;
+  return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
+}
+
+function resolvePlayerLiveMeta(p) {
+  if (!p) return { state: 'pre', eventId: '', scoreClockLine: '', statLine: '', actualPts: null, dynamicProj: 0 };
+  const wkProj = Number(p.wk_proj || p.season_ppg || 0);
+  const tAbbr = canonNflAbbr(p.nfl_team);
+  const pMap = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.player_live_map) || {};
+  const tMap = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.team_live_map) || {};
+
+  const teamLive = tMap[tAbbr] || tMap[p.nfl_team] || null;
+  const nKey = `${normName(p.name)}|${tAbbr}`;
+  const pLive = pMap[`id:${p.player_id}`] || pMap[nKey] || pMap[`${normName(p.name)}|${p.nfl_team}`] || null;
+
+  let state = (pLive && pLive.state) || (teamLive && teamLive.state) || p.game_state || (p.is_locked_played ? 'post' : 'pre');
+  let eventId = (pLive && pLive.event_id) || (teamLive && teamLive.event_id) || p.event_id || '';
+  let scoreClockLine = (pLive && pLive.score_clock_line) || (teamLive && teamLive.score_clock_line) || p.score_clock_line || '';
+  let statLine = (pLive && pLive.stat_line) || p.stat_line || '';
+  if (p.pos === 'DST' && !statLine && teamLive && teamLive.dst_stat_line) {
+    statLine = teamLive.dst_stat_line;
+  }
+
+  let actualPts = null;
+  if (state === 'in' || state === 'post') {
+    if (pLive && typeof pLive.live_ppr_pts === 'number') {
+      actualPts = pLive.live_ppr_pts;
+    }
+    if (p.pos === 'DST' && actualPts === null && teamLive && typeof teamLive.dst_live_ppr_pts === 'number') {
+      actualPts = teamLive.dst_live_ppr_pts;
+    }
+    if (typeof p.wk_actual === 'number') {
+      actualPts = (actualPts !== null) ? Math.max(actualPts, p.wk_actual) : p.wk_actual;
+    }
+    if (actualPts === null) actualPts = 0.0;
+  }
+
+  let dynamicProj = wkProj;
+  if (state === 'post' && actualPts !== null) {
+    dynamicProj = actualPts;
+  } else if (state === 'in' && actualPts !== null) {
+    // Blend actual scored so far + ~40% remaining baseline projection
+    dynamicProj = Math.max(actualPts, actualPts + (0.38 * wkProj));
+  }
+
+  return { state, eventId, scoreClockLine, statLine, actualPts, dynamicProj };
 }
 
 // Per-user storage helpers via RollupBridge
@@ -887,10 +1157,15 @@ function onBlendSliderChange(val) {
 }
 
 function switchTab(tab) {
-  ['team', 'warroom', 'waivers', 'news'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
-    document.getElementById('nav-' + t).classList.toggle('active', t === tab);
+  ACTIVE_TAB = tab;
+  ['team', 'matchup', 'warroom', 'waivers', 'news'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    const nv = document.getElementById('nav-' + t);
+    if (el) el.style.display = (t === tab) ? 'block' : 'none';
+    if (nv) nv.classList.toggle('active', t === tab);
   });
+  const sliderBox = document.getElementById('top-slider-box');
+  if (sliderBox) sliderBox.style.display = (tab === 'matchup') ? 'none' : 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -991,6 +1266,30 @@ function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSe
     }
   }
 
+  const liveMeta = resolvePlayerLiveMeta(p);
+  let gameStatBanner = '';
+  if (liveMeta.state === 'in' || liveMeta.state === 'post') {
+    const cls = liveMeta.state === 'in' ? 'p-live-line' : 'p-final-line';
+    const dot = liveMeta.state === 'in' ? '<span class="live-dot"></span>' : '';
+    const stPart = liveMeta.statLine ? ` • <strong>${escHtml(liveMeta.statLine)}</strong>` : '';
+    const clickAttr = liveMeta.eventId ? `onclick="event.stopPropagation(); openNflGameCenter('${escHtml(liveMeta.eventId)}')"` : '';
+    gameStatBanner = `<div><span class="${cls}" ${clickAttr} title="Tap for Live NFL Box Score">${dot}${escHtml(liveMeta.scoreClockLine || p.matchup || 'Final')}${stPart}</span></div>`;
+  }
+
+  let rightBlockHtml = `
+    <div class="p-blend-val">${b.ppg.toFixed(1)} <span style="font-size:10px;font-weight:600;color:#94a3b8;">PPG</span></div>
+    <div class="p-vorp-val">${rightSubLine}</div>
+    <div class="p-proj-val">Wk Proj: ${Number(p.wk_proj || 0).toFixed(1)} | Own: ${Number(p.percent_owned || 0).toFixed(0)}%</div>
+  `;
+  if (!isFa && (liveMeta.state === 'in' || liveMeta.state === 'post') && liveMeta.actualPts !== null) {
+    const scoreCol = liveMeta.state === 'in' ? '#4ade80' : '#ffffff';
+    rightBlockHtml = `
+      <div class="p-blend-val" style="color:${scoreCol};">${liveMeta.actualPts.toFixed(1)} <span style="font-size:9.5px;font-weight:700;color:#94a3b8;">PTS</span></div>
+      <div class="p-vorp-val">Proj ${Number(p.wk_proj || 0).toFixed(1)} • ${b.ppg.toFixed(1)} B-PPG</div>
+      <div class="p-proj-val">${rightSubLine}</div>
+    `;
+  }
+
   return `
     <div class="p-card" onclick="openDossierByKey('${pKey}', ${isFa})">
       <div class="p-left">
@@ -1000,19 +1299,53 @@ function renderPlayerCard(p, isFa = false, protectedSet = new Set(), watchlistSe
             <span class="p-name">${escHtml(p.name)}</span>
             <span class="p-meta">${escHtml(p.pos_rank || p.pos)} • ${escHtml(p.nfl_team)}</span>
           </div>
-          <div class="p-sub">${escHtml(p.vegas_summary || p.matchup || 'Active')}</div>
+          ${gameStatBanner || `<div class="p-sub">${escHtml(p.vegas_summary || p.matchup || 'Active')}</div>`}
           <div class="chip-row">
             ${chipsHtml}
           </div>
         </div>
       </div>
       <div class="p-right">
-        <div class="p-blend-val">${b.ppg.toFixed(1)} <span style="font-size:10px;font-weight:600;color:#94a3b8;">PPG</span></div>
-        <div class="p-vorp-val">${rightSubLine}</div>
-        <div class="p-proj-val">Wk Proj: ${Number(p.wk_proj || 0).toFixed(1)} | Own: ${Number(p.percent_owned || 0).toFixed(0)}%</div>
+        ${rightBlockHtml}
       </div>
     </div>
   `;
+}
+
+function resolveCurrentOpponentTeam(teamData) {
+  const wr = (teamData && teamData.war_room) || {};
+  const currOpp = wr.current_opponent || {};
+  const oppTid = currOpp.opponent_team_id;
+  if (oppTid && LEAGUE_BUNDLE && LEAGUE_BUNDLE.teams && LEAGUE_BUNDLE.teams[String(oppTid)]) {
+    return LEAGUE_BUNDLE.teams[String(oppTid)];
+  }
+  const wk = Number((LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7);
+  const sched = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.schedule) || [];
+  const m = sched.find(s => Number(s.matchupPeriodId) === wk && (Number(s.home?.teamId) === Number(teamData.team_id) || Number(s.away?.teamId) === Number(teamData.team_id)));
+  if (m && LEAGUE_BUNDLE.teams) {
+    const otherId = Number(m.home?.teamId) === Number(teamData.team_id) ? m.away?.teamId : m.home?.teamId;
+    if (otherId && LEAGUE_BUNDLE.teams[String(otherId)]) return LEAGUE_BUNDLE.teams[String(otherId)];
+  }
+  return null;
+}
+
+function summarizeLineupLiveTotals(rosterArr) {
+  const starters = (rosterArr || []).filter(p => p.slot !== 'BENCH' && p.slot !== 'IR');
+  let actualSum = 0;
+  let dynProjSum = 0;
+  let anyStarted = false;
+  let unplayedCount = 0;
+  starters.forEach(p => {
+    const lm = resolvePlayerLiveMeta(p);
+    if (lm.state === 'in' || lm.state === 'post') {
+      anyStarted = true;
+      actualSum += Number(lm.actualPts || 0);
+    } else {
+      unplayedCount += 1;
+    }
+    dynProjSum += Number(lm.dynamicProj || 0);
+  });
+  return { actualSum, dynProjSum, anyStarted, unplayedCount, starters };
 }
 
 function renderTeamTab() {
@@ -1023,38 +1356,50 @@ function renderTeamTab() {
   const wk = LEAGUE_BUNDLE.week || 7;
   document.getElementById('hdr-team-name').textContent = teamData.team_name;
   document.getElementById('hdr-record').textContent = `${teamData.record_str} • Wk ${wk}`;
-  document.getElementById('hdr-user-email').textContent = `👤 ${currentUser ? currentUser.email : 'Guest'} (Team #${teamData.team_id})`;
+  const shortEmail = currentUser && currentUser.email ? currentUser.email.split('@')[0] : 'Profile';
+  const pillLbl = document.getElementById('hdr-pill-lbl');
+  if (pillLbl) pillLbl.textContent = `${shortEmail} • #${teamData.team_id}`;
 
   const roster = getActiveRosterForUser(teamData);
   const protectedSet = getUserProtectedSet(teamData);
   const watchlistSet = getUserWatchlist();
   const benchAnchor = computeDynamicBenchAnchor(teamData);
 
-  const starters = roster.filter(p => p.slot !== 'BENCH' && p.slot !== 'IR');
-  const myLiveProj = starters.reduce((acc, s) => acc + Number(s.wk_proj || s.season_ppg || 0), 0);
-
+  const myTotals = summarizeLineupLiveTotals(roster);
+  const oppTeam = resolveCurrentOpponentTeam(teamData);
   const wr = teamData.war_room || {};
   const currOpp = wr.current_opponent || {};
-  const oppProj = Number(currOpp.projected_starter_pts || 110.0);
-  const oppName = currOpp.opponent_name || 'Week Opponent';
-  const edge = myLiveProj - oppProj;
+  const oppTotals = oppTeam
+    ? summarizeLineupLiveTotals(oppTeam.roster || [])
+    : { actualSum: 0, dynProjSum: Number(currOpp.projected_starter_pts || 110.0), anyStarted: false };
 
+  const oppName = (oppTeam && oppTeam.team_name) || currOpp.opponent_name || 'Week Opponent';
+  const oppRec = (oppTeam && oppTeam.record_str) || currOpp.opponent_record || 'Opponent';
+  const edge = myTotals.dynProjSum - oppTotals.dynProjSum;
+
+  const myMainScore = (myTotals.anyStarted || oppTotals.anyStarted) ? myTotals.actualSum.toFixed(1) : myTotals.dynProjSum.toFixed(1);
+  const oppMainScore = (myTotals.anyStarted || oppTotals.anyStarted) ? oppTotals.actualSum.toFixed(1) : oppTotals.dynProjSum.toFixed(1);
+  const mySubLbl = (myTotals.anyStarted || oppTotals.anyStarted) ? `Proj ${myTotals.dynProjSum.toFixed(1)}` : `Wk ${wk} Starter Proj`;
+  const oppSubLbl = (myTotals.anyStarted || oppTotals.anyStarted) ? `Proj ${oppTotals.dynProjSum.toFixed(1)}` : escHtml(oppRec);
+
+  document.getElementById('team-h2h-banner').setAttribute('onclick', "switchTab('matchup')");
+  document.getElementById('team-h2h-banner').style.cursor = 'pointer';
   document.getElementById('team-h2h-banner').innerHTML = `
     <div class="h2h-team">
       <span class="h2h-name">${escHtml(teamData.team_name)}</span>
-      <span class="h2h-sub">Wk ${wk} Starter Proj</span>
-      <span class="h2h-score">${myLiveProj.toFixed(1)}</span>
+      <span class="h2h-sub">${mySubLbl}</span>
+      <span class="h2h-score">${myMainScore}</span>
     </div>
     <div style="text-align:center;">
-      <span class="h2h-vs">VS • WK ${wk}</span>
+      <span class="h2h-vs">🆚 MATCHUP ➔</span>
       <div style="font-size:10px;color:${edge >= 0 ? '#86efac' : '#fca5a5'};margin-top:4px;font-weight:700;">
-        ${edge >= 0 ? '+' : ''}${edge.toFixed(1)} Edge
+        ${edge >= 0 ? '+' : ''}${edge.toFixed(1)} Proj Edge
       </div>
     </div>
     <div class="h2h-team" style="text-align:right;">
       <span class="h2h-name">${escHtml(oppName)}</span>
-      <span class="h2h-sub">${escHtml(currOpp.opponent_record || 'Opponent')}</span>
-      <span class="h2h-score" style="color:#f8fafc;">${oppProj.toFixed(1)}</span>
+      <span class="h2h-sub">${oppSubLbl}</span>
+      <span class="h2h-score" style="color:#f8fafc;">${oppMainScore}</span>
     </div>
   `;
 
@@ -1088,7 +1433,8 @@ function renderTeamTab() {
     }
   }
 
-  const slotOrder = {'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4, 'FLEX': 5, 'DST': 6, 'BENCH': 9};
+  const starters = myTotals.starters;
+  const slotOrder = {'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4, 'FLEX': 5, 'DST': 6, 'K': 7, 'BENCH': 9};
   starters.sort((a, b) => (slotOrder[a.slot] || 8) - (slotOrder[b.slot] || 8));
 
   const bench = roster.filter(p => p.slot === 'BENCH' || p.slot === 'IR');
@@ -1421,15 +1767,47 @@ async function openDossierByKey(playerKey, isFa) {
     if (vsMatch) oppAbbr = vsMatch[1].toUpperCase();
   }
 
+  const liveMeta = resolvePlayerLiveMeta(p);
+  const ribbonScoreTxt = (liveMeta.state === 'in' || liveMeta.state === 'post') && liveMeta.actualPts !== null
+    ? `${liveMeta.actualPts.toFixed(1)} pts (${liveMeta.state === 'in' ? 'LIVE' : 'FINAL'})`
+    : `${b.ppg.toFixed(1)} B-PPG`;
+
+  const liveDossierBanner = (liveMeta.state === 'in' || liveMeta.state === 'post')
+    ? `<div style="margin:6px 0 8px 0;padding:8px 11px;background:${liveMeta.state==='in'?'#052e16':'#111827'};border:1px solid ${liveMeta.state==='in'?'#16a34a':'#334155'};border-radius:9px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" ${liveMeta.eventId ? `onclick="openNflGameCenter('${escHtml(liveMeta.eventId)}')"` : ''}>
+         <div>
+           <div style="font-size:10px;font-weight:800;color:${liveMeta.state==='in'?'#4ade80':'#93c5fd'};text-transform:uppercase;">${liveMeta.state==='in'?'🔴 Game Underway':'✅ Game Final'} • ${escHtml(liveMeta.scoreClockLine)}</div>
+           <div style="font-size:12.5px;font-weight:800;color:#ffffff;margin-top:2px;">${escHtml(liveMeta.statLine || 'Active in Box Score')}</div>
+         </div>
+         <div style="text-align:right;">
+           <div style="font-size:16px;font-weight:900;color:#4ade80;">${liveMeta.actualPts !== null ? liveMeta.actualPts.toFixed(1) : '0.0'}</div>
+           <div style="font-size:9.5px;color:#94a3b8;">Box Score ➔</div>
+         </div>
+       </div>`
+    : '';
+
   body.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div>
-        <span class="chip ${quadClass(p.quadrant_code)}">${escHtml(p.quadrant_label || 'Player Intel')}</span>
-        <h2 style="margin:6px 0 2px 0;font-size:19px;color:#ffffff;">${escHtml(p.name)}</h2>
-        <div style="font-size:12px;color:#94a3b8;">${escHtml(p.pos_rank || p.pos)} • ${escHtml(p.nfl_team)} • ${escHtml(p.vegas_summary || p.matchup || '')}</div>
+    <div class="dossier-sticky-ribbon">
+      <div class="drawer-handle" style="margin-bottom:8px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="min-width:0;flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="slot-pill" style="width:auto;padding:2px 6px;font-size:9.5px;">${escHtml(p.pos)}</span>
+            <span style="font-size:15.5px;font-weight:900;color:#ffffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(p.name)}</span>
+            <span style="font-size:11px;color:#94a3b8;flex-shrink:0;">• ${escHtml(p.nfl_team)}</span>
+          </div>
+          <div style="font-size:10.5px;color:#38bdf8;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${escHtml(ribbonScoreTxt)} • ${escHtml(liveMeta.scoreClockLine || p.vegas_summary || p.matchup || '')}
+          </div>
+        </div>
+        <button onclick="closeDrawerModal('dossier-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer;flex-shrink:0;">✕</button>
       </div>
-      <button onclick="closeDrawerModal('dossier-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
     </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+      <span class="chip ${quadClass(p.quadrant_code)}">${escHtml(p.quadrant_label || 'Player Intel')}</span>
+      <span style="font-size:11px;color:#94a3b8;">${escHtml(p.pos_rank || p.pos)}</span>
+    </div>
+    ${liveDossierBanner}
 
     <div style="font-size:11px;color:#93c5fd;margin-top:6px;">${escHtml(p.quadrant_reason || '')}</div>
 
@@ -1597,6 +1975,462 @@ function closeDossier(e) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Clean ESPN-Style Head-to-Head Matchup Tab (Zero Moneyball Tag Clutter)
+// ---------------------------------------------------------------------------
+function toggleMatchupBench() {
+  const el = document.getElementById('matchup-bench-rows');
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function computeWinProbPct(myDyn, oppDyn, myUnplayed, oppUnplayed) {
+  const diff = myDyn - oppDyn;
+  const remCount = Math.max(0, Number(myUnplayed || 0) + Number(oppUnplayed || 0));
+  if (remCount === 0) {
+    if (Math.abs(diff) < 0.05) return 50;
+    return diff > 0 ? 99 : 1;
+  }
+  const sigma = Math.max(6.5, Math.sqrt(remCount) * 7.2);
+  const z = diff / sigma;
+  const p = 1 / (1 + Math.exp(-1.702 * z));
+  return Math.min(99, Math.max(1, Math.round(p * 100)));
+}
+
+function alignLineupsBySlot(myStarters, oppStarters) {
+  const canonical = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'DST'];
+  const myPool = [...myStarters];
+  const oppPool = [...oppStarters];
+
+  const takeSlot = (pool, wanted) => {
+    let idx = pool.findIndex(p => (p.slot === wanted) || (wanted === 'FLEX' && p.slot === 'FLX'));
+    if (idx === -1 && wanted !== 'FLEX') idx = pool.findIndex(p => p.pos === wanted);
+    if (idx === -1 && wanted === 'FLEX') idx = pool.findIndex(p => ['RB', 'WR', 'TE'].includes(p.pos));
+    if (idx >= 0) return pool.splice(idx, 1)[0];
+    return null;
+  };
+
+  const rows = [];
+  canonical.forEach(sl => {
+    const mp = takeSlot(myPool, sl);
+    const op = takeSlot(oppPool, sl);
+    if (mp || op) {
+      rows.push({ slotLabel: sl === 'FLEX' ? 'FLX' : (sl === 'DST' ? 'D/ST' : sl), myP: mp, oppP: op });
+    }
+  });
+  while (myPool.length > 0 || oppPool.length > 0) {
+    const mp = myPool.shift() || null;
+    const op = oppPool.shift() || null;
+    const lbl = (mp && mp.slot) || (op && op.slot) || 'STR';
+    rows.push({ slotLabel: lbl === 'FLEX' ? 'FLX' : lbl, myP: mp, oppP: op });
+  }
+  return rows;
+}
+
+function renderMatchupPlayerSide(p, isRight) {
+  if (!p) {
+    return `<div class="mu-cell ${isRight ? 'right' : ''}" style="opacity:0.45;cursor:default;"><div class="mu-pinfo"><div class="mu-pname">Empty</div></div><div class="mu-pscore"><div class="mu-actual">-</div></div></div>`;
+  }
+  const pKey = (isRight ? 'opp_' : 'ro_') + (p.player_id || normName(p.name));
+  PLAYER_REGISTRY.set(pKey, p);
+  const lm = resolvePlayerLiveMeta(p);
+  const inj = (p.injury_status && !['Healthy', 'ACTIVE'].includes(p.injury_status))
+    ? ` <span style="color:#f87171;font-size:9px;font-weight:900;">${escHtml(p.injury_status[0])}</span>`
+    : '';
+
+  const gameTxt = (lm.state === 'in' || lm.state === 'post')
+    ? lm.scoreClockLine
+    : `${p.nfl_team} ${p.pos} • ${(p.matchup || 'Scheduled').replace(/^\s*(vs|@)\s*/i, '$1 ')}`;
+  const statHtml = (lm.state === 'in' || lm.state === 'post') && lm.statLine
+    ? `<div class="mu-pstat">${lm.state === 'in' ? '<span class="live-dot"></span>' : ''}${escHtml(lm.statLine)}</div>`
+    : '';
+  const scoreTxt = (lm.state === 'in' || lm.state === 'post') && lm.actualPts !== null
+    ? lm.actualPts.toFixed(1)
+    : '-';
+  const scoreColor = lm.state === 'in' ? '#4ade80' : (lm.state === 'post' ? '#ffffff' : '#64748b');
+  const projTxt = Number(p.wk_proj || 0).toFixed(2);
+
+  return `
+    <div class="mu-cell ${isRight ? 'right' : ''}" onclick="openDossierByKey('${pKey}', false)">
+      <div class="mu-pinfo">
+        <div class="mu-pname">${escHtml(shortPlayerName(p.name))}${inj}</div>
+        <div class="mu-pgame">${escHtml(p.nfl_team)} ${escHtml(p.pos)} • ${escHtml(gameTxt)}</div>
+        ${statHtml}
+      </div>
+      <div class="mu-pscore">
+        <div class="mu-actual" style="color:${scoreColor};">${scoreTxt}</div>
+        <div class="mu-proj">${projTxt}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMatchupTab() {
+  const teamData = getActiveTeamData();
+  if (!teamData) return;
+  const wk = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7;
+  const myRoster = getActiveRosterForUser(teamData);
+  const oppTeam = resolveCurrentOpponentTeam(teamData);
+  const oppRoster = (oppTeam && oppTeam.roster) || ((teamData.war_room?.current_opponent?.starters) || []);
+  const oppName = (oppTeam && oppTeam.team_name) || (teamData.war_room?.current_opponent?.opponent_name) || 'Opponent';
+  const oppRec = (oppTeam && oppTeam.record_str) || (teamData.war_room?.current_opponent?.opponent_record) || '';
+
+  const myTot = summarizeLineupLiveTotals(myRoster);
+  const oppTot = summarizeLineupLiveTotals(oppRoster);
+  const myWp = computeWinProbPct(myTot.dynProjSum, oppTot.dynProjSum, myTot.unplayedCount, oppTot.unplayedCount);
+  const oppWp = 100 - myWp;
+
+  document.getElementById('matchup-hero-box').innerHTML = `
+    <div class="mu-hero">
+      <div style="text-align:center;font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">
+        Week ${wk} Live Head-to-Head Matchup
+      </div>
+      <div class="mu-teams-row">
+        <div class="mu-side">
+          <div class="mu-tname">${escHtml(teamData.team_name)}</div>
+          <div class="mu-trec">${escHtml(teamData.record_str || '')}</div>
+          <div class="mu-big-pts" style="color:${myTot.actualSum >= oppTot.actualSum ? '#4ade80' : '#ffffff'};">${myTot.actualSum.toFixed(1)}</div>
+          <div class="mu-proj-pts">Proj ${myTot.dynProjSum.toFixed(1)}</div>
+        </div>
+        <div style="padding-top:16px;font-size:10px;font-weight:900;color:#64748b;">VS</div>
+        <div class="mu-side right">
+          <div class="mu-tname">${escHtml(oppName)}</div>
+          <div class="mu-trec">${escHtml(oppRec)}</div>
+          <div class="mu-big-pts" style="color:${oppTot.actualSum > myTot.actualSum ? '#4ade80' : '#ffffff'};">${oppTot.actualSum.toFixed(1)}</div>
+          <div class="mu-proj-pts">Proj ${oppTot.dynProjSum.toFixed(1)}</div>
+        </div>
+      </div>
+      <div class="mu-wp-wrap">
+        <div class="mu-wp-labels">
+          <span style="color:#4ade80;">${myWp}%</span>
+          <span style="color:#94a3b8;font-size:9.5px;text-transform:uppercase;">Win Probability</span>
+          <span style="color:#cbd5e1;">${oppWp}%</span>
+        </div>
+        <div class="mu-wp-track">
+          <div class="mu-wp-left" style="width:${myWp}%;"></div>
+          <div class="mu-wp-right"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const pairedRows = alignLineupsBySlot(myTot.starters, oppTot.starters);
+  document.getElementById('matchup-starters-rows').innerHTML = pairedRows.map(r => `
+    <div class="mu-row">
+      ${renderMatchupPlayerSide(r.myP, false)}
+      <div class="mu-slot-spine">${escHtml(r.slotLabel)}</div>
+      ${renderMatchupPlayerSide(r.oppP, true)}
+    </div>
+  `).join('');
+
+  const myBench = myRoster.filter(p => p.slot === 'BENCH' || p.slot === 'IR');
+  const oppBench = oppRoster.filter(p => p.slot === 'BENCH' || p.slot === 'IR');
+  const maxBench = Math.max(myBench.length, oppBench.length);
+  let benchHtml = '';
+  for (let i = 0; i < maxBench; i++) {
+    benchHtml += `
+      <div class="mu-row" style="opacity:0.9;">
+        ${renderMatchupPlayerSide(myBench[i] || null, false)}
+        <div class="mu-slot-spine">BN</div>
+        ${renderMatchupPlayerSide(oppBench[i] || null, true)}
+      </div>
+    `;
+  }
+  document.getElementById('matchup-bench-rows').innerHTML = benchHtml || '<div style="padding:10px 14px;color:#64748b;font-size:11px;">Opponent bench hidden or empty.</div>';
+}
+
+// ---------------------------------------------------------------------------
+// Docked NFL Scores Bar & Expandable Industry-Standard NFL Game Center
+// ---------------------------------------------------------------------------
+function renderNflScoresDock() {
+  const ticker = document.getElementById('nfl-dock-ticker');
+  if (!ticker) return;
+  const games = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.games) || [];
+  if (!games.length) {
+    ticker.innerHTML = `<span class="nfl-mini-pill" onclick="openNflScoreboardDrawer()">Tap to load Week ${(LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || ''} NFL Scores</span>`;
+    return;
+  }
+  ticker.innerHTML = games.map(g => {
+    const isLive = g.state === 'in';
+    const rz = (isLive && g.situation && g.situation.is_redzone) ? '🚨 ' : '';
+    const txt = (g.state === 'in' || g.state === 'post')
+      ? `${rz}${g.away.abbr} ${g.away.score} - ${g.home.abbr} ${g.home.score} (${g.status_short})`
+      : `${g.away.abbr} @ ${g.home.abbr} (${g.status_short})`;
+    return `<span class="nfl-mini-pill ${isLive ? 'live' : ''}" onclick="openNflGameCenter('${escHtml(g.event_id)}')">${escHtml(txt)}</span>`;
+  }).join('');
+}
+
+function openNflScoreboardDrawer() {
+  CURRENT_GC_EVENT_ID = null;
+  const body = document.getElementById('nfl-drawer-body');
+  const games = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.games) || [];
+  const wk = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.week) || (LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || '';
+
+  const renderGameCard = (g) => {
+    const isLive = g.state === 'in';
+    const isPost = g.state === 'post';
+    const sit = g.situation || {};
+    const possA = isLive && sit.possession_abbr === g.away.abbr ? ' 🏈' : '';
+    const possH = isLive && sit.possession_abbr === g.home.abbr ? ' 🏈' : '';
+    const rzBadge = (isLive && sit.is_redzone)
+      ? `<span style="background:#7f1d1d;color:#fecaca;font-size:9.5px;font-weight:900;padding:1.5px 6px;border-radius:4px;">🚨 RED ZONE</span>`
+      : '';
+    const sitLine = (isLive && (sit.down_distance || sit.last_play_text))
+      ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #1f2937;font-size:10.5px;color:#93c5fd;">
+           ${sit.down_distance ? `<strong>${escHtml(sit.down_distance)}</strong> (${escHtml(sit.yard_line_text)}) • ` : ''}${escHtml((sit.last_play_text || '').slice(0, 95))}
+         </div>`
+      : (g.state === 'pre' && g.vegas_line
+        ? `<div style="margin-top:5px;font-size:10px;color:#64748b;">Line: ${escHtml(g.vegas_line)}${g.over_under ? ' • O/U ' + g.over_under : ''}${g.broadcast ? ' • ' + escHtml(g.broadcast) : ''}</div>`
+        : '');
+
+    return `
+      <div class="news-card" style="border-color:${isLive ? '#ef4444' : '#1f2937'};" onclick="openNflGameCenter('${escHtml(g.event_id)}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <span style="font-size:10px;font-weight:800;color:${isLive ? '#f87171' : (isPost ? '#94a3b8' : '#38bdf8')};">
+            ${isLive ? '<span class="live-dot"></span>' : ''}${escHtml(g.status_short)}
+          </span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${rzBadge}
+            <span style="font-size:10px;color:#38bdf8;font-weight:800;">Box Score &amp; Plays ➔</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <img src="${escHtml(g.away.logo)}" style="width:20px;height:20px;object-fit:contain;" onerror="this.style.display='none'">
+            <span style="font-size:13px;font-weight:800;color:#ffffff;">${escHtml(g.away.display_name)}${possA}</span>
+            <span style="font-size:10px;color:#64748b;">(${escHtml(g.away.record)})</span>
+          </div>
+          <span style="font-size:15px;font-weight:900;color:${(isLive || isPost) ? '#ffffff' : '#64748b'};">${(isLive || isPost) ? g.away.score : '-'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0 1px 0;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <img src="${escHtml(g.home.logo)}" style="width:20px;height:20px;object-fit:contain;" onerror="this.style.display='none'">
+            <span style="font-size:13px;font-weight:800;color:#ffffff;">${escHtml(g.home.display_name)}${possH}</span>
+            <span style="font-size:10px;color:#64748b;">(${escHtml(g.home.record)})</span>
+          </div>
+          <span style="font-size:15px;font-weight:900;color:${(isLive || isPost) ? '#ffffff' : '#64748b'};">${(isLive || isPost) ? g.home.score : '-'}</span>
+        </div>
+        ${sitLine}
+      </div>
+    `;
+  };
+
+  body.innerHTML = `
+    <div class="dossier-sticky-ribbon">
+      <div class="drawer-handle" style="margin-bottom:8px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;">Live NFL Slate • Updated ${escHtml((LIVE_NFL_SLATE && LIVE_NFL_SLATE.updated_at) || 'Now')}</div>
+          <div style="font-size:16px;font-weight:900;color:#ffffff;">🏈 NFL Week ${escHtml(wk)} Scoreboard</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="refreshLiveTelemetry(true)" style="background:#1e293b;border:1px solid #38bdf8;color:#bae6fd;border-radius:8px;padding:6px 9px;font-size:11px;font-weight:800;cursor:pointer;">🔄</button>
+          <button onclick="closeDrawerModal('nfl-drawer-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer;">✕</button>
+        </div>
+      </div>
+    </div>
+    ${games.length ? games.map(renderGameCard).join('') : '<div style="padding:20px;color:#94a3b8;text-align:center;">Fetching live NFL games...</div>'}
+  `;
+  openDrawerModal('nfl-drawer-backdrop');
+}
+
+function getMatchupPlayerNormSet() {
+  const s = new Set();
+  const td = getActiveTeamData();
+  if (td) {
+    getActiveRosterForUser(td).forEach(p => s.add(normName(p.name)));
+    const opp = resolveCurrentOpponentTeam(td);
+    if (opp && opp.roster) opp.roster.forEach(p => s.add(normName(p.name)));
+  }
+  return s;
+}
+
+function renderGameCenterBody() {
+  const body = document.getElementById('nfl-drawer-body');
+  const d = CURRENT_GC_DATA;
+  if (!d || !d.game) return;
+  const g = d.game;
+  const sit = d.situation || {};
+  const wp = d.win_probability || { away_pct: 50, home_pct: 50 };
+  const rosteredSet = getMatchupPlayerNormSet();
+
+  const maxQ = Math.max(4, (g.away.linescores || []).length, (g.home.linescores || []).length);
+  let qHeaders = '';
+  let awayQs = '';
+  let homeQs = '';
+  for (let i = 0; i < maxQ; i++) {
+    qHeaders += `<th>${i < 4 ? 'Q' + (i + 1) : 'OT'}</th>`;
+    awayQs += `<td>${g.away.linescores && g.away.linescores[i] !== undefined ? g.away.linescores[i] : '-'}</td>`;
+    homeQs += `<td>${g.home.linescores && g.home.linescores[i] !== undefined ? g.home.linescores[i] : '-'}</td>`;
+  }
+
+  const lastPlayHtml = (sit.last_play_text || sit.down_distance)
+    ? `<div style="background:#111827;border:1px solid ${sit.is_redzone ? '#ef4444' : '#1e3a8a'};border-radius:10px;padding:9px 11px;margin-bottom:10px;">
+         <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;">
+           <span>📡 ${sit.possession_abbr ? `🏈 ${escHtml(sit.possession_abbr)} Ball • ` : ''}${escHtml(sit.down_distance || sit.current_drive_summary || 'Latest Action')}</span>
+           ${sit.is_redzone ? '<span style="color:#f87171;">🚨 RED ZONE</span>' : ''}
+         </div>
+         <div style="font-size:12px;color:#f8fafc;font-weight:700;margin-top:4px;line-height:1.4;">${escHtml(sit.last_play_text || 'Drive underway')}</div>
+       </div>`
+    : '';
+
+  let paneHtml = '';
+  if (CURRENT_GC_SUBTAB === 'plays') {
+    const recentPlays = (sit.recent_plays || []).map(pl => `
+      <div style="padding:6px 0;border-bottom:1px solid #1e293b;font-size:11.5px;color:${pl.scoring_play ? '#4ade80' : '#cbd5e1'};">
+        <span style="color:#64748b;font-size:10px;font-weight:700;">${escHtml(pl.period)} ${escHtml(pl.clock)}</span> — ${escHtml(pl.text)}
+      </div>
+    `).join('');
+
+    const spHtml = (d.scoring_plays || []).map(sp => `
+      <div style="padding:7px 9px;background:#111827;border:1px solid #1f2937;border-radius:8px;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:#38bdf8;">
+          <span>${escHtml(sp.team_abbr)} • ${escHtml(sp.quarter)} ${escHtml(sp.clock)}</span>
+          <span style="color:#f8fafc;">${escHtml(g.away.abbr)} ${sp.away_score} - ${escHtml(g.home.abbr)} ${sp.home_score}</span>
+        </div>
+        <div style="font-size:11.5px;color:#e2e8f0;margin-top:2px;">${escHtml(sp.text)}</div>
+      </div>
+    `).join('') || '<div style="color:#64748b;font-size:11.5px;padding:8px 0;">No scoring plays recorded yet.</div>';
+
+    paneHtml = `
+      ${recentPlays ? `<div style="font-size:10.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin:6px 0 4px 0;">⚡ Latest Drive Plays (${escHtml(sit.current_drive_summary || '')})</div><div style="background:#111827;border:1px solid #1f2937;border-radius:9px;padding:6px 10px;margin-bottom:10px;">${recentPlays}</div>` : ''}
+      <div style="font-size:10.5px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin:8px 0 6px 0;">🏈 Scoring Summary</div>
+      ${spHtml}
+    `;
+  } else if (CURRENT_GC_SUBTAB === 'box') {
+    const sideCats = (d.box_score && d.box_score[CURRENT_GC_BOX_SIDE]) || [];
+    const tablesHtml = sideCats.map(cat => {
+      const ths = cat.labels.map(l => `<th>${escHtml(l)}</th>`).join('');
+      const trs = cat.athletes.map(a => {
+        const isRos = rosteredSet.has(normName(a.full_name || a.name));
+        const tds = a.stats.map(v => `<td>${escHtml(v)}</td>`).join('');
+        return `<tr class="${isRos ? 'rostered-hl' : ''}"><td>${isRos ? '⭐ ' : ''}${escHtml(a.name)}</td>${tds}</tr>`;
+      }).join('');
+      return `
+        <div style="font-size:11px;font-weight:800;color:#38bdf8;text-transform:uppercase;margin:8px 0 4px 0;">${escHtml(cat.title)}</div>
+        <table class="box-tbl"><thead><tr><th>Player</th>${ths}</tr></thead><tbody>${trs}</tbody></table>
+      `;
+    }).join('') || '<div style="padding:14px;color:#64748b;font-size:12px;">Box score stats populate immediately after kickoff.</div>';
+
+    paneHtml = `
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button class="filter-pill ${CURRENT_GC_BOX_SIDE === 'away' ? 'active' : ''}" style="flex:1;" onclick="switchGameCenterBoxSide('away')">${escHtml(g.away.display_name)} (${g.away.score})</button>
+        <button class="filter-pill ${CURRENT_GC_BOX_SIDE === 'home' ? 'active' : ''}" style="flex:1;" onclick="switchGameCenterBoxSide('home')">${escHtml(g.home.display_name)} (${g.home.score})</button>
+      </div>
+      <div style="font-size:10px;color:#94a3b8;margin-bottom:4px;">⭐ Highlighted rows are players in your Week Matchup</div>
+      ${tablesHtml}
+    `;
+  } else {
+    const rows = (d.team_stats || []).map(r => `
+      <div style="display:flex;justify-content:space-between;padding:7px 4px;border-bottom:1px solid #1e293b;font-size:12px;">
+        <span style="font-weight:800;color:#f8fafc;min-width:60px;">${escHtml(r.away_val)}</span>
+        <span style="color:#94a3b8;font-size:11px;">${escHtml(r.label)}</span>
+        <span style="font-weight:800;color:#f8fafc;min-width:60px;text-align:right;">${escHtml(r.home_val)}</span>
+      </div>
+    `).join('') || '<div style="padding:12px;color:#64748b;">Team comparison stats populate after kickoff.</div>';
+    paneHtml = `
+      <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:900;color:#38bdf8;padding:4px 4px 6px 4px;border-bottom:1px solid #334155;">
+        <span>${escHtml(g.away.abbr)}</span><span>TEAM COMPARISON</span><span>${escHtml(g.home.abbr)}</span>
+      </div>
+      ${rows}
+    `;
+  }
+
+  body.innerHTML = `
+    <div class="dossier-sticky-ribbon">
+      <div class="drawer-handle" style="margin-bottom:8px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        <button onclick="openNflScoreboardDrawer()" style="background:#1e293b;border:1px solid #334155;color:#bae6fd;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:800;cursor:pointer;">← All Games</button>
+        <div style="text-align:center;flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:900;color:#ffffff;">${escHtml(g.away.abbr)} ${g.away.score} — ${g.home.score} ${escHtml(g.home.abbr)}</div>
+          <div style="font-size:10px;color:${g.state === 'in' ? '#4ade80' : '#94a3b8'};font-weight:700;">${escHtml(g.status_short)}${g.venue ? ' • ' + escHtml(g.venue) : ''}</div>
+        </div>
+        <button onclick="closeDrawerModal('nfl-drawer-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:5px 10px;font-weight:800;cursor:pointer;">✕</button>
+      </div>
+    </div>
+
+    <table class="box-tbl" style="margin-bottom:8px;">
+      <thead><tr><th>Team</th>${qHeaders}<th>T</th></tr></thead>
+      <tbody>
+        <tr><td>${escHtml(g.away.abbr)}</td>${awayQs}<td style="font-weight:900;color:#ffffff;">${g.away.score}</td></tr>
+        <tr><td>${escHtml(g.home.abbr)}</td>${homeQs}<td style="font-weight:900;color:#ffffff;">${g.home.score}</td></tr>
+      </tbody>
+    </table>
+
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:800;color:#94a3b8;margin-bottom:3px;">
+        <span>${escHtml(g.away.abbr)} Win Prob ${wp.away_pct}%</span>
+        <span>${escHtml(g.home.abbr)} Win Prob ${wp.home_pct}%</span>
+      </div>
+      <div class="mu-wp-track">
+        <div class="mu-wp-left" style="width:${wp.away_pct}%;"></div>
+        <div class="mu-wp-right"></div>
+      </div>
+    </div>
+
+    ${lastPlayHtml}
+
+    <div class="intel-tabs">
+      <button class="intel-tab-btn ${CURRENT_GC_SUBTAB === 'plays' ? 'active' : ''}" onclick="switchGameCenterSubTab('plays')">📡 Plays &amp; Scoring</button>
+      <button class="intel-tab-btn ${CURRENT_GC_SUBTAB === 'box' ? 'active' : ''}" onclick="switchGameCenterSubTab('box')">📊 Box Score</button>
+      <button class="intel-tab-btn ${CURRENT_GC_SUBTAB === 'team' ? 'active' : ''}" onclick="switchGameCenterSubTab('team')">⚖️ Team Stats</button>
+    </div>
+    ${paneHtml}
+  `;
+}
+
+function switchGameCenterSubTab(tab) {
+  CURRENT_GC_SUBTAB = tab;
+  renderGameCenterBody();
+}
+
+function switchGameCenterBoxSide(side) {
+  CURRENT_GC_BOX_SIDE = side;
+  renderGameCenterBody();
+}
+
+async function openNflGameCenter(eventId) {
+  if (!eventId) return openNflScoreboardDrawer();
+  CURRENT_GC_EVENT_ID = String(eventId);
+  CURRENT_GC_SUBTAB = 'box';
+  const body = document.getElementById('nfl-drawer-body');
+  body.innerHTML = `<div style="padding:28px;text-align:center;color:#93c5fd;font-weight:700;">⏳ Loading live NFL Game Center &amp; Box Score...</div>`;
+  openDrawerModal('nfl-drawer-backdrop');
+  try {
+    const resp = await fetch(`${CLOUD_API_BASE}/api/nfl-game-center/${encodeURIComponent(eventId)}`);
+    CURRENT_GC_DATA = await resp.json();
+    CURRENT_GC_BOX_SIDE = 'away';
+    renderGameCenterBody();
+  } catch (e) {
+    body.innerHTML = `<div style="padding:20px;color:#fca5a5;">Unable to load Game Center: ${escHtml(e.message)}</div>`;
+  }
+}
+
+async function refreshLiveTelemetry(force = false) {
+  try {
+    const [sbResp, bundleResp] = await Promise.allSettled([
+      fetch(`${CLOUD_API_BASE}/api/nfl-scoreboard-live${force ? '?force=true' : ''}`),
+      fetch(`${CLOUD_API_BASE}/api/league-bundle`)
+    ]);
+    if (sbResp.status === 'fulfilled' && sbResp.value.ok) {
+      const sbJson = await sbResp.value.json();
+      if (sbJson && sbJson.games) LIVE_NFL_SLATE = sbJson;
+    }
+    if (bundleResp.status === 'fulfilled' && bundleResp.value.ok) {
+      const liveBundle = await bundleResp.value.json();
+      if (liveBundle && liveBundle.teams) LEAGUE_BUNDLE = liveBundle;
+    }
+    renderAll();
+    if (CURRENT_GC_EVENT_ID && document.getElementById('nfl-drawer-backdrop')?.style.display === 'flex') {
+      openNflGameCenter(CURRENT_GC_EVENT_ID);
+    } else if (document.getElementById('nfl-drawer-backdrop')?.style.display === 'flex') {
+      openNflScoreboardDrawer();
+    }
+  } catch (err) {
+    console.warn('Live telemetry refresh warning:', err);
+  }
+}
+
 // Multi-User Team Picker & Custom League Modal
 function openTeamSelectorModal() {
   const body = document.getElementById('team-modal-body');
@@ -1627,8 +2461,12 @@ function openTeamSelectorModal() {
       </div>
       <button onclick="closeDrawerModal('team-modal-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;">✕</button>
     </div>
-    <p style="font-size:11.5px;color:#94a3b8;margin:6px 0 10px 0;">
-      Signed in as <strong style="color:#e2e8f0;">${escHtml(currentUser ? currentUser.email : 'Guest')}</strong>. Your selected team, Protected Core locks, Watchlist, and Sandbox Lineup moves are saved strictly to your isolated profile.
+    <div style="margin:8px 0 10px 0;padding:8px 11px;background:#052e16;border:1px solid #16a34a;border-radius:9px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#dcfce7;">
+      <span>👤 <strong>${escHtml(currentUser ? currentUser.email : 'Guest')}</strong></span>
+      <span style="color:#4ade80;font-weight:800;">🔒 Isolated Profile Active</span>
+    </div>
+    <p style="font-size:11px;color:#94a3b8;margin:0 0 10px 0;">
+      Your selected team, Protected Core locks, Watchlist, and Sandbox Lineup moves are saved strictly to your isolated profile.
     </p>
     <div class="team-pick-grid">
       ${teamsHtml}
@@ -1658,9 +2496,11 @@ function selectTeamForUser(teamId) {
 function renderAll() {
   if (!LEAGUE_BUNDLE) return;
   renderTeamTab();
+  renderMatchupTab();
   renderWarRoomTab();
   renderWaiversTab();
   renderNewsAndLeagueTab();
+  renderNflScoresDock();
 }
 
 async function initFantasyApp() {
@@ -1690,6 +2530,12 @@ async function initFantasyApp() {
     const resp = await fetch('./data/league_945552.json');
     LEAGUE_BUNDLE = await resp.json();
     renderAll();
+
+    // Hydrate live Cloud Run bundle + live NFL scoreboard/boxscores in background
+    refreshLiveTelemetry(false);
+    setInterval(() => {
+      if (document.visibilityState === 'visible') refreshLiveTelemetry(false);
+    }, 30000);
 
     // If a brand-new user hasn't picked their team yet and isn't pre-assigned, pop open the Team Picker!
     if (!userCfg._isConfigured) {
