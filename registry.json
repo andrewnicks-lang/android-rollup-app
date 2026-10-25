@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.3",
-    "updated_at": "2026-10-25T02:51:52.266518",
+    "version": "1.0.4",
+    "updated_at": "2026-10-25T09:33:07.205156",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -102,9 +102,9 @@
       ]
     },
     "apk_version": "1.0.0",
-    "build_hash": "7647f99a99",
-    "stamped_version": "1.0.3",
-    "ota_etag": "572bf4b746"
+    "build_hash": "0a727a06bf",
+    "stamped_version": "1.0.4",
+    "ota_etag": "b2de36abab"
   },
   "apps": [
     {
@@ -115,7 +115,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.3.1",
+      "version": "1.3.0",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -144,13 +144,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "27934efaad",
-      "stamped_version": "1.3.1",
-      "updated_at": "2026-10-24T22:15:40.485020",
+      "build_hash": "0e11f8270e",
+      "stamped_version": "1.3.0",
+      "updated_at": "2026-10-25T09:33:07.205156",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "27934efaad",
-      "manual_updated_at": "2026-10-24T22:15:44.969673"
+      "manual_source_hash": "0e11f8270e",
+      "manual_updated_at": "2026-10-25T09:33:08.362102"
     },
     {
       "id": "fantasy-manager",
@@ -195,8 +195,8 @@
       "updated_at": "2026-10-25T02:51:52.266518",
       "manual_pdf": "manuals/fantasy-manager_User_Manual.pdf",
       "manual_html": "manuals/fantasy-manager_User_Manual.html",
-      "manual_source_hash": "8cd5b5df15",
-      "manual_updated_at": "2026-10-24T22:38:03.244518"
+      "manual_source_hash": "3e7dfb6c3b",
+      "manual_updated_at": "2026-10-25T09:33:09.388571"
     },
     {
       "id": "csc-site-discovery",

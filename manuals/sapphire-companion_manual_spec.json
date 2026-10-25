@@ -6,11 +6,11 @@
   "icon": "\ud83d\udc8e",
   "accent": "#ec4899",
   "category": "Admin & Dev Tools",
-  "version": "2.0.1",
-  "build_hash": "bbc50d9410",
+  "version": "2.0.2",
+  "build_hash": "eea03fb812",
   "visibility": "admin_only",
-  "updated_at": "2026-10-24T22:15:40.485020",
-  "generated_at": "2026-10-24 22:16",
+  "updated_at": "2026-10-24T22:37:59.219874",
+  "generated_at": "2026-10-24 22:38",
   "tagline": "Private Admin-Only 24/7 Fiduciary Ambient Strategist \u2022 Iceberg `[Defend That]` Receipts & Stage-Never-Send Inbox",
   "quickstart": [
     {
@@ -100,6 +100,11 @@
       "Isolated Per-User Storage (RollupBridge)"
     ],
     "recent_commits": [
+      {
+        "sha": "9ac185f",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
+      },
       {
         "sha": "22d612c",
         "date": "2026-10-24",

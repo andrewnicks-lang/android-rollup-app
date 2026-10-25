@@ -1,16 +1,16 @@
 {
   "app_id": "fantasy-manager",
   "title": "The League Pro",
-  "subtitle": "Multi-User ESPN Fantasy Manager \u2022 60/40 Moneyball + War Room",
+  "subtitle": "Multi-User ESPN Fantasy Manager \u2022 v3.0 Dual-Horizon Moneyball + War Room",
   "description": "Full-PPR 2-FLEX Command Center with dynamic per-user Team Selection (all 12 Weekend Warriors teams or custom ESPN League ID), Personal Rockstar Lock, Multi-Horizon Opponent War Room, and Isolated User Watchlist.",
   "icon": "\ud83c\udfc8",
   "accent": "#38bdf8",
   "category": "Sports & Analytics",
-  "version": "2.7.3",
-  "build_hash": "8cd5b5df15",
+  "version": "3.0.0",
+  "build_hash": "3e7dfb6c3b",
   "visibility": "restricted",
-  "updated_at": "2026-10-24T22:37:59.219874",
-  "generated_at": "2026-10-24 22:38",
+  "updated_at": "2026-10-25T02:51:52.266518",
+  "generated_at": "2026-10-25 09:33",
   "tagline": "Multi-User 12-Team ESPN Fantasy Football Command Center (`Weekend Warriors #945552`) \u2022 Moneyball + War Room",
   "quickstart": [
     {
@@ -97,13 +97,7 @@
     "apps/fantasy-manager/index.html",
     "apps/fantasy-manager/data/league_945552.json"
   ],
-  "newly_added_buttons": [
-    "\ud83d\udd12 Team \u2022 \u26a160% \u25be",
-    "\ud83c\udf10 All",
-    "\u26a1 Activity",
-    "\ud83d\udccb League Info",
-    "\ud83c\udfc6 Standings"
-  ],
+  "newly_added_buttons": [],
   "ai_release_note": null,
   "inspected": {
     "app_id": "fantasy-manager",
@@ -214,6 +208,21 @@
     ],
     "recent_commits": [
       {
+        "sha": "09cd6aa",
+        "date": "2026-10-25",
+        "subject": "fix(fantasy-manager): harden v3.0 telemetry, live-projection & lineup parity across RollupOS"
+      },
+      {
+        "sha": "1743e00",
+        "date": "2026-10-25",
+        "subject": "feat(fantasy-manager): upgrade Player Rating Algorithm to v3.0 Dual-Horizon"
+      },
+      {
+        "sha": "82eae17",
+        "date": "2026-10-24",
+        "subject": "feat(fantasy-manager): relocate blend slider to top-right pill & add league info/activity feed (v2.8.3)"
+      },
+      {
         "sha": "9ac185f",
         "date": "2026-10-24",
         "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
@@ -222,21 +231,6 @@
         "sha": "77c228d",
         "date": "2026-10-24",
         "subject": "fix(fantasy-manager): unify bottom-chrome stack for zero NFL scores overlap & crisp score pills"
-      },
-      {
-        "sha": "22d612c",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
-      },
-      {
-        "sha": "8086e6b",
-        "date": "2026-10-24",
-        "subject": "feat(fantasy-manager): v2.7.0 live scoring, clean ESPN Matchup tab, NFL Game Center & sticky player ribbon"
-      },
-      {
-        "sha": "7b6b26f",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 17:33)"
       }
     ]
   }

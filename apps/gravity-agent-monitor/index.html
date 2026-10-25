@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Gravity for Android — Antigravity Mobile Mission Control</title>
   <link rel="manifest" href="/static/manifest.json" />
-  <script src="../../bridge/rollup-bridge.js?v=1.3" onerror="window.__standaloneGravityMode=true"></script>
+  <script src="../../bridge/rollup-bridge.js" onerror="window.__standaloneGravityMode=true"></script>
   <style>
     :root {
       --bg-base: #090d16;
@@ -935,19 +935,6 @@
 
     <!-- TAB 4: OPS & LAUNCHER -->
     <section id="tab-ops" class="tab-view">
-      <div class="session-card" style="cursor:default;background:linear-gradient(135deg,#0f172a,#172554);border-color:#0284c7;margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div>
-            <div style="font-size:12.5px;font-weight:800;color:#f8fafc;">📖 Gravity Agent Monitor — User Manual</div>
-            <div style="font-size:11px;color:#bae6fd;margin-top:2px;">Quickstart, Multi-PC Fleet setup &amp; AgentAPI reference</div>
-          </div>
-          <div style="display:flex;gap:6px;">
-            <button type="button" class="pill-btn" style="background:#0284c7;color:#fff;border-color:#38bdf8;font-weight:800;" onclick="window.RollupBridge ? RollupBridge.manuals.open('gravity-agent-monitor') : window.open('../../manuals/gravity-agent-monitor_User_Manual.pdf','_blank')">📖 Read Guide</button>
-            <a href="../../manuals/gravity-agent-monitor_User_Manual.pdf" target="_blank" rel="noopener" class="pill-btn" style="text-decoration:none;color:#7dd3fc;border-color:#38bdf8;font-weight:800;">📄 PDF</a>
-          </div>
-        </div>
-      </div>
-
       <div class="section-header">
         <span class="section-title">Workstation Vital Signs & Zero-Trust Network</span>
       </div>

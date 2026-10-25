@@ -78,6 +78,13 @@
     </div>
     <div id="mob-inbox" style="margin-top:8px;font-size:12.5px;color:#94a3b8;">Checking Cloud Run...</div>
   </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:13px;">⚡ Standing Orders &amp; NotebookLM</strong>
+      <a id="open-notebooks-tab" href="#" target="_blank" style="font-size:11.5px;color:#f472b6;">Open Vaults &rarr;</a>
+    </div>
+    <div id="mob-notebooks" style="margin-top:8px;font-size:12.5px;color:#94a3b8;">Watching digital-life triggers...</div>
+  </div>
 </div>
 
 <script>
@@ -88,7 +95,8 @@ if (window.RollupBridge && RollupBridge.enforceAccessGate('sapphire-companion', 
 
   const cfg = (RollupBridge.config && RollupBridge.config.getAll) ? RollupBridge.config.getAll('sapphire-companion') : {};
   const API_BASE = (cfg.sapphire_cloud_url || 'http://127.0.0.1:8085').replace(/\/$/, '');
-  document.getElementById('open-full-studio').href = API_BASE;
+  document.getElementById('open-full-studio').href = API_BASE + '/#studio';
+  document.getElementById('open-notebooks-tab').href = API_BASE + '/#notebooks';
 
   async function sApi(path, opts) {
     const r = await fetch(API_BASE + path, {
@@ -129,6 +137,9 @@ if (window.RollupBridge && RollupBridge.enforceAccessGate('sapphire-companion', 
       const st = await sApi('/api/status');
       document.getElementById('mob-master').value = st.channels.master_mode;
       document.getElementById('conn-label').textContent = 'Connected • ' + st.pending_inbox_count + ' Pending in Inbox';
+      if (st.standing_orders && st.standing_orders.notebooks) {
+        document.getElementById('mob-notebooks').innerHTML = st.standing_orders.notebooks.slice(0, 2).map(n => `<div style="padding:4px 0;">${n.icon} <strong>${n.title}</strong> (${n.source_count}) — ${n.latest_headline}</div>`).join('');
+      }
       const ib = await sApi('/api/inbox?status=PENDING');
       const box = document.getElementById('mob-inbox');
       if (!ib.items || !ib.items.length) {
