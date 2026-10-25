@@ -27,6 +27,11 @@ from typing import Any, Dict
 ROOT_DIR = Path(__file__).resolve().parent
 REGISTRY_PATH = ROOT_DIR / "registry.json"
 
+if sys.stdout is None or sys.stderr is None:
+    _rlog = open(ROOT_DIR / "rollup_server.log", "a", encoding="utf-8", buffering=1)
+    sys.stdout = _rlog
+    sys.stderr = _rlog
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if hasattr(sys.stderr, "reconfigure"):
