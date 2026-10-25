@@ -918,7 +918,7 @@
         </div>
         <div class="steer-input-row">
           <button id="micBtn" class="icon-btn" onclick="toggleVoiceInput()" title="Push-to-Talk Voice Steer">🎙️</button>
-          <textarea id="steerInput" class="steer-input" rows="1" placeholder="Steer agent or type /command…" oninput="autoResizeChatBox(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();submitSteerInput();}"></textarea>
+          <textarea id="steerInput" class="steer-input" rows="1" enterkeyhint="enter" placeholder="Steer agent or type /command…" oninput="autoResizeChatBox(this)"></textarea>
           <button class="icon-btn send" onclick="submitSteerInput()">↑</button>
         </div>
       </div>
@@ -995,7 +995,7 @@
         <select id="skillQuickSelect" class="steer-input" style="width:100%;margin-bottom:8px;" onchange="applySkillQuickSelect()">
           <option value="">⚡ Streamlined Skill Call (Optional — 27 Installed Skills)…</option>
         </select>
-        <textarea id="launchPrompt" class="steer-input" rows="1" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" oninput="autoResizeChatBox(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();launchNewTask();}"></textarea>
+        <textarea id="launchPrompt" class="steer-input" rows="1" enterkeyhint="enter" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" oninput="autoResizeChatBox(this)"></textarea>
         <div class="thumb-grid">
           <button class="thumb-btn approve" onclick="launchNewTask()">🚀 Dispatch Live</button>
           <button class="thumb-btn secondary" onclick="toggleWakeLock()">☕ Toggle Keep-Awake</button>
