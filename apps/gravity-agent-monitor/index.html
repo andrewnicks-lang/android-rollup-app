@@ -1897,13 +1897,7 @@
           const cleanSys = msgMatch ? msgMatch[1].trim() : st.content;
           if (!cleanSys.startsWith('Task id "') && !cleanSys.startsWith('[Notice]')) {
             flushPlumbingGroup();
-            html.push(`
-              <div class="step-item">
-                <div class="bubble-user" style="background:rgba(56,189,248,0.16);border:1px solid rgba(56,189,248,0.4);color:#e0f2fe;">
-                  <strong>📱 Mobile / System Message:</strong>\n${escapeHtml(cleanSys)}
-                </div>
-              </div>
-            `);
+            html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(cleanSys)}</div></div>`);
           }
         } else {
           if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {

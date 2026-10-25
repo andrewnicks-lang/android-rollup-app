@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.0",
-    "updated_at": "2026-10-24T19:20:19.408844",
+    "updated_at": "2026-10-24T19:55:08.469587",
     "auth": {
       "provider": "google",
       "google_client_id": "",
