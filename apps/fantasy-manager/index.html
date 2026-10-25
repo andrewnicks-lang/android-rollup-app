@@ -951,33 +951,39 @@ function parseGameRemainingFraction(scoreClockLine, state) {
   if (state !== 'in') return 1.0;
   const s = String(scoreClockLine || '').toUpperCase();
   if (!s) return 0.38;
+  if (s.includes('FINAL')) return 0.0;
   if (s.includes('HALF')) return 0.50;
   if (s.includes('END OF 1ST') || s.includes('END 1ST')) return 0.75;
   if (s.includes('END OF 3RD') || s.includes('END 3RD')) return 0.25;
-  if (s.includes('OT')) return 0.08;
-  const qMatch = s.match(/(?:Q|([1-4])(?:ST|ND|RD|TH))\s*(\d{1,2}):(\d{2})|(\d{1,2}):(\d{2})\s*-\s*([1-4])(?:ST|ND|RD|TH)/i);
-  let qNum = null;
-  let mins = 7.5;
   const cMatch = s.match(/(\d{1,2}):(\d{2})/);
-  if (cMatch) {
-    mins = Math.min(15, Number(cMatch[1]) + (Number(cMatch[2]) / 60.0));
+  if (/\b\d*OT\b|OVERTIME/.test(s)) {
+    if (cMatch) {
+      const otMins = Math.min(10, Number(cMatch[1]) + (Number(cMatch[2]) / 60.0));
+      return Math.min(0.16, Math.max(0.02, otMins / 60.0));
+    }
+    return 0.08;
   }
-  if (/\b1ST\b|\bQ1\b/.test(s)) qNum = 1;
-  else if (/\b2ND\b|\bQ2\b/.test(s)) qNum = 2;
-  else if (/\b3RD\b|\bQ3\b/.test(s)) qNum = 3;
-  else if (/\b4TH\b|\bQ4\b/.test(s)) qNum = 4;
-  if (qNum !== null) {
-    const remMins = ((4 - qNum) * 15.0) + mins;
+  const qMatch = s.match(/(?:Q([1-4])|\b([1-4])(?:ST|ND|RD|TH)\b)/);
+  if (qMatch) {
+    const qNum = Number(qMatch[1] || qMatch[2]);
+    let mins = 7.5;
+    if (cMatch) {
+      mins = Math.min(15, Number(cMatch[1]) + (Number(cMatch[2]) / 60.0));
+    } else if (s.includes('END')) {
+      mins = 0.0;
+    }
+    const remMins = Math.max(0, ((4 - qNum) * 15.0) + mins);
     return Math.max(0.02, Math.min(1.0, remMins / 60.0));
   }
-  if (qMatch) return 0.38;
-  return 0.38;
+  return 0.45;
 }
 
 function resolvePlayerLiveMeta(p) {
   if (!p) return { state: 'pre', eventId: '', scoreClockLine: '', statLine: '', actualPts: null, dynamicProj: 0, remFrac: 1.0 };
   const b = calcBlend(p);
-  const wkProj = Number(b.wkPpg || p.wk_proj || p.season_ppg || 0);
+  const wkProj = (b.wkPpg !== undefined && b.wkPpg !== null && !Number.isNaN(b.wkPpg))
+    ? Number(b.wkPpg)
+    : Number(p.wk_proj ?? p.season_ppg ?? 0);
   const tAbbr = canonNflAbbr(p.nfl_team);
   const pMap = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.player_live_map) || {};
   const tMap = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.team_live_map) || {};
@@ -995,13 +1001,19 @@ function resolvePlayerLiveMeta(p) {
   }
 
   let actualPts = null;
+  const pprMult = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.league && typeof LEAGUE_BUNDLE.league.ppr_mult === 'number')
+    ? LEAGUE_BUNDLE.league.ppr_mult
+    : 1.0;
   if (state === 'in' || state === 'post') {
     if (pLive && typeof pLive.live_ppr_pts === 'number') {
-      actualPts = pLive.live_ppr_pts;
-    } else if (p.pos === 'DST' && teamLive && typeof teamLive.dst_live_ppr_pts === 'number') {
+      const recCnt = Number(pLive.rec || 0);
+      actualPts = Math.round((pLive.live_ppr_pts - (1.0 - pprMult) * recCnt) * 100) / 100;
+    }
+    if (p.pos === 'DST' && actualPts === null && teamLive && typeof teamLive.dst_live_ppr_pts === 'number') {
       actualPts = teamLive.dst_live_ppr_pts;
-    } else if (typeof p.wk_actual === 'number') {
-      actualPts = p.wk_actual;
+    }
+    if (typeof p.wk_actual === 'number') {
+      actualPts = (actualPts !== null) ? Math.max(actualPts, p.wk_actual) : p.wk_actual;
     }
     if (actualPts === null) actualPts = 0.0;
   }
@@ -1012,9 +1024,9 @@ function resolvePlayerLiveMeta(p) {
     dynamicProj = actualPts;
   } else if (state === 'in' && actualPts !== null) {
     if (p.pos === 'DST') {
-      dynamicProj = (actualPts * (1.0 - remFrac)) + (wkProj * remFrac);
+      dynamicProj = (actualPts * (1.0 - (0.55 * remFrac))) + (wkProj * (0.55 * remFrac));
     } else {
-      dynamicProj = actualPts + (remFrac * wkProj);
+      dynamicProj = Math.max(actualPts, actualPts + (remFrac * wkProj));
     }
   }
 
@@ -1083,14 +1095,23 @@ function resetUserSandboxEdits() {
 }
 
 function calcBlend(p) {
-  const mbPpg = Number(p.moneyball_ppg || p.season_ppg || 0);
-  const csPpg = Number(p.consensus_ppg || p.wk_proj || p.season_ppg || 0);
-  const mbVorp = Number(p.moneyball_vorp || 0);
-  const csVorp = Number(p.consensus_vorp || 0);
-  const wkMbPpg = p.weekly_moneyball_ppg !== undefined ? Number(p.weekly_moneyball_ppg) : (p.is_bye ? 0 : mbPpg);
-  const wkCsPpg = p.weekly_consensus_ppg !== undefined ? Number(p.weekly_consensus_ppg) : (p.is_bye ? 0 : Number(p.wk_proj || csPpg));
-  const wkMbVorp = p.weekly_moneyball_vorp !== undefined ? Number(p.weekly_moneyball_vorp) : (wkMbPpg - (mbPpg - mbVorp));
-  const wkCsVorp = p.weekly_consensus_vorp !== undefined ? Number(p.weekly_consensus_vorp) : (wkCsPpg - (csPpg - csVorp));
+  if (!p) return { ppg: 0, vorp: 0, wkPpg: 0, wkVorp: 0, mbPpg: 0, csPpg: 0, mbVorp: 0, csVorp: 0, wkMbPpg: 0, wkCsPpg: 0 };
+  const mbPpg = (p.moneyball_ppg !== undefined && p.moneyball_ppg !== null) ? Number(p.moneyball_ppg) : Number(p.wk_proj ?? p.season_ppg ?? 0);
+  const csPpg = (p.consensus_ppg !== undefined && p.consensus_ppg !== null) ? Number(p.consensus_ppg) : Number(p.wk_proj ?? p.season_ppg ?? 0);
+  const mbVorp = Number(p.moneyball_vorp ?? 0);
+  const csVorp = Number(p.consensus_vorp ?? 0);
+  const wkMbPpg = (p.weekly_moneyball_ppg !== undefined && p.weekly_moneyball_ppg !== null)
+    ? Number(p.weekly_moneyball_ppg)
+    : (p.is_bye ? 0.0 : Number(p.wk_proj ?? mbPpg));
+  const wkCsPpg = (p.weekly_consensus_ppg !== undefined && p.weekly_consensus_ppg !== null)
+    ? Number(p.weekly_consensus_ppg)
+    : (p.is_bye ? 0.0 : Number(p.wk_proj ?? csPpg));
+  const wkMbVorp = (p.weekly_moneyball_vorp !== undefined && p.weekly_moneyball_vorp !== null)
+    ? Number(p.weekly_moneyball_vorp)
+    : (wkMbPpg - (mbPpg - mbVorp));
+  const wkCsVorp = (p.weekly_consensus_vorp !== undefined && p.weekly_consensus_vorp !== null)
+    ? Number(p.weekly_consensus_vorp)
+    : (wkCsPpg - (csPpg - csVorp));
   return {
     ppg: (MB_WEIGHT * mbPpg) + ((1 - MB_WEIGHT) * csPpg),
     vorp: (MB_WEIGHT * mbVorp) + ((1 - MB_WEIGHT) * csVorp),
@@ -1111,7 +1132,7 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
 
   // 1. D/ST compares strictly 1-for-1 against active/rostered D/ST unless fringe stash is checked
   if (candidatePos === 'DST' && !allowCrossBucketStash) {
-    const myDsts = roster.filter(p => p.pos === 'DST' && p.slot !== 'IR' && !p.is_locked_played);
+    const myDsts = roster.filter(p => p.pos === 'DST' && p.slot !== 'IR' && !p.is_locked_played && !protectedSet.has(normName(p.name)));
     if (myDsts.length > 0) {
       myDsts.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
       const d = myDsts[0];
@@ -1175,7 +1196,7 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
     player: null,
     bucket_label: 'No Unlocked Drop Spot',
     valid: false,
-    blended_vorp: (MB_WEIGHT * Number(fallback.moneyball_vorp || 1.5)) + ((1 - MB_WEIGHT) * Number(fallback.consensus_vorp || 1.5))
+    blended_vorp: (MB_WEIGHT * Number(fallback.moneyball_vorp ?? 1.5)) + ((1 - MB_WEIGHT) * Number(fallback.consensus_vorp ?? 1.5))
   };
 }
 
@@ -1187,14 +1208,23 @@ function computeDynamicBenchAnchor(teamData) {
 // Dynamic Weekly Start/Sit Lineup Optimizer (v3.0 Dual-Horizon)
 // ---------------------------------------------------------------------------
 function computeOptimalLineupAudit(rosterArr) {
-  const slotsCfg = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.league_info && LEAGUE_BUNDLE.league_info.lineup_slots) || {
-    QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 2, DST: 1, K: 0
+  const slotsCfg = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.league_info && LEAGUE_BUNDLE.league_info.lineup_slots)
+    || (LEAGUE_BUNDLE && LEAGUE_BUNDLE.league && LEAGUE_BUNDLE.league.lineup_slots)
+    || { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 2, SUPERFLEX: 0, DST: 1, K: 0 };
+  const isLocked = (p) => Boolean(p.is_locked_played || resolvePlayerLiveMeta(p).state !== 'pre');
+  const isShortWeek = (p) => Boolean(p.is_thursday || p.thursday_flex_warning || p.is_short_week);
+  const normSlot = (sl) => {
+    const s = String(sl || 'BENCH').toUpperCase();
+    if (s === 'FLX' || s === 'RB/WR/TE' || s === 'W/R/T') return 'FLEX';
+    if (s === 'OP' || s === 'Q/W/R/T') return 'SUPERFLEX';
+    if (s === 'D/ST' || s === 'DEF') return 'DST';
+    return s;
   };
   const activePool = (rosterArr || []).filter(p => p.slot !== 'IR');
   const curStarters = activePool.filter(p => p.slot !== 'BENCH');
   const curStarterIds = new Set(curStarters.map(p => Number(p.player_id)));
-  const lockedStarters = curStarters.filter(p => p.is_locked_played);
-  const unlockedPool = activePool.filter(p => !p.is_locked_played);
+  const lockedStarters = curStarters.filter(p => isLocked(p));
+  const unlockedPool = activePool.filter(p => !isLocked(p));
 
   const remSlots = {
     QB: Number(slotsCfg.QB ?? 1),
@@ -1207,10 +1237,11 @@ function computeOptimalLineupAudit(rosterArr) {
     K: Number(slotsCfg.K ?? 0)
   };
   lockedStarters.forEach(p => {
-    const sl = String(p.slot || p.pos || '').toUpperCase();
+    const sl = normSlot(p.slot || p.pos || '');
     if (remSlots[sl] > 0) remSlots[sl]--;
     else if (remSlots[p.pos] > 0) remSlots[p.pos]--;
     else if (['RB', 'WR', 'TE'].includes(p.pos) && remSlots.FLEX > 0) remSlots.FLEX--;
+    else if (['QB', 'RB', 'WR', 'TE'].includes(p.pos) && remSlots.SUPERFLEX > 0) remSlots.SUPERFLEX--;
   });
 
   const usedIds = new Set(lockedStarters.map(p => Number(p.player_id)));
@@ -1220,7 +1251,7 @@ function computeOptimalLineupAudit(rosterArr) {
     if (!need) return;
     const cands = unlockedPool
       .filter(p => p.pos === pos && !usedIds.has(Number(p.player_id)))
-      .sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+      .sort((a, b) => (calcBlend(b).wkPpg - calcBlend(a).wkPpg) || (calcBlend(b).vorp - calcBlend(a).vorp));
     cands.slice(0, need).forEach(c => {
       usedIds.add(Number(c.player_id));
       optUnlocked.push({ slot: pos, p: c });
@@ -1231,7 +1262,7 @@ function computeOptimalLineupAudit(rosterArr) {
   if (flexNeed > 0) {
     const flexCands = unlockedPool
       .filter(p => ['RB', 'WR', 'TE'].includes(p.pos) && !usedIds.has(Number(p.player_id)))
-      .sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+      .sort((a, b) => (calcBlend(b).wkPpg - calcBlend(a).wkPpg) || (calcBlend(b).vorp - calcBlend(a).vorp));
     flexCands.slice(0, flexNeed).forEach(c => {
       usedIds.add(Number(c.player_id));
       optUnlocked.push({ slot: 'FLEX', p: c });
@@ -1242,7 +1273,7 @@ function computeOptimalLineupAudit(rosterArr) {
   if (sflexNeed > 0) {
     const sfCands = unlockedPool
       .filter(p => ['QB', 'RB', 'WR', 'TE'].includes(p.pos) && !usedIds.has(Number(p.player_id)))
-      .sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+      .sort((a, b) => (calcBlend(b).wkPpg - calcBlend(a).wkPpg) || (calcBlend(b).vorp - calcBlend(a).vorp));
     sfCands.slice(0, sflexNeed).forEach(c => {
       usedIds.add(Number(c.player_id));
       optUnlocked.push({ slot: 'SUPERFLEX', p: c });
@@ -1250,7 +1281,8 @@ function computeOptimalLineupAudit(rosterArr) {
   }
 
   const optIds = new Set([...lockedStarters.map(p => Number(p.player_id)), ...optUnlocked.map(x => Number(x.p.player_id))]);
-  const curUnlockedBenched = curStarters.filter(p => !p.is_locked_played && !optIds.has(Number(p.player_id)));
+  const curUnlockedStarters = curStarters.filter(p => !isLocked(p));
+  const curUnlockedBenched = curUnlockedStarters.filter(p => !optIds.has(Number(p.player_id)));
   const newPromoted = optUnlocked.filter(x => !curStarterIds.has(Number(x.p.player_id)));
 
   const swaps = [];
@@ -1260,8 +1292,10 @@ function computeOptimalLineupAudit(rosterArr) {
     const matchOut = curUnlockedBenched
       .filter(st => !usedBenchOut.has(Number(st.player_id)) && (
         st.pos === bIn.pos ||
-        (st.slot === 'FLEX' && ['RB', 'WR', 'TE'].includes(bIn.pos)) ||
-        (['RB', 'WR', 'TE'].includes(st.pos) && prom.slot === 'FLEX')
+        (normSlot(st.slot) === 'FLEX' && ['RB', 'WR', 'TE'].includes(bIn.pos)) ||
+        (normSlot(st.slot) === 'SUPERFLEX' && ['QB', 'RB', 'WR', 'TE'].includes(bIn.pos)) ||
+        (['RB', 'WR', 'TE'].includes(st.pos) && prom.slot === 'FLEX') ||
+        (['QB', 'RB', 'WR', 'TE'].includes(st.pos) && prom.slot === 'SUPERFLEX')
       ))
       .sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg)[0]
       || curUnlockedBenched.find(st => !usedBenchOut.has(Number(st.player_id)));
@@ -1270,8 +1304,21 @@ function computeOptimalLineupAudit(rosterArr) {
       const gain = calcBlend(bIn).wkPpg - calcBlend(matchOut).wkPpg;
       const outInj = String(matchOut.injury_status || matchOut.espn_injury_status || 'Healthy').toUpperCase();
       const urgent = Boolean(matchOut.is_bye || ['OUT', 'IR', 'DOUBTFUL', 'SUSPENDED'].includes(outInj));
-      if (gain >= 0.35 || urgent) {
+      if (gain >= 0.75 || (urgent && gain > 0.10)) {
         swaps.push({ start: bIn, sit: matchOut, slot: matchOut.slot || prom.slot, gain, urgent });
+      }
+    }
+  });
+
+  const thursdayWarnings = [];
+  curUnlockedStarters.forEach(p => {
+    const sl = normSlot(p.slot);
+    if ((sl === 'FLEX' || sl === 'SUPERFLEX') && isShortWeek(p)) {
+      const laterSamePos = curUnlockedStarters.find(o => Number(o.player_id) !== Number(p.player_id) && o.pos === p.pos && normSlot(o.slot) === p.pos && !isShortWeek(o));
+      if (laterSamePos) {
+        thursdayWarnings.push(`Move ${p.name} out of ${p.slot} into ${p.pos} (swap with ${laterSamePos.name}) before Thursday kickoff to keep Sunday FLEX optionality.`);
+      } else {
+        thursdayWarnings.push(`${p.name} plays on a short/Thursday slate inside ${p.slot} — move to dedicated ${p.pos} slot if possible.`);
       }
     }
   });
@@ -1280,7 +1327,7 @@ function computeOptimalLineupAudit(rosterArr) {
   const optPts = lockedStarters.reduce((acc, p) => acc + calcBlend(p).wkPpg, 0)
     + optUnlocked.reduce((acc, x) => acc + calcBlend(x.p).wkPpg, 0);
   const delta = Math.max(0, optPts - curPts);
-  return { isOptimal: swaps.length === 0, delta, swaps };
+  return { isOptimal: swaps.length === 0 && thursdayWarnings.length === 0, delta, swaps, thursday_flex_warnings: thursdayWarnings };
 }
 
 function applyAuditSwapSandbox(startId, sitId, targetSlot) {
@@ -1298,7 +1345,8 @@ function applyAuditSwapSandbox(startId, sitId, targetSlot) {
 
 function renderLineupAuditBanner(rosterArr) {
   const audit = computeOptimalLineupAudit(rosterArr);
-  if (audit.isOptimal) {
+  const thuWarns = audit.thursday_flex_warnings || [];
+  if (audit.swaps.length === 0 && thuWarns.length === 0) {
     return `
       <div style="margin:6px 12px 4px 12px;padding:7px 11px;background:#052e1666;border:1px solid #166534;border-radius:9px;font-size:11px;color:#bbf7d0;display:flex;justify-content:space-between;align-items:center;">
         <span>✅ <strong>Starting Lineup Optimal</strong> for your ${Math.round(MB_WEIGHT * 100)}/${Math.round((1 - MB_WEIGHT) * 100)} Blend</span>
@@ -1317,13 +1365,19 @@ function renderLineupAuditBanner(rosterArr) {
       <button onclick="applyAuditSwapSandbox(${Number(s.start.player_id)}, ${Number(s.sit.player_id)}, '${escHtml(s.slot)}')" style="background:#0c4a6e;color:#bae6fd;border:1px solid #38bdf8;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;">+${s.gain.toFixed(1)} Swap</button>
     </div>`;
   }).join('');
+  const thuHtml = thuWarns.map(w => `<div style="margin-top:4px;font-size:11px;color:#fde68a;">⚠️ ${escHtml(w)}</div>`).join('');
+  const hdrTxt = audit.swaps.length > 0
+    ? (hasUrgent ? '🚨 URGENT START/SIT ALERT' : '💡 START/SIT LINEUP UPGRADE')
+    : '⚠️ THURSDAY-IN-FLEX SLOT ALERT';
+  const rightTxt = audit.swaps.length > 0 ? `+${audit.delta.toFixed(1)} Wk Pts Available` : 'Slot Optionality';
   return `
     <div style="margin:6px 12px 4px 12px;padding:9px 11px;background:${bg};border:1px solid ${brd};border-radius:9px;">
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;color:${titleCol};">
-        <span>${hasUrgent ? '🚨 URGENT START/SIT ALERT' : '💡 START/SIT LINEUP UPGRADE'}</span>
-        <span style="color:#4ade80;">+${audit.delta.toFixed(1)} Wk Pts Available</span>
+        <span>${hdrTxt}</span>
+        <span style="color:#4ade80;">${rightTxt}</span>
       </div>
       ${rows}
+      ${thuHtml}
     </div>
   `;
 }
@@ -1760,7 +1814,10 @@ function renderOpponentAuditCard(opp, teamData) {
   } else {
     cps.forEach(cp => {
       const catAnchor = resolveSmartDropAnchor(cp.target_pos, teamData, false);
-      const netVorp = catAnchor.valid ? (Number(cp.block_blended_vorp || 0) - catAnchor.blended_vorp) : -9.9;
+      const faMatch = ((LEAGUE_BUNDLE && LEAGUE_BUNDLE.free_agents) || []).find(f => Number(f.player_id) === Number(cp.block_player_id));
+      const cpVorp = faMatch ? calcBlend(faMatch).vorp : Number(cp.block_blended_vorp || 0);
+      const cpPpg = faMatch ? calcBlend(faMatch).ppg : Number(cp.block_blended_ppg || 0);
+      const netVorp = catAnchor.valid ? (cpVorp - catAnchor.blended_vorp) : -9.9;
       const isActionable = catAnchor.valid && netVorp >= 0.0;
       const badgeStyle = isActionable
         ? 'background:#052e16;color:#4ade80;border:1px solid #16a34a;'
@@ -1783,7 +1840,7 @@ function renderOpponentAuditCard(opp, teamData) {
           </div>
           <div style="margin-top:6px;font-size:12.5px;font-weight:700;color:#f8fafc;">
             Top Block Target: <span style="color:#38bdf8;">+${escHtml(cp.block_player_name)} (${cp.target_pos}, ${cp.block_player_team})</span>
-            <span style="font-size:11px;color:#94a3b8;font-weight:500;"> • ${Number(cp.block_blended_ppg || 0).toFixed(1)} Blended PPG</span>
+            <span style="font-size:11px;color:#94a3b8;font-weight:500;"> • ${cpPpg.toFixed(1)} ROS PPG</span>
           </div>
           ${btnHtml}
         </div>
@@ -2270,12 +2327,12 @@ async function openDossierByKey(playerKey, isFa) {
         <div class="d-v" style="color:#c084fc;font-size:11.5px;">${b.csPpg.toFixed(1)} / ${b.wkCsPpg.toFixed(1)}</div>
       </div>
       <div class="d-cell">
-        <div class="d-k">Season / L3 PPG</div>
-        <div class="d-v">${Number(p.season_ppg || 0).toFixed(1)} / ${Number(p.recent_ppg || 0).toFixed(1)}</div>
+        <div class="d-k">Talent / L3 PPG</div>
+        <div class="d-v">${Number(p.talent_base_ppg ?? p.season_ppg ?? 0).toFixed(1)} / ${Number(p.recent_ppg || 0).toFixed(1)}</div>
       </div>
       <div class="d-cell">
-        <div class="d-k">Own / Start / 7d</div>
-        <div class="d-v" style="font-size:11px;">${Number(p.percent_owned || 0).toFixed(0)}% / ${Number(p.percent_started || 0).toFixed(0)}% (${Number(p.percent_change || 0) >= 0 ? '+' : ''}${Number(p.percent_change || 0).toFixed(1)}%)</div>
+        <div class="d-k">Own / Start / Vel</div>
+        <div class="d-v" style="font-size:10.5px;">${Number(p.percent_owned || 0).toFixed(0)}%/${Number(p.percent_started || 0).toFixed(0)}% (${Number(p.percent_change || 0) >= 0 ? '+' : ''}${Number(p.percent_change || 0).toFixed(1)}%)${Number(p.sleeper_adds_24h ?? p.trending_adds_24h ?? 0) >= 500 ? ` • 🔥${(Number(p.sleeper_adds_24h ?? p.trending_adds_24h) / 1000).toFixed(1)}k` : ''}</div>
       </div>
     </div>
 
@@ -2481,7 +2538,7 @@ function renderMatchupPlayerSide(p, isRight) {
 
   const gameTxt = (lm.state === 'in' || lm.state === 'post')
     ? lm.scoreClockLine
-    : `${p.nfl_team} ${p.pos} • ${(p.matchup || 'Scheduled').replace(/^\s*(vs|@)\s*/i, '$1 ')}`;
+    : (p.matchup || 'Scheduled').replace(/^\s*(vs|@)\s*/i, '$1 ');
   const statHtml = (lm.state === 'in' || lm.state === 'post') && lm.statLine
     ? `<div class="mu-pstat">${lm.state === 'in' ? '<span class="live-dot"></span>' : ''}${escHtml(lm.statLine)}</div>`
     : '';

@@ -29,6 +29,7 @@ from firestore_state import load_env_merged  # noqa: E402
 from moneyball_engine import (  # noqa: E402
     build_oline_injury_clusters,
     build_team_injury_vacuums,
+    normalize_name,
 )
 
 __all__ = ["auto_protect_names_for_team", "build_all_teams_bundle"]
@@ -76,7 +77,19 @@ def build_all_teams_bundle(out_path: Path) -> Dict[str, Any]:
         if nm:
             nfl_players_by_norm.setdefault(nm, []).append(p)
 
-    vacuums = build_team_injury_vacuums(nfl_players)
+    player_stats_by_norm: Dict[str, Dict[str, Any]] = {}
+    for tm_entry in all_teams_raw:
+        for rp_entry in tm_entry.get("roster") or []:
+            player_stats_by_norm[normalize_name(rp_entry.get("name", ""))] = rp_entry
+    for fa_entry in raw_free_agents:
+        player_stats_by_norm.setdefault(normalize_name(fa_entry.get("name", "")), fa_entry)
+
+    vacuums = build_team_injury_vacuums(
+        nfl_players,
+        player_stats_by_norm=player_stats_by_norm,
+        injuries_by_norm=injuries_by_norm,
+        completed_weeks=max(0, scoring_period - 1),
+    )
     ol_clusters = build_oline_injury_clusters(nfl_players)
 
     enriched_fas = enrich_roster(

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-632df9ce';
+const CACHE_NAME = 'rollup-hub-572bf4b7';
 const CORE_ASSETS = [
   './',
   './index.html',
