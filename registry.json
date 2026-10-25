@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.2",
-    "updated_at": "2026-10-24T22:15:40.485020",
+    "version": "1.0.3",
+    "updated_at": "2026-10-24T22:21:00.438992",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -102,9 +102,9 @@
       ]
     },
     "apk_version": "1.0.0",
-    "build_hash": "0a727a06bf",
-    "stamped_version": "1.0.2",
-    "ota_etag": "a94b764996"
+    "build_hash": "7647f99a99",
+    "stamped_version": "1.0.3",
+    "ota_etag": "bc686186e8"
   },
   "apps": [
     {
