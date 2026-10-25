@@ -875,6 +875,14 @@
   </div>
 </div>
 
+<!-- SLIDE-UP LIVE ESPN TRANSACTION & LINEUP SWAP CONFIRMATION DRAWER -->
+<div class="drawer-backdrop" id="live-tx-backdrop" style="z-index:10120;" onclick="if(event.target.id==='live-tx-backdrop') closeDrawerModal('live-tx-backdrop')">
+  <div class="drawer" style="padding-top:14px;" onclick="event.stopPropagation()">
+    <div class="drawer-handle"></div>
+    <div id="live-tx-body"></div>
+  </div>
+</div>
+
 <!-- TAG EXPLAINABILITY POPUP MODAL (Fires above drawers too!) -->
 <div class="drawer-backdrop" id="tag-backdrop" style="z-index:10150;align-items:center;padding:16px;" onclick="if(event.target.id==='tag-backdrop') closeDrawerModal('tag-backdrop')">
   <div style="width:100%;max-width:410px;background:#0f172a;border:1.5px solid #38bdf8;border-radius:16px;padding:16px;box-shadow:0 20px 45px rgba(0,0,0,0.85);" onclick="event.stopPropagation()">
@@ -885,6 +893,7 @@
 <script>
 window.ROLLUP_APP_ID = 'fantasy-manager';
 const CLOUD_API_BASE = new URLSearchParams(window.location.search).get('api_base') || 'https://ff-2026-manager-d7jwjq5hna-uc.a.run.app';
+const SERVER_PROTECTED_ROCKSTAR_IDS = new Set([4047365, 4362628, 3918298, 4241389, 4361307, 4567048, 3916387, 4430807]);
 
 let LEAGUE_BUNDLE = null;
 let LIVE_NFL_SLATE = null;
@@ -898,6 +907,7 @@ let CURRENT_GC_DATA = null;
 let CURRENT_GC_SUBTAB = 'plays';
 let CURRENT_GC_BOX_SIDE = 'away';
 let CURRENT_LEAGUE_SUBTAB = 'ALL';
+let LIVE_TX_STATE = null;
 
 // In-Memory Registries (Fixes apostrophe click bug on 100% of players + powers Tag Popups)
 const PLAYER_REGISTRY = new Map();
@@ -1121,18 +1131,47 @@ function calcBlend(p) {
   };
 }
 
+function isPlayerLockedLive(p) {
+  if (!p) return false;
+  return Boolean(p.is_locked_played || resolvePlayerLiveMeta(p).state !== 'pre');
+}
+
+function isPlayerInSandboxOnly(playerId, teamData) {
+  const pid = Number(playerId || 0);
+  if (!pid || !teamData) return false;
+  const liveIds = new Set(((teamData.roster) || []).map(r => Number(r.player_id)));
+  if (liveIds.has(pid)) return false;
+  const customRoster = RollupBridge.storage.get(`sandbox_roster_${ACTIVE_TEAM_ID}`, null);
+  return Array.isArray(customRoster) && customRoster.some(r => Number(r.player_id) === pid);
+}
+
 // ---------------------------------------------------------------------------
 // Category-Aware Smart Drop Anchor (Best-Practice Substitution Buckets!)
 // ---------------------------------------------------------------------------
-function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = false) {
-  const roster = getActiveRosterForUser(teamData);
+function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = false, excludePlayerId = 0, useLiveRoster = false) {
+  const roster = useLiveRoster
+    ? JSON.parse(JSON.stringify((teamData && teamData.roster) || []))
+    : getActiveRosterForUser(teamData);
   const protectedSet = getUserProtectedSet(teamData);
+  const exclId = Number(excludePlayerId || 0);
+
   // Official IR slots are zero-roster-cost stashes — never auto-selected as drop candidates!
-  const unlockedDroppable = roster.filter(p => p.slot !== 'IR' && !p.is_locked_played && !protectedSet.has(normName(p.name)));
+  const unlockedDroppable = roster.filter(
+    p => p.slot !== 'IR'
+      && (!exclId || Number(p.player_id) !== exclId)
+      && !isPlayerLockedLive(p)
+      && !protectedSet.has(normName(p.name))
+  );
 
   // 1. D/ST compares strictly 1-for-1 against active/rostered D/ST unless fringe stash is checked
   if (candidatePos === 'DST' && !allowCrossBucketStash) {
-    const myDsts = roster.filter(p => p.pos === 'DST' && p.slot !== 'IR' && !p.is_locked_played && !protectedSet.has(normName(p.name)));
+    const myDsts = roster.filter(
+      p => p.pos === 'DST'
+        && p.slot !== 'IR'
+        && (!exclId || Number(p.player_id) !== exclId)
+        && !isPlayerLockedLive(p)
+        && !protectedSet.has(normName(p.name))
+    );
     if (myDsts.length > 0) {
       myDsts.sort((a, b) => calcBlend(a).vorp - calcBlend(b).vorp);
       const d = myDsts[0];
@@ -1149,7 +1188,7 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
       const q = myQbs[0];
       return { id: q.player_id, name: q.name, pos: q.pos, player: q, bucket_label: '1-for-1 QB Swap', valid: true, blended_vorp: calcBlend(q).vorp };
     }
-    const anyQb = roster.filter(p => p.pos === 'QB' && p.slot !== 'IR');
+    const anyQb = roster.filter(p => p.pos === 'QB' && p.slot !== 'IR' && (!exclId || Number(p.player_id) !== exclId));
     const refQb = anyQb[0];
     return {
       id: refQb ? refQb.player_id : 0,
@@ -1201,7 +1240,7 @@ function resolveSmartDropAnchor(candidatePos, teamData, allowCrossBucketStash = 
 }
 
 function computeDynamicBenchAnchor(teamData) {
-  return resolveSmartDropAnchor('WR', teamData, false);
+  return resolveSmartDropAnchor('WR', teamData, false, 0, true);
 }
 
 // ---------------------------------------------------------------------------
@@ -1360,9 +1399,12 @@ function renderLineupAuditBanner(rosterArr) {
   const titleCol = hasUrgent ? '#fecaca' : '#fde68a';
   const rows = audit.swaps.map(s => {
     const sitReason = s.sit.is_bye ? 'BYE' : ((s.sit.injury_status && s.sit.injury_status !== 'Healthy') ? s.sit.injury_status : `${calcBlend(s.sit).wkPpg.toFixed(1)} Wk`);
-    return `<div style="margin-top:4px;font-size:11.5px;color:#f8fafc;display:flex;justify-content:space-between;align-items:center;gap:6px;">
-      <span>🔄 Start <strong style="color:#4ade80;">${escHtml(s.start.name)}</strong> (${calcBlend(s.start).wkPpg.toFixed(1)}) over <strong style="color:#fca5a5;">${escHtml(s.sit.name)}</strong> (${escHtml(sitReason)}) in <strong>${escHtml(s.slot)}</strong></span>
-      <button onclick="applyAuditSwapSandbox(${Number(s.start.player_id)}, ${Number(s.sit.player_id)}, '${escHtml(s.slot)}')" style="background:#0c4a6e;color:#bae6fd;border:1px solid #38bdf8;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;">+${s.gain.toFixed(1)} Swap</button>
+    return `<div style="margin-top:5px;font-size:11.5px;color:#f8fafc;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+      <span style="flex:1;min-width:190px;">🔄 Start <strong style="color:#4ade80;">${escHtml(s.start.name)}</strong> (${calcBlend(s.start).wkPpg.toFixed(1)}) over <strong style="color:#fca5a5;">${escHtml(s.sit.name)}</strong> (${escHtml(sitReason)}) in <strong>${escHtml(s.slot)}</strong></span>
+      <span style="display:inline-flex;gap:5px;flex-shrink:0;">
+        <button onclick="openLiveSwapModal(${Number(s.start.player_id)}, ${Number(s.sit.player_id)}, '${escHtml(s.slot)}')" style="background:#16a34a;color:#ffffff;border:1px solid #22c55e;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;">⚡ ESPN +${s.gain.toFixed(1)}</button>
+        <button onclick="applyAuditSwapSandbox(${Number(s.start.player_id)}, ${Number(s.sit.player_id)}, '${escHtml(s.slot)}')" style="background:#0c4a6e;color:#bae6fd;border:1px solid #38bdf8;border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">🧪 Sim</button>
+      </span>
     </div>`;
   }).join('');
   const thuHtml = thuWarns.map(w => `<div style="margin-top:4px;font-size:11px;color:#fde68a;">⚠️ ${escHtml(w)}</div>`).join('');
@@ -1715,23 +1757,38 @@ function renderTeamTab() {
     </div>
   `;
 
-  // Dynamic Best Available Skill FA comparison vs category-aware skill bench anchor
-  const faList = [...(LEAGUE_BUNDLE.free_agents || [])].filter(f => ['RB', 'WR', 'TE'].includes(f.pos));
+  // Dynamic Best Available Skill FA comparison vs category-aware live skill bench anchor
+  const liveRosterIds = new Set(((teamData.roster) || []).map(r => Number(r.player_id)));
+  const faList = [...(LEAGUE_BUNDLE.free_agents || [])].filter(
+    f => ['RB', 'WR', 'TE'].includes(f.pos) && !liveRosterIds.has(Number(f.player_id))
+  );
   faList.sort((a, b) => calcBlend(b).vorp - calcBlend(a).vorp);
   const topFa = faList[0];
   const recBanner = document.getElementById('team-rec-banner');
   if (topFa) {
-    const catAnchor = resolveSmartDropAnchor(topFa.pos, teamData, false);
+    const catAnchor = resolveSmartDropAnchor(topFa.pos, teamData, false, topFa.player_id, true);
     const topFaVorp = calcBlend(topFa).vorp;
     const netGain = topFaVorp - catAnchor.blended_vorp;
     if (catAnchor.valid && netGain >= 1.0) {
       recBanner.innerHTML = `
-        <div class="rec-banner" onclick="switchTab('waivers')" style="cursor:pointer;">
-          <div>
+        <div class="rec-banner" onclick="switchTab('waivers')" style="cursor:pointer;gap:10px;">
+          <div style="flex:1;min-width:0;">
             <strong>⚡ Positive-EV Waiver Upgrade (+${netGain.toFixed(2)} VORP):</strong><br>
             Add <strong>${escHtml(topFa.name)} (${topFa.pos})</strong> / Drop <strong>${escHtml(catAnchor.name)} (${catAnchor.pos})</strong>
           </div>
-          <span style="font-weight:800;color:#4ade80;white-space:nowrap;">View ➔</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <button onclick="event.stopPropagation(); openLiveClaimModal(${Number(topFa.player_id)}, ${Number(catAnchor.id)})" style="background:#16a34a;color:#ffffff;border:1px solid #4ade80;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;">⚡ Claim on ESPN</button>
+          </div>
+        </div>
+      `;
+    } else if (!catAnchor.valid && topFaVorp >= 1.5) {
+      recBanner.innerHTML = `
+        <div class="rec-banner hold" onclick="openLiveClaimModal(${Number(topFa.player_id)}, 0)" style="cursor:pointer;gap:10px;border-color:#0284c7;">
+          <div style="flex:1;min-width:0;">
+            <strong>📅 High-VORP Target (+${topFaVorp.toFixed(2)}V): ${escHtml(topFa.name)} (${topFa.pos})</strong><br>
+            <span style="font-size:11px;color:#cbd5e1;">Droppable bench spots kicked off — queue for Tuesday waivers or inspect drop options.</span>
+          </div>
+          <span style="font-weight:800;color:#38bdf8;white-space:nowrap;font-size:11px;">Inspect ➔</span>
         </div>
       `;
     } else {
@@ -1768,14 +1825,15 @@ function renderWaiversTab() {
   if (!teamData) return;
   const allowStash = document.getElementById('chk-fringe-swap')?.checked || false;
   const watchlistSet = getUserWatchlist();
+  const liveRosterIds = new Set(((teamData.roster) || []).map(r => Number(r.player_id)));
 
   const headerAnchorPos = ['QB', 'RB', 'WR', 'TE', 'DST'].includes(CURRENT_FA_FILTER) ? CURRENT_FA_FILTER : 'WR';
-  const hdrComp = resolveSmartDropAnchor(headerAnchorPos, teamData, allowStash);
+  const hdrComp = resolveSmartDropAnchor(headerAnchorPos, teamData, allowStash, 0, true);
   document.getElementById('fa-drop-anchor-lbl').textContent = hdrComp.valid
     ? `${hdrComp.name} (${hdrComp.pos}: ${hdrComp.blended_vorp >= 0 ? '+' : ''}${hdrComp.blended_vorp.toFixed(2)} VORP)`
     : hdrComp.bucket_label;
 
-  let list = [...(LEAGUE_BUNDLE.free_agents || [])];
+  let list = [...(LEAGUE_BUNDLE.free_agents || [])].filter(f => !liveRosterIds.has(Number(f.player_id)));
   if (CURRENT_FA_FILTER === 'WATCHLIST') {
     list = list.filter(f => watchlistSet.has(Number(f.player_id)));
   } else if (CURRENT_FA_FILTER === 'SLEEPER') {
@@ -1791,7 +1849,7 @@ function renderWaiversTab() {
     return;
   }
   document.getElementById('fa-list-container').innerHTML = list.slice(0, 35).map(f => {
-    const comp = resolveSmartDropAnchor(f.pos, teamData, allowStash);
+    const comp = resolveSmartDropAnchor(f.pos, teamData, allowStash, f.player_id, true);
     return renderPlayerCard(f, true, new Set(), watchlistSet, comp);
   }).join('');
 }
@@ -1813,7 +1871,7 @@ function renderOpponentAuditCard(opp, teamData) {
     cpsHtml = `<div style="font-size:11.5px;color:#94a3b8;padding:6px 0;">✅ Opponent has no glaring sub-replacement starters at this horizon.</div>`;
   } else {
     cps.forEach(cp => {
-      const catAnchor = resolveSmartDropAnchor(cp.target_pos, teamData, false);
+      const catAnchor = resolveSmartDropAnchor(cp.target_pos, teamData, false, cp.block_player_id, true);
       const faMatch = ((LEAGUE_BUNDLE && LEAGUE_BUNDLE.free_agents) || []).find(f => Number(f.player_id) === Number(cp.block_player_id));
       const cpVorp = faMatch ? calcBlend(faMatch).vorp : Number(cp.block_blended_vorp || 0);
       const cpPpg = faMatch ? calcBlend(faMatch).ppg : Number(cp.block_blended_ppg || 0);
@@ -1828,9 +1886,16 @@ function renderOpponentAuditCard(opp, teamData) {
           ? `✅ ACTIONABLE BLOCK (${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)} Net VORP vs ${catAnchor.name})`
           : `🛡️ HOLD ${catAnchor.name} (${netVorp.toFixed(2)} VORP — Below Neutral Gate)`);
 
-      const btnHtml = (isActionable && catAnchor.id)
-        ? `<button class="cp-action-btn" onclick="simulateAddDrop(${cp.block_player_id}, ${catAnchor.id})">🧪 Simulate Counter-Pick (${catAnchor.bucket_label}): +${escHtml(cp.block_player_name)} / -${escHtml(catAnchor.name)}</button>`
-        : '';
+      const btnHtml = `
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button class="cp-action-btn" style="background:#16a34a;margin-top:0;flex:2;" onclick="openLiveClaimModal(${Number(cp.block_player_id)}, ${catAnchor.valid && catAnchor.id ? Number(catAnchor.id) : 0})">
+            ⚡ Claim Block on ESPN: +${escHtml(cp.block_player_name)}
+          </button>
+          ${(isActionable && catAnchor.id)
+            ? `<button class="cp-action-btn" style="background:#1e293b;border:1px solid #38bdf8;color:#bae6fd;margin-top:0;flex:1;" onclick="simulateAddDrop(${Number(cp.block_player_id)}, ${Number(catAnchor.id)})">🧪 Sim</button>`
+            : ''}
+        </div>
+      `;
 
       cpsHtml += `
         <div style="background:#090d16;border:1px solid #1f2937;border-radius:9px;padding:10px;margin-top:8px;">
@@ -2179,43 +2244,40 @@ async function openDossierByKey(playerKey, isFa) {
   const b = calcBlend(p);
   const teamData = getActiveTeamData();
   const allowStash = document.getElementById('chk-fringe-swap')?.checked || false;
-  const catAnchor = resolveSmartDropAnchor(p.pos, teamData, allowStash);
+  const catAnchor = resolveSmartDropAnchor(p.pos, teamData, allowStash, p.player_id, true);
   const protectedSet = getUserProtectedSet(teamData);
   const watchlistSet = getUserWatchlist();
   const isProtected = protectedSet.has(normName(p.name));
   const isStarred = watchlistSet.has(Number(p.player_id));
   const userNote = getUserPlayerNote(p.player_id);
+  const inSimOnly = isPlayerInSandboxOnly(p.player_id, teamData);
 
   const netVorp = b.vorp - catAnchor.blended_vorp;
   const body = document.getElementById('dossier-body');
 
   let userActionsHtml = '';
   if (isFa) {
-    if (catAnchor.valid && catAnchor.id) {
-      const btnColor = netVorp >= 1.0 ? '#16a34a' : '#2563eb';
-      const verdictLabel = netVorp >= 1.0
-        ? `🧪 Claim (${catAnchor.bucket_label}: +${netVorp.toFixed(2)}V): +${escHtml(p.name)} / -${escHtml(catAnchor.name)}`
-        : `🧪 Simulate (${catAnchor.bucket_label}: ${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)}V): -${escHtml(catAnchor.name)}`;
-      userActionsHtml = `
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <button class="cp-action-btn" style="background:${btnColor};margin-top:0;flex:2;" onclick="simulateAddDrop(${p.player_id}, ${catAnchor.id}); closeDrawerModal('dossier-backdrop');">
-            ${verdictLabel}
-          </button>
-          <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;flex:1;" onclick="toggleWatchlistPlayer(${p.player_id}); openDossierByKey('${playerKey}', true);">
-            ${isStarred ? '⭐ Unstar' : '☆ Watch'}
-          </button>
-        </div>
-      `;
-    } else {
-      userActionsHtml = `
-        <div style="background:#111827;border:1px solid #334155;border-radius:9px;padding:9px 11px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <div style="font-size:11.5px;color:#94a3b8;"><strong>⚖️ ${escHtml(catAnchor.bucket_label)}:</strong> Out-of-category bench drops are suppressed unless <em>2nd Stash</em> is enabled.</div>
-          <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;width:auto;white-space:nowrap;" onclick="toggleWatchlistPlayer(${p.player_id}); openDossierByKey('${playerKey}', true);">
-            ${isStarred ? '⭐ Unstar' : '☆ Watch'}
-          </button>
-        </div>
-      `;
-    }
+    const availStr = String(p.availability || 'FREEAGENT').toUpperCase();
+    const claimVerb = availStr.includes('WAIVER') ? '📋 ESPN Waiver Claim' : '⚡ Claim on ESPN';
+    const liveDeltaHint = (catAnchor.valid && catAnchor.id)
+      ? ` (${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)}V vs ${escHtml(catAnchor.name.split(' ').pop())})`
+      : ' (Pick Drop)';
+    const simBtnHtml = inSimOnly
+      ? `<button class="cp-action-btn" style="background:#1e293b;border:1px solid #475569;color:#94a3b8;margin-top:0;flex:1;" disabled>🧪 In Sim</button>`
+      : ((catAnchor.valid && catAnchor.id)
+        ? `<button class="cp-action-btn" style="background:#0c4a6e;border:1px solid #38bdf8;color:#bae6fd;margin-top:0;flex:1;" onclick="simulateAddDrop(${Number(p.player_id)}, ${Number(catAnchor.id)}); closeDrawerModal('dossier-backdrop');">🧪 Sim</button>`
+        : '');
+    userActionsHtml = `
+      <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;">
+        <button class="cp-action-btn" style="background:#16a34a;border:1px solid #4ade80;margin-top:0;flex:2;min-width:185px;" onclick="closeDrawerModal('dossier-backdrop'); openLiveClaimModal(${Number(p.player_id)}, ${catAnchor.valid && catAnchor.id ? Number(catAnchor.id) : 0});">
+          ${claimVerb}${liveDeltaHint}
+        </button>
+        ${simBtnHtml}
+        <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;flex:1;" onclick="toggleWatchlistPlayer(${Number(p.player_id)}); openDossierByKey('${playerKey}', true);">
+          ${isStarred ? '⭐ Unstar' : '☆ Watch'}
+        </button>
+      </div>
+    `;
   } else {
     const isBench = p.slot === 'BENCH' || p.slot === 'IR';
     const targetSlot = isBench ? (['RB', 'WR', 'TE'].includes(p.pos) ? 'FLEX' : p.pos) : 'BENCH';
@@ -2223,19 +2285,23 @@ async function openDossierByKey(playerKey, isFa) {
       userActionsHtml = `
         <div style="background:#0c4a6e33;border:1px solid #0284c7;border-radius:9px;padding:9px 11px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <div style="font-size:11.5px;color:#bae6fd;flex:2;"><strong>🏥 Official IR Slot Stash:</strong> Zero active roster cost — automatically protected from drop anchors.</div>
-          <button class="cp-action-btn" style="background:#0f766e;margin-top:0;width:auto;white-space:nowrap;" onclick="togglePlayerLineupSlot(${p.player_id}, 'BENCH'); closeDrawerModal('dossier-backdrop');">
-            🔄 Activate to BENCH
+          <button class="cp-action-btn" style="background:#0f766e;margin-top:0;width:auto;white-space:nowrap;" onclick="togglePlayerLineupSlot(${Number(p.player_id)}, 'BENCH'); closeDrawerModal('dossier-backdrop');">
+            🧪 Sim Activate
           </button>
         </div>
       `;
     } else {
+      const liveLocked = isPlayerLockedLive(p);
       userActionsHtml = `
-        <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;">
-          <button class="cp-action-btn" style="background:${isProtected ? '#1e3a8a' : '#1e293b'};border:1px solid #38bdf8;margin-top:0;flex:1;" onclick="toggleProtectByKey('${playerKey}', false)">
-            ${isProtected ? '🛡️ Core Locked (Tap to Unlock)' : '🔓 Unlocked (Tap to Protect)'}
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+          <button class="cp-action-btn" style="background:${liveLocked ? '#334155' : '#16a34a'};margin-top:0;flex:1.4;min-width:145px;" ${liveLocked ? 'disabled' : ''} onclick="closeDrawerModal('dossier-backdrop'); openLiveSwapFromDossier(${Number(p.player_id)}, '${targetSlot}');">
+            ${liveLocked ? '🔒 Slot Kicked Off' : `⚡ ESPN → ${targetSlot}`}
           </button>
-          <button class="cp-action-btn" style="background:#0f766e;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${p.player_id}, '${targetSlot}'); closeDrawerModal('dossier-backdrop');">
-            🔄 Move to ${targetSlot}
+          <button class="cp-action-btn" style="background:#0f766e;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${Number(p.player_id)}, '${targetSlot}'); closeDrawerModal('dossier-backdrop');">
+            🧪 Sim ${targetSlot}
+          </button>
+          <button class="cp-action-btn" style="background:${isProtected ? '#1e3a8a' : '#1e293b'};border:1px solid #38bdf8;margin-top:0;flex:1;" onclick="toggleProtectByKey('${playerKey}', false)">
+            ${isProtected ? '🛡️ Core' : '🔓 Lock'}
           </button>
         </div>
       `;
@@ -2930,6 +2996,793 @@ async function refreshLiveTelemetry(force = false) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Vault Write-Access Helpers + Native In-App 2-Step Live ESPN Claim & Swap Modals
+// ---------------------------------------------------------------------------
+function getSavedWriteCredentials(teamId = ACTIVE_TEAM_ID) {
+  const tid = Number(teamId || 4);
+  if (tid === 4) {
+    const pin = RollupBridge.vault.getSecret('ff_admin_pin', '');
+    return { teamId: 4, mode: 'pin', unlocked: Boolean(pin), pin };
+  }
+  const swid = RollupBridge.vault.getSecret(`espn_swid_${tid}`, '') || RollupBridge.vault.getSecret('espn_swid', '');
+  const s2 = RollupBridge.vault.getSecret(`espn_s2_${tid}`, '') || RollupBridge.vault.getSecret('espn_s2', '');
+  return { teamId: tid, mode: 'cookies', unlocked: Boolean(swid && s2), swid, s2 };
+}
+
+function buildWriteAuthHeadersFromUi(inlinePrefix = 'live-tx') {
+  const cred = getSavedWriteCredentials(ACTIVE_TEAM_ID);
+  const headers = { 'Content-Type': 'application/json' };
+  let inlinePin = '';
+  let inlineSwid = '';
+  let inlineS2 = '';
+
+  if (Number(ACTIVE_TEAM_ID) === 4) {
+    inlinePin = (document.getElementById(`${inlinePrefix}-pin-input`)?.value || '').trim();
+    const effectivePin = inlinePin || cred.pin || '';
+    if (!effectivePin) {
+      return { ok: false, error: 'Enter your 6-digit Mahomes Depot Write PIN once to unlock live ESPN moves.' };
+    }
+    headers['X-Admin-Pin'] = effectivePin;
+    return { ok: true, headers, saveOnSuccess: () => { if (inlinePin) RollupBridge.vault.setSecret('ff_admin_pin', inlinePin); }, admin_pin: effectivePin };
+  }
+
+  inlineSwid = (document.getElementById(`${inlinePrefix}-swid-input`)?.value || '').trim();
+  inlineS2 = (document.getElementById(`${inlinePrefix}-s2-input`)?.value || '').trim();
+  const effectiveSwid = inlineSwid || cred.swid || '';
+  const effectiveS2 = inlineS2 || cred.s2 || '';
+  if (!effectiveSwid || !effectiveS2) {
+    return { ok: false, error: `Enter your personal ESPN SWID and espn_s2 cookies to execute live moves for Team #${ACTIVE_TEAM_ID}.` };
+  }
+  headers['X-User-SWID'] = effectiveSwid;
+  headers['X-User-ESPN-S2'] = effectiveS2;
+  return {
+    ok: true,
+    headers,
+    saveOnSuccess: () => {
+      if (inlineSwid) RollupBridge.vault.setSecret(`espn_swid_${ACTIVE_TEAM_ID}`, inlineSwid);
+      if (inlineS2) RollupBridge.vault.setSecret(`espn_s2_${ACTIVE_TEAM_ID}`, inlineS2);
+    }
+  };
+}
+
+function renderInlineWriteAuthPrompt(inlinePrefix = 'live-tx') {
+  const cred = getSavedWriteCredentials(ACTIVE_TEAM_ID);
+  if (cred.unlocked) {
+    const label = Number(ACTIVE_TEAM_ID) === 4
+      ? '🔑 Mahomes Depot Write PIN Active in Device Vault'
+      : `🔑 Team #${ACTIVE_TEAM_ID} ESPN Write Cookies Active in Device Vault`;
+    return `
+      <div style="margin:8px 0;padding:7px 10px;background:#052e1688;border:1px solid #166534;border-radius:8px;font-size:11px;color:#bbf7d0;display:flex;justify-content:space-between;align-items:center;">
+        <span>${label}</span>
+        <span style="color:#4ade80;font-weight:800;">READY</span>
+      </div>
+    `;
+  }
+  if (Number(ACTIVE_TEAM_ID) === 4) {
+    return `
+      <div style="margin:8px 0;padding:9px 11px;background:#172554;border:1px solid #38bdf8;border-radius:9px;">
+        <div style="font-size:10.5px;font-weight:800;color:#bae6fd;text-transform:uppercase;margin-bottom:4px;">🔑 One-Time Device Unlock (Saved to Vault)</div>
+        <input type="password" inputmode="numeric" id="${inlinePrefix}-pin-input" placeholder="Enter Mahomes Depot Write PIN..." oninput="updateLiveModalBtnState()" style="width:100%;padding:8px 10px;border-radius:7px;background:#090d16;border:1px solid #334155;color:#f8fafc;font-size:13px;font-weight:700;">
+      </div>
+    `;
+  }
+  return `
+    <div style="margin:8px 0;padding:9px 11px;background:#172554;border:1px solid #38bdf8;border-radius:9px;">
+      <div style="font-size:10.5px;font-weight:800;color:#bae6fd;text-transform:uppercase;margin-bottom:5px;">🔑 Team #${ACTIVE_TEAM_ID} Personal ESPN Cookies (Device Vault Only)</div>
+      <input type="text" id="${inlinePrefix}-swid-input" placeholder="ESPN SWID (e.g. {XXXX-...})" oninput="updateLiveModalBtnState()" style="width:100%;padding:7px 9px;border-radius:7px;background:#090d16;border:1px solid #334155;color:#f8fafc;font-size:11.5px;margin-bottom:5px;">
+      <input type="password" id="${inlinePrefix}-s2-input" placeholder="ESPN espn_s2 cookie" oninput="updateLiveModalBtnState()" style="width:100%;padding:7px 9px;border-radius:7px;background:#090d16;border:1px solid #334155;color:#f8fafc;font-size:11.5px;">
+    </div>
+  `;
+}
+
+function findPlayerInBundle(playerId) {
+  const pid = Number(playerId || 0);
+  if (!pid || !LEAGUE_BUNDLE) return null;
+  const fa = (LEAGUE_BUNDLE.free_agents || []).find(f => Number(f.player_id) === pid);
+  if (fa) return fa;
+  const teamData = getActiveTeamData();
+  const rHit = ((teamData && teamData.roster) || []).find(r => Number(r.player_id) === pid);
+  if (rHit) return rHit;
+  for (const [, val] of PLAYER_REGISTRY.entries()) {
+    if (val && Number(val.player_id) === pid) return val;
+  }
+  return null;
+}
+
+function openLiveClaimModal(addPlayerId, preselectedDropId = 0) {
+  const teamData = getActiveTeamData();
+  if (!teamData) return;
+  const fa = findPlayerInBundle(addPlayerId);
+  if (!fa) return;
+
+  const liveRoster = ((teamData.roster) || []).filter(
+    p => p.slot !== 'IR' && Number(p.player_id) !== Number(addPlayerId)
+  );
+  const protectedSet = getUserProtectedSet(teamData);
+  const isCorePlayer = (p) => protectedSet.has(normName(p.name)) || (Number(ACTIVE_TEAM_ID) === 4 && SERVER_PROTECTED_ROCKSTAR_IDS.has(Number(p.player_id)));
+
+  // Sort eligible drops: unlocked first -> non-core first -> lowest Blended VORP first
+  const sortedDrops = [...liveRoster].sort((a, b) => {
+    const la = isPlayerLockedLive(a) ? 1 : 0;
+    const lb = isPlayerLockedLive(b) ? 1 : 0;
+    if (la !== lb) return la - lb;
+    const ca = isCorePlayer(a) ? 1 : 0;
+    const cb = isCorePlayer(b) ? 1 : 0;
+    if (ca !== cb) return ca - cb;
+    return calcBlend(a).vorp - calcBlend(b).vorp;
+  });
+
+  let selectedDropId = Number(preselectedDropId || 0);
+  const preObj = sortedDrops.find(p => Number(p.player_id) === selectedDropId);
+  if (!selectedDropId || !preObj || isPlayerLockedLive(preObj)) {
+    const smart = resolveSmartDropAnchor(fa.pos, teamData, false, fa.player_id, true);
+    if (smart.valid && smart.id) {
+      selectedDropId = Number(smart.id);
+    } else {
+      const firstUnlocked = sortedDrops.find(p => !isPlayerLockedLive(p));
+      selectedDropId = firstUnlocked ? Number(firstUnlocked.player_id) : (sortedDrops[0] ? Number(sortedDrops[0].player_id) : 0);
+    }
+  }
+
+  LIVE_TX_STATE = {
+    kind: 'claim',
+    addPlayer: fa,
+    eligibleDrops: sortedDrops,
+    selectedDropId
+  };
+  renderLiveClaimModalBody();
+  openDrawerModal('live-tx-backdrop');
+}
+
+function renderLiveClaimModalBody() {
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim') return;
+  const body = document.getElementById('live-tx-body');
+  const teamData = getActiveTeamData();
+  const wk = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7;
+  const fa = LIVE_TX_STATE.addPlayer;
+  const bAdd = calcBlend(fa);
+  const availRaw = String(fa.availability || 'FREEAGENT').toUpperCase();
+  const isWaiver = availRaw.includes('WAIVER');
+  const isFaab = Boolean((LEAGUE_BUNDLE?.league?.is_faab) || (LEAGUE_BUNDLE?.league_info?.is_faab));
+
+  const protectedSet = getUserProtectedSet(teamData);
+  const isCorePlayer = (p) => p && (protectedSet.has(normName(p.name)) || (Number(ACTIVE_TEAM_ID) === 4 && SERVER_PROTECTED_ROCKSTAR_IDS.has(Number(p.player_id))));
+
+  const dropPlayer = LIVE_TX_STATE.selectedDropId !== 0
+    ? LIVE_TX_STATE.eligibleDrops.find(p => Number(p.player_id) === Number(LIVE_TX_STATE.selectedDropId)) || null
+    : null;
+  const bDrop = dropPlayer ? calcBlend(dropPlayer) : { ppg: 0, vorp: 0, wkPpg: 0 };
+  const dropLocked = dropPlayer ? isPlayerLockedLive(dropPlayer) : false;
+  const dropCore = isCorePlayer(dropPlayer);
+
+  const netVorp = bAdd.vorp - bDrop.vorp;
+  const netRosPpg = bAdd.ppg - bDrop.ppg;
+  const netWkPpg = bAdd.wkPpg - bDrop.wkPpg;
+
+  const optionsHtml = LIVE_TX_STATE.eligibleDrops.map(d => {
+    const db = calcBlend(d);
+    const dLock = isPlayerLockedLive(d);
+    const dCore = isCorePlayer(d);
+    const tags = `${dLock ? ' [LOCKED - Played]' : ''}${dCore ? ' [🛡️ Protected]' : ''}`;
+    const sel = Number(d.player_id) === Number(LIVE_TX_STATE.selectedDropId) ? ' selected' : '';
+    const dis = dLock && Number(d.player_id) !== Number(LIVE_TX_STATE.selectedDropId) ? ' disabled' : '';
+    return `<option value="${Number(d.player_id)}"${sel}${dis}>${escHtml(d.name)} (${escHtml(d.pos)} • ${escHtml(d.slot)}) — ${db.vorp >= 0 ? '+' : ''}${db.vorp.toFixed(2)}V / ${db.ppg.toFixed(1)} PPG${tags}</option>`;
+  }).join('') + `<option value="0"${Number(LIVE_TX_STATE.selectedDropId) === 0 ? ' selected' : ''}>➕ Open Roster Spot (Add Only — Drop Nobody)</option>`;
+
+  let statusNoticeHtml = '';
+  if (dropLocked && dropPlayer) {
+    statusNoticeHtml = `
+      <div style="margin:8px 0;padding:9px 11px;background:#7f1d1d;border:1px solid #ef4444;border-radius:9px;font-size:11.5px;color:#fecaca;">
+        <strong>🔒 Kickoff Lock Active:</strong> <code>${escHtml(dropPlayer.name)}</code> has already kicked off in Week ${wk}. Choose an unlocked player in the dropdown below or claim after Tuesday waivers clear.
+      </div>
+    `;
+  } else if (dropCore && dropPlayer) {
+    statusNoticeHtml = `
+      <div style="margin:8px 0;padding:9px 11px;background:#7f1d1d;border:1.5px solid #ef4444;border-radius:9px;font-size:11.5px;color:#fecaca;">
+        <strong>🚨 Protected Core Player Selected:</strong> <code>${escHtml(dropPlayer.name)}</code> is protected. Check the explicit override box below only if you truly intend to cut him.
+        <label style="display:flex;align-items:center;gap:7px;margin-top:6px;cursor:pointer;font-weight:800;color:#ffffff;">
+          <input type="checkbox" id="live-tx-core-override" onchange="updateLiveModalBtnState()"> Override Core Protection for ${escHtml(dropPlayer.name)}
+        </label>
+      </div>
+    `;
+  }
+
+  const faabInputHtml = (isWaiver && isFaab)
+    ? `<div style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#111827;border:1px solid #334155;border-radius:8px;padding:7px 10px;">
+         <span style="font-size:11px;font-weight:800;color:#7dd3fc;">💰 FAAB Bid ($):</span>
+         <input type="number" min="0" max="200" value="0" id="live-tx-faab-bid" style="width:80px;padding:5px 8px;border-radius:6px;background:#090d16;border:1px solid #475569;color:#ffffff;font-weight:800;text-align:right;">
+       </div>`
+    : '';
+
+  const modeBadge = isWaiver
+    ? '<span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:#1e3a8a;color:#bae6fd;border:1px solid #38bdf8;">📋 WAIVER CLAIM</span>'
+    : '<span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:99px;background:#052e16;color:#4ade80;border:1px solid #22c55e;">🟢 FREE AGENT (Instant)</span>';
+
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+      <div>
+        <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;">🛡️ 2-Step Live ESPN Execution • ${escHtml(teamData.team_name)}</div>
+        <h3 style="margin:2px 0 0 0;font-size:17px;color:#ffffff;">${isWaiver ? 'Submit ESPN Waiver Claim' : 'Execute ESPN Free Agent Add/Drop'}</h3>
+      </div>
+      <button onclick="closeDrawerModal('live-tx-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer;">✕</button>
+    </div>
+
+    ${statusNoticeHtml}
+
+    <div style="background:#090d16;border:1px solid #1f2937;border-left:4px solid #22c55e;border-radius:10px;padding:10px 12px;margin-top:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        <span style="font-size:10px;font-weight:800;color:#4ade80;text-transform:uppercase;">➕ Adding to Roster</span>
+        ${modeBadge}
+      </div>
+      <div style="font-size:15.5px;font-weight:900;color:#ffffff;margin-top:3px;">${escHtml(fa.name)} <span style="font-size:11.5px;color:#94a3b8;font-weight:700;">(${escHtml(fa.pos)} • ${escHtml(fa.nfl_team)})</span></div>
+      <div style="font-size:11px;color:#cbd5e1;margin-top:3px;">
+        ROS: <strong style="color:#4ade80;">${bAdd.ppg.toFixed(2)} PPG</strong> (${bAdd.vorp >= 0 ? '+' : ''}${bAdd.vorp.toFixed(2)}V) • Wk ${wk}: <strong>${bAdd.wkPpg.toFixed(2)} pts</strong> • ${escHtml(fa.matchup || 'Active')}
+      </div>
+      ${faabInputHtml}
+    </div>
+
+    <div style="display:flex;justify-content:space-around;background:#172554;border:1px solid #1e40af;border-radius:8px;padding:7px 8px;margin:8px 0;text-align:center;">
+      <div>
+        <div style="font-size:9px;color:#93c5fd;text-transform:uppercase;font-weight:800;">Net VORP</div>
+        <div style="font-size:13px;font-weight:900;color:${netVorp >= 0 ? '#4ade80' : '#f87171'};">${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)}V</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:#93c5fd;text-transform:uppercase;font-weight:800;">ROS PPG Delta</div>
+        <div style="font-size:13px;font-weight:900;color:${netRosPpg >= 0 ? '#4ade80' : '#fbbf24'};">${netRosPpg >= 0 ? '+' : ''}${netRosPpg.toFixed(2)}</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:#93c5fd;text-transform:uppercase;font-weight:800;">Wk ${wk} Delta</div>
+        <div style="font-size:13px;font-weight:900;color:${netWkPpg >= 0 ? '#4ade80' : '#fbbf24'};">${netWkPpg >= 0 ? '+' : ''}${netWkPpg.toFixed(2)}</div>
+      </div>
+    </div>
+
+    <div style="background:#090d16;border:1px solid #1f2937;border-left:4px solid #ef4444;border-radius:10px;padding:10px 12px;">
+      <label for="live-drop-select" style="display:block;font-size:10px;font-weight:800;color:#fca5a5;text-transform:uppercase;margin-bottom:5px;">
+        ➖ Select Roster Player to Drop (Live ESPN Roster):
+      </label>
+      <select id="live-drop-select" onchange="onLiveDropSelectChange(this.value)" style="width:100%;padding:9px 10px;border-radius:8px;background:#1e293b;border:1px solid #475569;color:#ffffff;font-size:12.5px;font-weight:700;">
+        ${optionsHtml}
+      </select>
+      ${dropPlayer
+        ? `<div style="font-size:11px;color:#94a3b8;margin-top:6px;">Dropping <strong style="color:#f8fafc;">${escHtml(dropPlayer.name)}</strong> (${escHtml(dropPlayer.slot)}): ${bDrop.ppg.toFixed(2)} ROS PPG (${bDrop.vorp >= 0 ? '+' : ''}${bDrop.vorp.toFixed(2)}V) • ${escHtml(dropPlayer.matchup || '')}</div>`
+        : `<div style="font-size:11px;color:#93c5fd;margin-top:6px;">Adding into an open active roster slot (ESPN will reject if your roster is full).</div>`
+      }
+    </div>
+
+    ${renderInlineWriteAuthPrompt('live-tx')}
+
+    <label style="display:flex;align-items:flex-start;gap:9px;background:#111827;border:1px solid #475569;padding:10px 11px;border-radius:9px;margin:9px 0;cursor:pointer;font-size:12px;color:#f8fafc;">
+      <input type="checkbox" id="live-tx-confirm-chk" ${dropLocked ? 'disabled' : ''} onchange="updateLiveModalBtnState()" style="width:18px;height:18px;margin-top:1px;accent-color:#22c55e;">
+      <span>I confirm submitting this <strong>LIVE ESPN ${isWaiver ? 'Waiver Claim' : 'Transaction'}</strong>: Add <strong>${escHtml(fa.name)}</strong>${dropPlayer ? ` and drop <strong>${escHtml(dropPlayer.name)}</strong>` : ''}.</span>
+    </label>
+
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button onclick="closeDrawerModal('live-tx-backdrop')" style="flex:1;padding:11px;border-radius:9px;background:#334155;color:#e2e8f0;border:none;font-size:13px;font-weight:800;cursor:pointer;">Cancel</button>
+      <button id="live-tx-submit-btn" disabled onclick="submitLiveClaim()" style="flex:1.8;padding:11px;border-radius:9px;background:#16a34a;color:#ffffff;border:none;font-size:13px;font-weight:900;cursor:pointer;opacity:0.5;">
+        ${dropLocked ? '🔒 Drop Player Locked' : (isWaiver ? '📋 Submit Waiver Claim' : '⚡ Execute on ESPN')}
+      </button>
+    </div>
+
+    <div id="live-tx-result" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4;"></div>
+  `;
+  updateLiveModalBtnState();
+}
+
+function onLiveDropSelectChange(val) {
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim') return;
+  LIVE_TX_STATE.selectedDropId = Number(val);
+  renderLiveClaimModalBody();
+}
+
+function updateLiveModalBtnState() {
+  const btn = document.getElementById('live-tx-submit-btn');
+  const chk = document.getElementById('live-tx-confirm-chk');
+  if (!btn || !chk || !LIVE_TX_STATE) return;
+
+  let blocked = !chk.checked;
+  if (LIVE_TX_STATE.kind === 'claim') {
+    const dp = LIVE_TX_STATE.selectedDropId !== 0
+      ? LIVE_TX_STATE.eligibleDrops.find(p => Number(p.player_id) === Number(LIVE_TX_STATE.selectedDropId))
+      : null;
+    if (dp && isPlayerLockedLive(dp)) blocked = true;
+    const coreChk = document.getElementById('live-tx-core-override');
+    if (coreChk && !coreChk.checked) blocked = true;
+  } else if (LIVE_TX_STATE.kind === 'swap') {
+    if (LIVE_TX_STATE.locked) blocked = true;
+  }
+
+  const authCheck = buildWriteAuthHeadersFromUi('live-tx');
+  if (!authCheck.ok) blocked = true;
+
+  btn.disabled = blocked;
+  btn.style.opacity = blocked ? '0.45' : '1';
+}
+
+async function submitLiveClaim() {
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim') return;
+  const authInfo = buildWriteAuthHeadersFromUi('live-tx');
+  const resBox = document.getElementById('live-tx-result');
+  const btn = document.getElementById('live-tx-submit-btn');
+  if (!authInfo.ok) {
+    if (resBox) {
+      resBox.style.display = 'block';
+      resBox.style.background = '#450a0a';
+      resBox.style.border = '1px solid #ef4444';
+      resBox.style.color = '#fecaca';
+      resBox.innerHTML = escHtml(authInfo.error);
+    }
+    return;
+  }
+
+  const fa = LIVE_TX_STATE.addPlayer;
+  const dropId = Number(LIVE_TX_STATE.selectedDropId || 0);
+  const dropPlayer = dropId !== 0
+    ? LIVE_TX_STATE.eligibleDrops.find(p => Number(p.player_id) === dropId)
+    : null;
+  const coreChk = document.getElementById('live-tx-core-override');
+  const faabBid = Number(document.getElementById('live-tx-faab-bid')?.value || 0);
+  const wk = Number((LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7);
+
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = '⏳ Contacting ESPN...';
+
+  try {
+    const resp = await fetch(`${CLOUD_API_BASE}/api/transaction`, {
+      method: 'POST',
+      headers: authInfo.headers,
+      body: JSON.stringify({
+        team_id: Number(ACTIVE_TEAM_ID),
+        league_id: Number((LEAGUE_BUNDLE?.league?.league_id) || 945552),
+        add_player_id: Number(fa.player_id),
+        add_player_name: fa.name,
+        drop_player_id: dropId,
+        drop_player_name: dropPlayer ? dropPlayer.name : '',
+        scoring_period_id: wk,
+        availability: String(fa.availability || 'AUTO'),
+        faab_bid: faabBid,
+        override_rockstar_lock: Boolean(coreChk ? coreChk.checked : false),
+        admin_pin: authInfo.admin_pin || undefined
+      })
+    });
+    const data = await resp.json();
+    resBox.style.display = 'block';
+    if (resp.ok) {
+      authInfo.saveOnSuccess();
+      RollupBridge.storage.remove(`sandbox_roster_${ACTIVE_TEAM_ID}`);
+      resBox.style.background = '#052e16';
+      resBox.style.border = '1px solid #22c55e';
+      resBox.style.color = '#dcfce7';
+      const modeLbl = data.executed_type === 'WAIVER' ? '📋 WAIVER CLAIM QUEUED ON ESPN' : '✅ LIVE ESPN ADD/DROP EXECUTED';
+      resBox.innerHTML = `<strong>${modeLbl}</strong><br>+<strong>${escHtml(fa.name)}</strong>${dropPlayer ? ` / -<strong>${escHtml(dropPlayer.name)}</strong>` : ''}<br><span style="font-size:11px;color:#86efac;">Transaction ID: ${escHtml(data.transaction_id || 'OK')} • Syncing live roster...</span>`;
+      btn.textContent = '✅ Done';
+      await refreshLiveTelemetry(true);
+    } else {
+      resBox.style.background = '#450a0a';
+      resBox.style.border = '1px solid #ef4444';
+      resBox.style.color = '#fecaca';
+      resBox.innerHTML = `<strong>❌ ESPN Rejected Move:</strong><br>${escHtml(data.detail || JSON.stringify(data))}`;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.textContent = 'Retry on ESPN';
+    }
+  } catch (err) {
+    resBox.style.display = 'block';
+    resBox.style.background = '#450a0a';
+    resBox.style.border = '1px solid #ef4444';
+    resBox.style.color = '#fecaca';
+    resBox.innerHTML = `<strong>❌ Network Error:</strong> ${escHtml(err.message || String(err))}`;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = 'Retry on ESPN';
+  }
+}
+
+function openLiveSwapFromDossier(playerId, requestedTargetSlot) {
+  const teamData = getActiveTeamData();
+  if (!teamData) return;
+  const liveRoster = (teamData.roster) || [];
+  const p = liveRoster.find(r => Number(r.player_id) === Number(playerId));
+  if (!p) return;
+
+  if (p.slot === 'BENCH') {
+    // Promoting bench player -> pick unlocked starter in compatible slot (or lowest Wk PPG compatible starter)
+    const compatStarters = liveRoster.filter(st => {
+      if (st.slot === 'BENCH' || st.slot === 'IR' || isPlayerLockedLive(st)) return false;
+      const sl = String(st.slot || '').toUpperCase();
+      if (st.pos === p.pos || sl === p.pos) return true;
+      if ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(p.pos)) return true;
+      return false;
+    }).sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg);
+    const defaultSit = compatStarters[0] || null;
+    const slotTarget = defaultSit ? defaultSit.slot : requestedTargetSlot;
+    openLiveSwapModal(p.player_id, defaultSit ? defaultSit.player_id : 0, slotTarget, compatStarters);
+  } else {
+    // Moving active starter to BENCH -> optionally pick an unlocked bench replacement!
+    const sl = String(p.slot || '').toUpperCase();
+    const compatBench = liveRoster.filter(bn => {
+      if (bn.slot !== 'BENCH' || isPlayerLockedLive(bn)) return false;
+      if (bn.pos === p.pos) return true;
+      if ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(bn.pos)) return true;
+      return false;
+    }).sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
+    if (compatBench.length > 0) {
+      openLiveSwapModal(compatBench[0].player_id, p.player_id, p.slot, compatBench, true);
+    } else {
+      openLiveSwapModal(p.player_id, 0, 'BENCH', []);
+    }
+  }
+}
+
+function openLiveSwapModal(startId, sitId, targetSlot, partnerChoices = null, partnerIsPromoted = false) {
+  const teamData = getActiveTeamData();
+  if (!teamData) return;
+  const liveRoster = (teamData.roster) || [];
+  const pStart = liveRoster.find(r => Number(r.player_id) === Number(startId));
+  const pSit = Number(sitId || 0) !== 0 ? liveRoster.find(r => Number(r.player_id) === Number(sitId)) : null;
+  if (!pStart) return;
+
+  let choices = partnerChoices;
+  if (!Array.isArray(choices)) {
+    choices = liveRoster.filter(st => {
+      if (Number(st.player_id) === Number(pStart.player_id) || st.slot === 'IR' || isPlayerLockedLive(st)) return false;
+      if (pStart.slot === 'BENCH') {
+        const sl = String(st.slot || '').toUpperCase();
+        return st.slot !== 'BENCH' && (st.pos === pStart.pos || sl === pStart.pos || ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(pStart.pos)));
+      }
+      return st.slot === 'BENCH';
+    }).sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg);
+  }
+
+  LIVE_TX_STATE = {
+    kind: 'swap',
+    startPlayer: pStart,
+    sitPlayer: pSit,
+    targetSlot: targetSlot || (pSit ? pSit.slot : pStart.pos),
+    partnerChoices: choices,
+    partnerIsPromoted: Boolean(partnerIsPromoted),
+    locked: isPlayerLockedLive(pStart) || (pSit ? isPlayerLockedLive(pSit) : false)
+  };
+  renderLiveSwapModalBody();
+  openDrawerModal('live-tx-backdrop');
+}
+
+function renderLiveSwapModalBody() {
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'swap') return;
+  const body = document.getElementById('live-tx-body');
+  const teamData = getActiveTeamData();
+  const wk = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7;
+  const pStart = LIVE_TX_STATE.startPlayer;
+  const pSit = LIVE_TX_STATE.sitPlayer;
+  const targetSlot = LIVE_TX_STATE.targetSlot;
+  const bStart = calcBlend(pStart);
+  const bSit = pSit ? calcBlend(pSit) : { wkPpg: 0 };
+  const wkGain = targetSlot === 'BENCH' ? (-bStart.wkPpg) : (bStart.wkPpg - bSit.wkPpg);
+
+  let partnerSelectHtml = '';
+  if (LIVE_TX_STATE.partnerChoices && LIVE_TX_STATE.partnerChoices.length > 0 && targetSlot !== 'BENCH') {
+    const opts = LIVE_TX_STATE.partnerChoices.map(c => {
+      const sel = (!LIVE_TX_STATE.partnerIsPromoted && pSit && Number(c.player_id) === Number(pSit.player_id))
+        || (LIVE_TX_STATE.partnerIsPromoted && Number(c.player_id) === Number(pStart.player_id))
+        ? ' selected'
+        : '';
+      return `<option value="${Number(c.player_id)}"${sel}>${escHtml(c.name)} (${escHtml(c.pos)} • ${escHtml(c.slot)}) — ${calcBlend(c).wkPpg.toFixed(1)} Wk PPG</option>`;
+    }).join('') + (!LIVE_TX_STATE.partnerIsPromoted ? `<option value="0"${!pSit ? ' selected' : ''}>Move into Open ${escHtml(targetSlot)} Slot (No Bench Swap)</option>` : '');
+    partnerSelectHtml = `
+      <div style="margin-top:8px;">
+        <label style="display:block;font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">
+          ${LIVE_TX_STATE.partnerIsPromoted ? '🔄 Choose Bench Player to Start:' : '➖ Choose Active Starter to Move to BENCH:'}
+        </label>
+        <select onchange="onLiveSwapPartnerChange(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:#1e293b;border:1px solid #475569;color:#ffffff;font-size:12px;font-weight:700;">
+          ${opts}
+        </select>
+      </div>
+    `;
+  }
+
+  body.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+      <div>
+        <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;">⚡ Live ESPN Lineup Swap • Week ${wk}</div>
+        <h3 style="margin:2px 0 0 0;font-size:17px;color:#ffffff;">Confirm Starting Lineup Change</h3>
+      </div>
+      <button onclick="closeDrawerModal('live-tx-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="background:#090d16;border:1px solid #1f2937;border-left:4px solid #38bdf8;border-radius:10px;padding:11px 12px;margin-top:6px;">
+      <div style="font-size:13.5px;font-weight:800;color:#ffffff;">
+        ${targetSlot === 'BENCH'
+          ? `Move <span style="color:#fbbf24;">${escHtml(pStart.name)}</span> (${escHtml(pStart.slot)}) → <strong>BENCH</strong>`
+          : `Start <span style="color:#4ade80;">${escHtml(pStart.name)}</span> (${bStart.wkPpg.toFixed(1)} Wk) → <strong>${escHtml(targetSlot)}</strong>`
+        }
+      </div>
+      ${pSit
+        ? `<div style="font-size:12px;color:#fca5a5;margin-top:4px;">Bench <strong>${escHtml(pSit.name)}</strong> (${bSit.wkPpg.toFixed(1)} Wk) → <strong>${escHtml(pStart.slot || 'BENCH')}</strong></div>`
+        : ''
+      }
+      <div style="margin-top:6px;font-size:11.5px;color:${wkGain >= 0 ? '#4ade80' : '#fbbf24'};font-weight:800;">
+        Projected Week ${wk} Lineup Delta: ${wkGain >= 0 ? '+' : ''}${wkGain.toFixed(2)} pts
+      </div>
+      ${partnerSelectHtml}
+    </div>
+
+    ${renderInlineWriteAuthPrompt('live-tx')}
+
+    <label style="display:flex;align-items:flex-start;gap:9px;background:#111827;border:1px solid #475569;padding:10px 11px;border-radius:9px;margin:9px 0;cursor:pointer;font-size:12px;color:#f8fafc;">
+      <input type="checkbox" id="live-tx-confirm-chk" ${LIVE_TX_STATE.locked ? 'disabled' : ''} onchange="updateLiveModalBtnState()" style="width:18px;height:18px;margin-top:1px;accent-color:#22c55e;">
+      <span>Update my live Week ${wk} ESPN lineup for <strong>${escHtml(teamData.team_name)}</strong>.</span>
+    </label>
+
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button onclick="closeDrawerModal('live-tx-backdrop')" style="flex:1;padding:11px;border-radius:9px;background:#334155;color:#e2e8f0;border:none;font-size:13px;font-weight:800;cursor:pointer;">Cancel</button>
+      <button id="live-tx-submit-btn" disabled onclick="submitLiveSwap()" style="flex:1.8;padding:11px;border-radius:9px;background:#16a34a;color:#ffffff;border:none;font-size:13px;font-weight:900;cursor:pointer;opacity:0.45;">
+        ⚡ Save Lineup on ESPN
+      </button>
+    </div>
+
+    <div id="live-tx-result" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4;"></div>
+  `;
+  updateLiveModalBtnState();
+}
+
+function onLiveSwapPartnerChange(val) {
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'swap') return;
+  const teamData = getActiveTeamData();
+  const liveRoster = (teamData && teamData.roster) || [];
+  const pid = Number(val || 0);
+  if (LIVE_TX_STATE.partnerIsPromoted) {
+    const nextStart = liveRoster.find(r => Number(r.player_id) === pid);
+    if (nextStart) LIVE_TX_STATE.startPlayer = nextStart;
+  } else {
+    const nextSit = pid ? liveRoster.find(r => Number(r.player_id) === pid) : null;
+    LIVE_TX_STATE.sitPlayer = nextSit || null;
+    if (nextSit && nextSit.slot && nextSit.slot !== 'BENCH') {
+      LIVE_TX_STATE.targetSlot = nextSit.slot;
+    }
+  }
+  LIVE_TX_STATE.locked = isPlayerLockedLive(LIVE_TX_STATE.startPlayer) || (LIVE_TX_STATE.sitPlayer ? isPlayerLockedLive(LIVE_TX_STATE.sitPlayer) : false);
+  renderLiveSwapModalBody();
+}
+
+async function submitLiveSwap() {
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'swap') return;
+  const authInfo = buildWriteAuthHeadersFromUi('live-tx');
+  const resBox = document.getElementById('live-tx-result');
+  const btn = document.getElementById('live-tx-submit-btn');
+  if (!authInfo.ok) return;
+
+  const pStart = LIVE_TX_STATE.startPlayer;
+  const pSit = LIVE_TX_STATE.sitPlayer;
+  const wk = Number((LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7);
+
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = '⏳ Updating ESPN Lineup...';
+
+  try {
+    const resp = await fetch(`${CLOUD_API_BASE}/api/lineup-swap`, {
+      method: 'POST',
+      headers: authInfo.headers,
+      body: JSON.stringify({
+        team_id: Number(ACTIVE_TEAM_ID),
+        league_id: Number((LEAGUE_BUNDLE?.league?.league_id) || 945552),
+        start_player_id: Number(pStart.player_id),
+        start_player_name: pStart.name,
+        from_slot: pStart.slot || 'BENCH',
+        to_slot: LIVE_TX_STATE.targetSlot,
+        bench_player_id: pSit ? Number(pSit.player_id) : 0,
+        bench_player_name: pSit ? pSit.name : '',
+        bench_to_slot: pStart.slot || 'BENCH',
+        scoring_period_id: wk,
+        admin_pin: authInfo.admin_pin || undefined
+      })
+    });
+    const data = await resp.json();
+    resBox.style.display = 'block';
+    if (resp.ok) {
+      authInfo.saveOnSuccess();
+      RollupBridge.storage.remove(`sandbox_roster_${ACTIVE_TEAM_ID}`);
+      resBox.style.background = '#052e16';
+      resBox.style.border = '1px solid #22c55e';
+      resBox.style.color = '#dcfce7';
+      resBox.innerHTML = `<strong>✅ ESPN Lineup Updated!</strong><br>${escHtml(pStart.name)} → <strong>${escHtml(LIVE_TX_STATE.targetSlot)}</strong>${pSit ? ` (${escHtml(pSit.name)} → ${escHtml(pStart.slot || 'BENCH')})` : ''}`;
+      btn.textContent = '✅ Saved';
+      await refreshLiveTelemetry(true);
+    } else {
+      resBox.style.background = '#450a0a';
+      resBox.style.border = '1px solid #ef4444';
+      resBox.style.color = '#fecaca';
+      resBox.innerHTML = `<strong>❌ Lineup Swap Failed:</strong><br>${escHtml(data.detail || JSON.stringify(data))}`;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.textContent = 'Retry Lineup Swap';
+    }
+  } catch (err) {
+    resBox.style.display = 'block';
+    resBox.style.background = '#450a0a';
+    resBox.style.border = '1px solid #ef4444';
+    resBox.style.color = '#fecaca';
+    resBox.innerHTML = `<strong>❌ Network Error:</strong> ${escHtml(err.message || String(err))}`;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = 'Retry Lineup Swap';
+  }
+}
+
+async function verifyAndSaveVaultKeyFromSettings() {
+  const msgEl = document.getElementById('push-vault-msg');
+  if (msgEl) msgEl.textContent = '⏳ Verifying with Cloud Run...';
+  try {
+    if (Number(ACTIVE_TEAM_ID) === 4) {
+      const pin = (document.getElementById('settings-pin-input')?.value || '').trim();
+      if (!pin) {
+        if (msgEl) msgEl.textContent = 'Enter your 6-digit Mahomes Depot PIN.';
+        return;
+      }
+      const resp = await fetch(`${CLOUD_API_BASE}/api/verify-write-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Pin': pin },
+        body: JSON.stringify({ team_id: 4, admin_pin: pin })
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) throw new Error(data.detail || 'Invalid PIN');
+      RollupBridge.vault.setSecret('ff_admin_pin', pin);
+      openTeamSelectorModal();
+    } else {
+      const swid = (document.getElementById('settings-swid-input')?.value || '').trim();
+      const s2 = (document.getElementById('settings-s2-input')?.value || '').trim();
+      if (!swid || !s2) {
+        if (msgEl) msgEl.textContent = 'Both ESPN SWID and espn_s2 are required.';
+        return;
+      }
+      const resp = await fetch(`${CLOUD_API_BASE}/api/verify-write-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ team_id: Number(ACTIVE_TEAM_ID), swid, espn_s2: s2 })
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) throw new Error(data.detail || 'ESPN verification failed');
+      RollupBridge.vault.setSecret(`espn_swid_${ACTIVE_TEAM_ID}`, swid);
+      RollupBridge.vault.setSecret(`espn_s2_${ACTIVE_TEAM_ID}`, s2);
+      openTeamSelectorModal();
+    }
+  } catch (err) {
+    if (msgEl) msgEl.innerHTML = `<span style="color:#fca5a5;">❌ ${escHtml(err.message || String(err))}</span>`;
+  }
+}
+
+function clearSavedVaultKey() {
+  if (Number(ACTIVE_TEAM_ID) === 4) {
+    RollupBridge.vault.setSecret('ff_admin_pin', '');
+  } else {
+    RollupBridge.vault.setSecret(`espn_swid_${ACTIVE_TEAM_ID}`, '');
+    RollupBridge.vault.setSecret(`espn_s2_${ACTIVE_TEAM_ID}`, '');
+  }
+  openTeamSelectorModal();
+}
+
+async function hydratePushSettingsCard() {
+  const box = document.getElementById('push-config-dynamic-box');
+  if (!box || Number(ACTIVE_TEAM_ID) !== 4) return;
+  const pin = RollupBridge.vault.getSecret('ff_admin_pin', '');
+  if (!pin) return;
+  try {
+    const resp = await fetch(`${CLOUD_API_BASE}/api/push/config`, {
+      headers: { 'X-Admin-Pin': pin }
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.authorized) {
+      box.innerHTML = `<div style="font-size:11px;color:#fca5a5;">Saved PIN rejected by server. Tap Lock and re-enter your PIN.</div>`;
+      return;
+    }
+    const st = data.settings || {};
+    const topic = data.ntfy_topic || '';
+    const deepLink = data.ntfy_app_deeplink || '';
+    const webUrl = data.ntfy_web_url || '';
+    box.innerHTML = `
+      <div style="background:#090d16;border:1px solid #1e3a8a;border-radius:9px;padding:9px 10px;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:10.5px;font-weight:800;color:#7dd3fc;">📲 Private Pixel 10 Pro XL ntfy Channel</span>
+          <span style="font-size:9.5px;color:#94a3b8;">${Number(data.ledger_count || 0)} Deduped Keys</span>
+        </div>
+        <div style="font-family:monospace;font-size:11px;color:#e2e8f0;background:#111827;padding:5px 8px;border-radius:6px;margin:5px 0;word-break:break-all;">${escHtml(topic)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+          ${deepLink ? `<a href="${escHtml(deepLink)}" style="flex:1.3;text-align:center;text-decoration:none;background:#0284c7;color:#ffffff;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;">📲 Open in ntfy App</a>` : ''}
+          <button onclick="copyNtfyTopic('${escHtml(topic)}')" style="flex:1;background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">📋 Copy Topic</button>
+          <button onclick="sendTestPushFromSettings()" style="flex:1;background:#16a34a;border:none;color:#ffffff;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">🔔 Test Push</button>
+        </div>
+        ${webUrl ? `<div style="margin-top:5px;font-size:10px;color:#64748b;">In Android <strong>ntfy</strong> app: tap <strong>+</strong> → paste topic above (or tap <em>Open in ntfy App</em>).</div>` : ''}
+      </div>
+
+      <div style="margin-top:8px;background:#090d16;border:1px solid #1f2937;border-radius:9px;padding:9px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:10.5px;font-weight:800;color:#4ade80;text-transform:uppercase;">🎯 VORP &amp; Lineup Push Thresholds</span>
+          <label style="font-size:11px;color:#e2e8f0;display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:700;">
+            <input type="checkbox" id="push-chk-enabled" ${st.enabled !== false ? 'checked' : ''}> Enabled
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;">
+          <div>
+            <div style="font-size:9.5px;color:#94a3b8;font-weight:700;">Min FA VORP</div>
+            <input type="number" step="0.25" id="push-min-fa-vorp" value="${Number(st.min_fa_vorp ?? 1.5).toFixed(2)}" style="width:100%;margin-top:2px;padding:5px 6px;border-radius:6px;background:#111827;border:1px solid #334155;color:#fff;font-size:12px;font-weight:800;">
+          </div>
+          <div>
+            <div style="font-size:9.5px;color:#94a3b8;font-weight:700;">Min Net +VORP</div>
+            <input type="number" step="0.25" id="push-min-net-vorp" value="${Number(st.min_net_vorp ?? 1.5).toFixed(2)}" style="width:100%;margin-top:2px;padding:5px 6px;border-radius:6px;background:#111827;border:1px solid #334155;color:#fff;font-size:12px;font-weight:800;">
+          </div>
+          <div>
+            <div style="font-size:9.5px;color:#94a3b8;font-weight:700;">Start/Sit PPG</div>
+            <input type="number" step="0.25" id="push-min-lineup-ppg" value="${Number(st.min_lineup_gain_ppg ?? 1.5).toFixed(2)}" style="width:100%;margin-top:2px;padding:5px 6px;border-radius:6px;background:#111827;border:1px solid #334155;color:#fff;font-size:12px;font-weight:800;">
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:7px;font-size:10.5px;color:#cbd5e1;cursor:pointer;">
+          <input type="checkbox" id="push-reset-ledger"> Clear current-week deduplication ledger (re-arm alerts)
+        </label>
+        <button onclick="savePushSettingsFromUi()" style="width:100%;margin-top:7px;padding:8px;border-radius:7px;background:#0284c7;color:#ffffff;border:none;font-size:11.5px;font-weight:800;cursor:pointer;">💾 Save Alert Thresholds</button>
+        <div id="push-settings-status" style="font-size:11px;color:#86efac;margin-top:5px;"></div>
+      </div>
+    `;
+  } catch (err) {
+    box.innerHTML = `<div style="font-size:11px;color:#fca5a5;">Unable to load Cloud Run push settings: ${escHtml(err.message)}</div>`;
+  }
+}
+
+function copyNtfyTopic(topic) {
+  if (!topic) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(topic).then(() => {
+      const st = document.getElementById('push-settings-status');
+      if (st) st.textContent = '✅ Private ntfy topic copied to clipboard!';
+    }).catch(() => {});
+  }
+}
+
+async function savePushSettingsFromUi() {
+  const stEl = document.getElementById('push-settings-status');
+  const pin = RollupBridge.vault.getSecret('ff_admin_pin', '');
+  if (!pin) return;
+  if (stEl) stEl.textContent = '⏳ Saving thresholds to Firestore...';
+  try {
+    const resp = await fetch(`${CLOUD_API_BASE}/api/push/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Pin': pin },
+      body: JSON.stringify({
+        enabled: Boolean(document.getElementById('push-chk-enabled')?.checked),
+        min_fa_vorp: Number(document.getElementById('push-min-fa-vorp')?.value ?? 1.5),
+        min_net_vorp: Number(document.getElementById('push-min-net-vorp')?.value ?? 1.5),
+        min_lineup_gain_ppg: Number(document.getElementById('push-min-lineup-ppg')?.value ?? 1.5),
+        reset_ledger: Boolean(document.getElementById('push-reset-ledger')?.checked),
+        admin_pin: pin
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Save failed');
+    if (stEl) stEl.textContent = `✅ Saved! Push alerts >= +${Number(data.settings.min_fa_vorp).toFixed(2)} FA VORP / +${Number(data.settings.min_net_vorp).toFixed(2)} Net VORP.`;
+  } catch (err) {
+    if (stEl) stEl.innerHTML = `<span style="color:#fca5a5;">❌ ${escHtml(err.message)}</span>`;
+  }
+}
+
+async function sendTestPushFromSettings() {
+  const stEl = document.getElementById('push-settings-status');
+  const pin = RollupBridge.vault.getSecret('ff_admin_pin', '');
+  if (!pin) return;
+  if (stEl) stEl.textContent = '⏳ Sending live test push to ntfy.sh...';
+  try {
+    const resp = await fetch(`${CLOUD_API_BASE}/api/push/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Pin': pin },
+      body: JSON.stringify({ admin_pin: pin })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || 'Push failed');
+    if (stEl) stEl.textContent = '✅ Live test notification delivered! Check your Pixel 10 Pro XL.';
+  } catch (err) {
+    if (stEl) stEl.innerHTML = `<span style="color:#fca5a5;">❌ ${escHtml(err.message)}</span>`;
+  }
+}
+
 // Multi-User Team Picker & Custom League Modal
 function openTeamSelectorModal() {
   const body = document.getElementById('team-modal-body');
@@ -2959,6 +3812,51 @@ function openTeamSelectorModal() {
   else if (curMbPct <= 5) curModeTitle = 'Pure Expert/Market Consensus (100%)';
   else if (curMbPct === 50) curModeTitle = 'Balanced 50/50 Split';
 
+  const cred = getSavedWriteCredentials(ACTIVE_TEAM_ID);
+  let writeAndPushCardHtml = '';
+  if (Number(ACTIVE_TEAM_ID) === 4) {
+    writeAndPushCardHtml = `
+      <div style="margin:10px 0;background:#111827;border:1px solid #16a34a;border-radius:11px;padding:11px 12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span style="font-size:10.5px;font-weight:800;color:#4ade80;text-transform:uppercase;">🔔 Live ESPN Moves &amp; Moneyball Push Alerts</span>
+          ${cred.unlocked
+            ? `<button onclick="clearSavedVaultKey()" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;">🔒 Lock</button>`
+            : `<span style="font-size:10px;color:#fbbf24;font-weight:800;">PIN Required</span>`
+          }
+        </div>
+        ${cred.unlocked
+          ? `<div style="font-size:11px;color:#bbf7d0;margin-top:4px;">✅ <strong>Mahomes Depot Live ESPN Execution Unlocked</strong> (saved in on-device Vault).</div>
+             <div id="push-config-dynamic-box"><div style="font-size:11px;color:#94a3b8;margin-top:6px;">⏳ Loading private ntfy topic &amp; VORP thresholds...</div></div>`
+          : `<div style="font-size:11px;color:#cbd5e1;margin:5px 0;">Enter your Mahomes Depot PIN once to unlock in-app ESPN Add/Drops, Waivers, Lineup Swaps, and Push Alert controls:</div>
+             <div style="display:flex;gap:6px;">
+               <input type="password" inputmode="numeric" id="settings-pin-input" placeholder="6-digit Write PIN" style="flex:1;padding:7px 9px;border-radius:7px;background:#090d16;border:1px solid #334155;color:#ffffff;font-size:12.5px;font-weight:700;">
+               <button onclick="verifyAndSaveVaultKeyFromSettings()" style="background:#16a34a;color:#ffffff;border:none;border-radius:7px;padding:7px 12px;font-size:11.5px;font-weight:800;cursor:pointer;">Unlock</button>
+             </div>
+             <div id="push-vault-msg" style="font-size:11px;color:#93c5fd;margin-top:4px;"></div>`
+        }
+      </div>
+    `;
+  } else {
+    writeAndPushCardHtml = `
+      <div style="margin:10px 0;background:#111827;border:1px solid #334155;border-radius:11px;padding:11px 12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;">🔑 Team #${ACTIVE_TEAM_ID} Live ESPN Write Vault</span>
+          ${cred.unlocked ? `<button onclick="clearSavedVaultKey()" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;">Clear</button>` : ''}
+        </div>
+        ${cred.unlocked
+          ? `<div style="font-size:11px;color:#bbf7d0;margin-top:4px;">✅ Personal ESPN cookies saved on-device for Team #${ACTIVE_TEAM_ID}.</div>`
+          : `<div style="font-size:11px;color:#94a3b8;margin:5px 0;">Optional: Add your own ESPN SWID &amp; espn_s2 cookies (stored strictly on your phone) to execute live moves for Team #${ACTIVE_TEAM_ID}:</div>
+             <input type="text" id="settings-swid-input" placeholder="ESPN SWID ({...})" style="width:100%;padding:6px 8px;border-radius:6px;background:#090d16;border:1px solid #334155;color:#fff;font-size:11px;margin-bottom:5px;">
+             <div style="display:flex;gap:6px;">
+               <input type="password" id="settings-s2-input" placeholder="espn_s2 cookie" style="flex:1;padding:6px 8px;border-radius:6px;background:#090d16;border:1px solid #334155;color:#fff;font-size:11px;">
+               <button onclick="verifyAndSaveVaultKeyFromSettings()" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:6px 11px;font-size:11px;font-weight:800;cursor:pointer;">Verify</button>
+             </div>
+             <div id="push-vault-msg" style="font-size:11px;color:#93c5fd;margin-top:4px;"></div>`
+        }
+      </div>
+    `;
+  }
+
   body.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div>
@@ -2985,6 +3883,8 @@ function openTeamSelectorModal() {
       </div>
     </div>
 
+    ${writeAndPushCardHtml}
+
     <div style="margin:8px 0 8px 0;padding:8px 11px;background:#052e16;border:1px solid #16a34a;border-radius:9px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#dcfce7;">
       <span>👤 <strong>${escHtml(currentUser ? currentUser.email : 'Guest')}</strong></span>
       <span style="color:#4ade80;font-weight:800;">🔒 Isolated Profile Active</span>
@@ -2998,6 +3898,9 @@ function openTeamSelectorModal() {
     </div>
   `;
   openDrawerModal('team-modal-backdrop');
+  if (Number(ACTIVE_TEAM_ID) === 4 && cred.unlocked) {
+    hydratePushSettingsCard();
+  }
 }
 
 function closeTeamModal(e) {
