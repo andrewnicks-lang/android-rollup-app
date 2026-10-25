@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Gravity for Android — Antigravity Mobile Mission Control</title>
   <link rel="manifest" href="/static/manifest.json" />
-  <script src="../../bridge/rollup-bridge.js?v=1.1" onerror="window.__standaloneGravityMode=true"></script>
+  <script src="../../bridge/rollup-bridge.js" onerror="window.__standaloneGravityMode=true"></script>
   <style>
     :root {
       --bg-base: #090d16;
@@ -619,7 +619,7 @@
     .steer-input-row {
       display: flex;
       gap: 8px;
-      align-items: center;
+      align-items: flex-end;
     }
 
     .steer-input {
@@ -629,8 +629,21 @@
       color: var(--text-primary);
       border-radius: 10px;
       padding: 10px 12px;
+      font-family: inherit;
       font-size: 13.5px;
+      line-height: 20px;
       outline: none;
+    }
+
+    textarea.steer-input {
+      resize: none;
+      min-height: 42px;
+      max-height: 82px;
+      overflow-y: hidden;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      display: block;
     }
 
     .steer-input:focus {
@@ -905,7 +918,7 @@
         </div>
         <div class="steer-input-row">
           <button id="micBtn" class="icon-btn" onclick="toggleVoiceInput()" title="Push-to-Talk Voice Steer">🎙️</button>
-          <input id="steerInput" class="steer-input" type="text" placeholder="Steer agent or type /command…" onkeydown="if(event.key==='Enter') submitSteerInput()" />
+          <textarea id="steerInput" class="steer-input" rows="1" placeholder="Steer agent or type /command…" oninput="autoResizeChatBox(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();submitSteerInput();}"></textarea>
           <button class="icon-btn send" onclick="submitSteerInput()">↑</button>
         </div>
       </div>
@@ -982,7 +995,7 @@
         <select id="skillQuickSelect" class="steer-input" style="width:100%;margin-bottom:8px;" onchange="applySkillQuickSelect()">
           <option value="">⚡ Streamlined Skill Call (Optional — 27 Installed Skills)…</option>
         </select>
-        <input id="launchPrompt" class="steer-input" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" onkeydown="if(event.key==='Enter') launchNewTask()" />
+        <textarea id="launchPrompt" class="steer-input" rows="1" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" oninput="autoResizeChatBox(this)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();launchNewTask();}"></textarea>
         <div class="thumb-grid">
           <button class="thumb-btn approve" onclick="launchNewTask()">🚀 Dispatch Live</button>
           <button class="thumb-btn secondary" onclick="toggleWakeLock()">☕ Toggle Keep-Awake</button>
@@ -1231,6 +1244,7 @@
       const inp = document.getElementById('launchPrompt');
       if (!sel || !inp || !sel.value) return;
       inp.value = `Activate the ${sel.value} skill and `;
+      autoResizeChatBox(inp);
       inp.focus();
     }
 
@@ -1956,6 +1970,15 @@
       }
     }
 
+    function autoResizeChatBox(el) {
+      if (!el) return;
+      el.style.height = 'auto';
+      const maxH = 82; // 3 lines (3 * 20px line-height + 22px vertical padding/border)
+      const nextH = Math.min(el.scrollHeight, maxH);
+      el.style.height = Math.max(42, nextH) + 'px';
+      el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+    }
+
     function submitSteerInput() {
       const inp = document.getElementById('steerInput');
       const val = inp.value.trim();
@@ -1963,6 +1986,7 @@
       const action = val.startsWith('/') ? 'SLASH_COMMAND' : 'STEER';
       sendQuickSteer(action, val);
       inp.value = '';
+      autoResizeChatBox(inp);
     }
 
     function toggleVoiceInput() {
@@ -1977,7 +2001,7 @@
       micBtn.classList.add('recording');
       rec.onresult = (e) => {
         const transcript = e.results[0][0].transcript;
-        document.getElementById('steerInput').value = transcript;
+        const sInp = document.getElementById('steerInput'); sInp.value = transcript; autoResizeChatBox(sInp);
         micBtn.classList.remove('recording');
       };
       rec.onerror = () => micBtn.classList.remove('recording');
@@ -2073,6 +2097,7 @@
         });
         const data = await res.json();
         inp.value = '';
+        autoResizeChatBox(inp);
         if (data.status === 'dispatched') {
           showToast('✅ Live conversation started in Antigravity!');
           switchTab('pulse');
@@ -2083,6 +2108,7 @@
       } else {
         await sendQuickSteer('STEER', val);
         inp.value = '';
+        autoResizeChatBox(inp);
       }
     }
 
