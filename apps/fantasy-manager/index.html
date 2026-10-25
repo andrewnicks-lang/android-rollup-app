@@ -1344,20 +1344,24 @@ function computeOptimalLineupAudit(rosterArr) {
       const outInj = String(matchOut.injury_status || matchOut.espn_injury_status || 'Healthy').toUpperCase();
       const urgent = Boolean(matchOut.is_bye || ['OUT', 'IR', 'DOUBTFUL', 'SUSPENDED'].includes(outInj));
       if (gain >= 0.75 || (urgent && gain > 0.10)) {
-        swaps.push({ start: bIn, sit: matchOut, slot: matchOut.slot || prom.slot, gain, urgent });
+        const resolvedSlot = isPosEligibleForSlot(bIn.pos, matchOut.slot) ? (matchOut.slot || prom.slot) : (prom.slot || 'FLEX');
+        swaps.push({ start: bIn, sit: matchOut, slot: resolvedSlot, gain, urgent });
       }
     }
   });
 
   const thursdayWarnings = [];
+  const thursdaySwaps = [];
   curUnlockedStarters.forEach(p => {
     const sl = normSlot(p.slot);
     if ((sl === 'FLEX' || sl === 'SUPERFLEX') && isShortWeek(p)) {
       const laterSamePos = curUnlockedStarters.find(o => Number(o.player_id) !== Number(p.player_id) && o.pos === p.pos && normSlot(o.slot) === p.pos && !isShortWeek(o));
       if (laterSamePos) {
         thursdayWarnings.push(`Move ${p.name} out of ${p.slot} into ${p.pos} (swap with ${laterSamePos.name}) before Thursday kickoff to keep Sunday FLEX optionality.`);
+        thursdaySwaps.push({ flexPlayer: p, posPlayer: laterSamePos, posSlot: p.pos });
       } else {
         thursdayWarnings.push(`${p.name} plays on a short/Thursday slate inside ${p.slot} — move to dedicated ${p.pos} slot if possible.`);
+        thursdaySwaps.push(null);
       }
     }
   });
@@ -1366,7 +1370,17 @@ function computeOptimalLineupAudit(rosterArr) {
   const optPts = lockedStarters.reduce((acc, p) => acc + calcBlend(p).wkPpg, 0)
     + optUnlocked.reduce((acc, x) => acc + calcBlend(x.p).wkPpg, 0);
   const delta = Math.max(0, optPts - curPts);
-  return { isOptimal: swaps.length === 0 && thursdayWarnings.length === 0, delta, swaps, thursday_flex_warnings: thursdayWarnings };
+  return { isOptimal: swaps.length === 0 && thursdayWarnings.length === 0, delta, swaps, thursday_flex_warnings: thursdayWarnings, thursday_swaps: thursdaySwaps };
+}
+
+function isPosEligibleForSlot(pos, slotName) {
+  const p = String(pos || '').trim().toUpperCase();
+  const s = String(slotName || 'BENCH').trim().toUpperCase();
+  if (!p || s === 'BENCH' || s === 'BE' || s === 'IR') return true;
+  if (s === 'FLEX' || s === 'FLX' || s === 'RB/WR/TE' || s === 'W/R/T') return ['RB', 'WR', 'TE'].includes(p);
+  if (s === 'SUPERFLEX' || s === 'OP' || s === 'Q/W/R/T') return ['QB', 'RB', 'WR', 'TE'].includes(p);
+  if (s === 'DST' || s === 'D/ST' || s === 'DEF') return ['DST', 'D/ST', 'DEF'].includes(p);
+  return p === s;
 }
 
 function applyAuditSwapSandbox(startId, sitId, targetSlot) {
@@ -1375,9 +1389,36 @@ function applyAuditSwapSandbox(startId, sitId, targetSlot) {
   const pIn = roster.find(p => Number(p.player_id) === Number(startId));
   const pOut = roster.find(p => Number(p.player_id) === Number(sitId));
   if (pIn && pOut) {
-    const slotToTake = pOut.slot && pOut.slot !== 'BENCH' ? pOut.slot : (targetSlot || pIn.pos);
-    pOut.slot = 'BENCH';
-    pIn.slot = slotToTake;
+    if (pIn.slot && pIn.slot !== 'BENCH' && pIn.slot !== 'IR' && pOut.slot && pOut.slot !== 'BENCH' && pOut.slot !== 'IR') {
+      // Starter <-> Starter slot swap (e.g. Thursday FLEX <-> RB/WR/TE)
+      const prevInSlot = pIn.slot;
+      pIn.slot = targetSlot || pOut.slot;
+      pOut.slot = prevInSlot;
+    } else {
+      const outSlot = (pOut.slot && pOut.slot !== 'BENCH') ? pOut.slot : (targetSlot || pIn.pos);
+      if (isPosEligibleForSlot(pIn.pos, outSlot)) {
+        pOut.slot = 'BENCH';
+        pIn.slot = outSlot;
+      } else {
+        // Cross-positional 2-FLEX shift: move an unlocked FLEX player eligible for outSlot into outSlot, and pIn into FLEX
+        const bridge = roster.find(r =>
+          Number(r.player_id) !== Number(pIn.player_id)
+          && Number(r.player_id) !== Number(pOut.player_id)
+          && ['FLEX', 'FLX', 'SUPERFLEX', 'OP'].includes(String(r.slot || '').toUpperCase())
+          && !isPlayerLockedLive(r)
+          && isPosEligibleForSlot(r.pos, outSlot)
+        );
+        if (bridge) {
+          const flexSlot = bridge.slot;
+          bridge.slot = outSlot;
+          pIn.slot = flexSlot;
+          pOut.slot = 'BENCH';
+        } else {
+          pOut.slot = 'BENCH';
+          pIn.slot = targetSlot || 'FLEX';
+        }
+      }
+    }
     saveUserSandboxRoster(roster);
   }
 }
@@ -1385,6 +1426,7 @@ function applyAuditSwapSandbox(startId, sitId, targetSlot) {
 function renderLineupAuditBanner(rosterArr) {
   const audit = computeOptimalLineupAudit(rosterArr);
   const thuWarns = audit.thursday_flex_warnings || [];
+  const thuSwaps = audit.thursday_swaps || [];
   if (audit.swaps.length === 0 && thuWarns.length === 0) {
     return `
       <div style="margin:6px 12px 4px 12px;padding:7px 11px;background:#052e1666;border:1px solid #166534;border-radius:9px;font-size:11px;color:#bbf7d0;display:flex;justify-content:space-between;align-items:center;">
@@ -1407,7 +1449,16 @@ function renderLineupAuditBanner(rosterArr) {
       </span>
     </div>`;
   }).join('');
-  const thuHtml = thuWarns.map(w => `<div style="margin-top:4px;font-size:11px;color:#fde68a;">⚠️ ${escHtml(w)}</div>`).join('');
+  const thuHtml = thuWarns.map((w, idx) => {
+    const ts = thuSwaps[idx];
+    const btns = ts
+      ? `<span style="display:inline-flex;gap:5px;flex-shrink:0;">
+           <button onclick="openLiveSwapModal(${Number(ts.flexPlayer.player_id)}, ${Number(ts.posPlayer.player_id)}, '${escHtml(ts.posSlot)}')" style="background:#16a34a;color:#ffffff;border:1px solid #22c55e;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;">⚡ ESPN Swap</button>
+           <button onclick="applyAuditSwapSandbox(${Number(ts.flexPlayer.player_id)}, ${Number(ts.posPlayer.player_id)}, '${escHtml(ts.posSlot)}')" style="background:#0c4a6e;color:#bae6fd;border:1px solid #38bdf8;border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">🧪 Sim</button>
+         </span>`
+      : '';
+    return `<div style="margin-top:4px;font-size:11px;color:#fde68a;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;"><span style="flex:1;min-width:190px;">⚠️ ${escHtml(w)}</span>${btns}</div>`;
+  }).join('');
   const hdrTxt = audit.swaps.length > 0
     ? (hasUrgent ? '🚨 URGENT START/SIT ALERT' : '💡 START/SIT LINEUP UPGRADE')
     : '⚠️ THURSDAY-IN-FLEX SLOT ALERT';
@@ -2256,14 +2307,16 @@ async function openDossierByKey(playerKey, isFa) {
   const body = document.getElementById('dossier-body');
 
   let userActionsHtml = '';
-  if (isFa) {
+  if (isFa || inSimOnly) {
     const availStr = String(p.availability || 'FREEAGENT').toUpperCase();
     const claimVerb = availStr.includes('WAIVER') ? '📋 ESPN Waiver Claim' : '⚡ Claim on ESPN';
     const liveDeltaHint = (catAnchor.valid && catAnchor.id)
       ? ` (${netVorp >= 0 ? '+' : ''}${netVorp.toFixed(2)}V vs ${escHtml(catAnchor.name.split(' ').pop())})`
       : ' (Pick Drop)';
+    const isBenchSim = inSimOnly && (p.slot === 'BENCH' || p.slot === 'IR');
+    const simTargetSlot = isBenchSim ? (['RB', 'WR', 'TE'].includes(p.pos) ? 'FLEX' : p.pos) : 'BENCH';
     const simBtnHtml = inSimOnly
-      ? `<button class="cp-action-btn" style="background:#1e293b;border:1px solid #475569;color:#94a3b8;margin-top:0;flex:1;" disabled>🧪 In Sim</button>`
+      ? `<button class="cp-action-btn" style="background:#0f766e;border:1px solid #2dd4bf;color:#ccfbf1;margin-top:0;flex:1;" onclick="togglePlayerLineupSlot(${Number(p.player_id)}, '${simTargetSlot}'); closeDrawerModal('dossier-backdrop');">🧪 Sim ${simTargetSlot}</button>`
       : ((catAnchor.valid && catAnchor.id)
         ? `<button class="cp-action-btn" style="background:#0c4a6e;border:1px solid #38bdf8;color:#bae6fd;margin-top:0;flex:1;" onclick="simulateAddDrop(${Number(p.player_id)}, ${Number(catAnchor.id)}); closeDrawerModal('dossier-backdrop');">🧪 Sim</button>`
         : '');
@@ -2273,7 +2326,7 @@ async function openDossierByKey(playerKey, isFa) {
           ${claimVerb}${liveDeltaHint}
         </button>
         ${simBtnHtml}
-        <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;flex:1;" onclick="toggleWatchlistPlayer(${Number(p.player_id)}); openDossierByKey('${playerKey}', true);">
+        <button class="cp-action-btn" style="background:#1e293b;border:1px solid #eab308;color:#fde047;margin-top:0;flex:1;" onclick="toggleWatchlistPlayer(${Number(p.player_id)}); openDossierByKey('${playerKey}', ${Boolean(isFa)});">
           ${isStarred ? '⭐ Unstar' : '☆ Watch'}
         </button>
       </div>
@@ -2521,9 +2574,19 @@ function togglePlayerLineupSlot(playerId, newSlot) {
 function simulateAddDrop(addPlayerId, dropPlayerId) {
   const teamData = getActiveTeamData();
   const roster = getActiveRosterForUser(teamData);
-  const fa = (LEAGUE_BUNDLE.free_agents || []).find(f => Number(f.player_id) === Number(addPlayerId));
+  const addId = Number(addPlayerId);
+  if (!addId || roster.some(p => Number(p.player_id) === addId)) {
+    switchTab('team');
+    return;
+  }
+  const fa = (LEAGUE_BUNDLE.free_agents || []).find(f => Number(f.player_id) === addId) || findPlayerInBundle(addId);
   if (!fa) return;
-  const filtered = roster.filter(p => Number(p.player_id) !== Number(dropPlayerId));
+  let resolvedDropId = Number(dropPlayerId || 0);
+  if (!resolvedDropId) {
+    const smart = resolveSmartDropAnchor(fa.pos, teamData, false, addId, false);
+    if (smart.valid && smart.id) resolvedDropId = Number(smart.id);
+  }
+  const filtered = resolvedDropId ? roster.filter(p => Number(p.player_id) !== resolvedDropId) : [...roster];
   filtered.push({
     ...JSON.parse(JSON.stringify(fa)),
     slot: 'BENCH',
@@ -3090,19 +3153,63 @@ function findPlayerInBundle(playerId) {
   return null;
 }
 
+function captureLiveModalFormDraft() {
+  return {
+    pin: document.getElementById('live-tx-pin-input')?.value ?? null,
+    swid: document.getElementById('live-tx-swid-input')?.value ?? null,
+    s2: document.getElementById('live-tx-s2-input')?.value ?? null,
+    faabBid: document.getElementById('live-tx-faab-bid')?.value ?? null,
+    confirmChecked: Boolean(document.getElementById('live-tx-confirm-chk')?.checked),
+  };
+}
+
+function restoreLiveModalFormDraft(draft) {
+  if (!draft) return;
+  const pinEl = document.getElementById('live-tx-pin-input');
+  if (pinEl && draft.pin !== null) pinEl.value = draft.pin;
+  const swidEl = document.getElementById('live-tx-swid-input');
+  if (swidEl && draft.swid !== null) swidEl.value = draft.swid;
+  const s2El = document.getElementById('live-tx-s2-input');
+  if (s2El && draft.s2 !== null) s2El.value = draft.s2;
+  const faabEl = document.getElementById('live-tx-faab-bid');
+  if (faabEl && draft.faabBid !== null) faabEl.value = draft.faabBid;
+  const chkEl = document.getElementById('live-tx-confirm-chk');
+  if (chkEl && !chkEl.disabled && draft.confirmChecked) chkEl.checked = true;
+}
+
 function openLiveClaimModal(addPlayerId, preselectedDropId = 0) {
   const teamData = getActiveTeamData();
   if (!teamData) return;
+  const alreadyOwned = ((teamData.roster) || []).find(r => Number(r.player_id) === Number(addPlayerId));
+  if (alreadyOwned) {
+    LIVE_TX_STATE = {
+      kind: 'claim',
+      addPlayer: alreadyOwned,
+      alreadyOnRoster: true,
+      eligibleDrops: [],
+      selectedDropId: 0
+    };
+    renderLiveClaimModalBody();
+    openDrawerModal('live-tx-backdrop');
+    return;
+  }
+
   const fa = findPlayerInBundle(addPlayerId);
   if (!fa) return;
 
   const liveRoster = ((teamData.roster) || []).filter(
     p => p.slot !== 'IR' && Number(p.player_id) !== Number(addPlayerId)
   );
+  const posCounts = {};
+  liveRoster.forEach(p => {
+    posCounts[p.pos] = (posCounts[p.pos] || 0) + 1;
+  });
+  const isSingletonStarter = (p) => ['DST', 'QB', 'TE'].includes(p.pos) && p.pos !== fa.pos && (posCounts[p.pos] || 0) <= 1;
+
   const protectedSet = getUserProtectedSet(teamData);
   const isCorePlayer = (p) => protectedSet.has(normName(p.name)) || (Number(ACTIVE_TEAM_ID) === 4 && SERVER_PROTECTED_ROCKSTAR_IDS.has(Number(p.player_id)));
 
-  // Sort eligible drops: unlocked first -> non-core first -> lowest Blended VORP first
+  // Sort eligible drops: unlocked -> non-core -> non-singleton -> BENCH before Active Starters -> lowest Blended VORP
   const sortedDrops = [...liveRoster].sort((a, b) => {
     const la = isPlayerLockedLive(a) ? 1 : 0;
     const lb = isPlayerLockedLive(b) ? 1 : 0;
@@ -3110,6 +3217,12 @@ function openLiveClaimModal(addPlayerId, preselectedDropId = 0) {
     const ca = isCorePlayer(a) ? 1 : 0;
     const cb = isCorePlayer(b) ? 1 : 0;
     if (ca !== cb) return ca - cb;
+    const sa = isSingletonStarter(a) ? 1 : 0;
+    const sb = isSingletonStarter(b) ? 1 : 0;
+    if (sa !== sb) return sa - sb;
+    const ba = (a.slot === 'BENCH' || a.slot === 'BE') ? 0 : 1;
+    const bb = (b.slot === 'BENCH' || b.slot === 'BE') ? 0 : 1;
+    if (ba !== bb) return ba - bb;
     return calcBlend(a).vorp - calcBlend(b).vorp;
   });
 
@@ -3120,14 +3233,17 @@ function openLiveClaimModal(addPlayerId, preselectedDropId = 0) {
     if (smart.valid && smart.id) {
       selectedDropId = Number(smart.id);
     } else {
-      const firstUnlocked = sortedDrops.find(p => !isPlayerLockedLive(p));
-      selectedDropId = firstUnlocked ? Number(firstUnlocked.player_id) : (sortedDrops[0] ? Number(sortedDrops[0].player_id) : 0);
+      const safeBench = sortedDrops.find(p => !isPlayerLockedLive(p) && !isCorePlayer(p) && (p.slot === 'BENCH' || p.slot === 'BE'))
+        || sortedDrops.find(p => !isPlayerLockedLive(p) && (p.slot === 'BENCH' || p.slot === 'BE'))
+        || sortedDrops.find(p => !isPlayerLockedLive(p) && !isSingletonStarter(p));
+      selectedDropId = safeBench ? Number(safeBench.player_id) : 0;
     }
   }
 
   LIVE_TX_STATE = {
     kind: 'claim',
     addPlayer: fa,
+    alreadyOnRoster: false,
     eligibleDrops: sortedDrops,
     selectedDropId
   };
@@ -3135,13 +3251,35 @@ function openLiveClaimModal(addPlayerId, preselectedDropId = 0) {
   openDrawerModal('live-tx-backdrop');
 }
 
-function renderLiveClaimModalBody() {
+function renderLiveClaimModalBody(preserveDraft = false) {
   if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim') return;
+  const draft = preserveDraft ? captureLiveModalFormDraft() : null;
   const body = document.getElementById('live-tx-body');
   const teamData = getActiveTeamData();
   const wk = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7;
   const fa = LIVE_TX_STATE.addPlayer;
   const bAdd = calcBlend(fa);
+
+  if (LIVE_TX_STATE.alreadyOnRoster) {
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:#38bdf8;text-transform:uppercase;">🛡️ Roster Ownership Check • ${escHtml(teamData.team_name)}</div>
+          <h3 style="margin:2px 0 0 0;font-size:17px;color:#ffffff;">Already on Live ESPN Roster</h3>
+        </div>
+        <button onclick="closeDrawerModal('live-tx-backdrop')" style="background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:6px 10px;font-weight:800;cursor:pointer;">✕</button>
+      </div>
+      <div style="margin:8px 0;padding:11px 12px;background:#052e16;border:1px solid #22c55e;border-radius:10px;font-size:12px;color:#dcfce7;line-height:1.45;">
+        <strong>✅ Already Owned:</strong> <code>${escHtml(fa.name)}</code> (${escHtml(fa.pos)} • ${escHtml(fa.nfl_team)}) is already on <strong>${escHtml(teamData.team_name)}</strong>'s live ESPN roster in slot <strong>${escHtml(fa.slot || 'BENCH')}</strong>. Use <strong>My Team</strong> to manage start/sit slots.
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button onclick="closeDrawerModal('live-tx-backdrop')" style="flex:1;padding:11px;border-radius:9px;background:#334155;color:#e2e8f0;border:none;font-size:13px;font-weight:800;cursor:pointer;">Close</button>
+        <button id="live-tx-submit-btn" disabled style="flex:1.4;padding:11px;border-radius:9px;background:#1e293b;color:#64748b;border:1px solid #334155;font-size:13px;font-weight:900;opacity:0.45;">Already Rostered</button>
+      </div>
+    `;
+    return;
+  }
+
   const availRaw = String(fa.availability || 'FREEAGENT').toUpperCase();
   const isWaiver = availRaw.includes('WAIVER');
   const isFaab = Boolean((LEAGUE_BUNDLE?.league?.is_faab) || (LEAGUE_BUNDLE?.league_info?.is_faab));
@@ -3155,6 +3293,7 @@ function renderLiveClaimModalBody() {
   const bDrop = dropPlayer ? calcBlend(dropPlayer) : { ppg: 0, vorp: 0, wkPpg: 0 };
   const dropLocked = dropPlayer ? isPlayerLockedLive(dropPlayer) : false;
   const dropCore = isCorePlayer(dropPlayer);
+  const dropIsStarter = Boolean(dropPlayer && dropPlayer.slot !== 'BENCH' && dropPlayer.slot !== 'BE');
 
   const netVorp = bAdd.vorp - bDrop.vorp;
   const netRosPpg = bAdd.ppg - bDrop.ppg;
@@ -3164,7 +3303,8 @@ function renderLiveClaimModalBody() {
     const db = calcBlend(d);
     const dLock = isPlayerLockedLive(d);
     const dCore = isCorePlayer(d);
-    const tags = `${dLock ? ' [LOCKED - Played]' : ''}${dCore ? ' [🛡️ Protected]' : ''}`;
+    const dStart = d.slot !== 'BENCH' && d.slot !== 'BE';
+    const tags = `${dLock ? ' [LOCKED - Played]' : ''}${dCore ? ' [🛡️ Protected]' : (dStart ? ' [⚠️ STARTER]' : '')}`;
     const sel = Number(d.player_id) === Number(LIVE_TX_STATE.selectedDropId) ? ' selected' : '';
     const dis = dLock && Number(d.player_id) !== Number(LIVE_TX_STATE.selectedDropId) ? ' disabled' : '';
     return `<option value="${Number(d.player_id)}"${sel}${dis}>${escHtml(d.name)} (${escHtml(d.pos)} • ${escHtml(d.slot)}) — ${db.vorp >= 0 ? '+' : ''}${db.vorp.toFixed(2)}V / ${db.ppg.toFixed(1)} PPG${tags}</option>`;
@@ -3184,6 +3324,12 @@ function renderLiveClaimModalBody() {
         <label style="display:flex;align-items:center;gap:7px;margin-top:6px;cursor:pointer;font-weight:800;color:#ffffff;">
           <input type="checkbox" id="live-tx-core-override" onchange="updateLiveModalBtnState()"> Override Core Protection for ${escHtml(dropPlayer.name)}
         </label>
+      </div>
+    `;
+  } else if (dropIsStarter && dropPlayer) {
+    statusNoticeHtml = `
+      <div style="margin:8px 0;padding:9px 11px;background:#78350f;border:1px solid #f59e0b;border-radius:9px;font-size:11.5px;color:#fef3c7;">
+        <strong>⚠️ Active Starter Selected (${escHtml(dropPlayer.slot)}):</strong> <code>${escHtml(dropPlayer.name)}</code> is currently in your starting lineup. Make sure you have another ${escHtml(dropPlayer.pos)} to fill that starting slot!
       </div>
     `;
   }
@@ -3266,19 +3412,26 @@ function renderLiveClaimModalBody() {
 
     <div id="live-tx-result" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4;"></div>
   `;
+  if (draft) restoreLiveModalFormDraft(draft);
   updateLiveModalBtnState();
 }
 
 function onLiveDropSelectChange(val) {
   if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim') return;
   LIVE_TX_STATE.selectedDropId = Number(val);
-  renderLiveClaimModalBody();
+  renderLiveClaimModalBody(true);
 }
 
 function updateLiveModalBtnState() {
   const btn = document.getElementById('live-tx-submit-btn');
   const chk = document.getElementById('live-tx-confirm-chk');
-  if (!btn || !chk || !LIVE_TX_STATE) return;
+  if (!btn || !LIVE_TX_STATE) return;
+  if (LIVE_TX_STATE.alreadyOnRoster) {
+    btn.disabled = true;
+    btn.style.opacity = '0.45';
+    return;
+  }
+  if (!chk) return;
 
   let blocked = !chk.checked;
   if (LIVE_TX_STATE.kind === 'claim') {
@@ -3299,8 +3452,17 @@ function updateLiveModalBtnState() {
   btn.style.opacity = blocked ? '0.45' : '1';
 }
 
+function clearRejectedVaultKeyIfSaved() {
+  if (Number(ACTIVE_TEAM_ID) === 4) {
+    RollupBridge.vault.setSecret('ff_admin_pin', '');
+  } else {
+    RollupBridge.vault.setSecret(`espn_swid_${ACTIVE_TEAM_ID}`, '');
+    RollupBridge.vault.setSecret(`espn_s2_${ACTIVE_TEAM_ID}`, '');
+  }
+}
+
 async function submitLiveClaim() {
-  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim') return;
+  if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'claim' || LIVE_TX_STATE.alreadyOnRoster) return;
   const authInfo = buildWriteAuthHeadersFromUi('live-tx');
   const resBox = document.getElementById('live-tx-result');
   const btn = document.getElementById('live-tx-submit-btn');
@@ -3359,13 +3521,20 @@ async function submitLiveClaim() {
       btn.textContent = '✅ Done';
       await refreshLiveTelemetry(true);
     } else {
-      resBox.style.background = '#450a0a';
-      resBox.style.border = '1px solid #ef4444';
-      resBox.style.color = '#fecaca';
-      resBox.innerHTML = `<strong>❌ ESPN Rejected Move:</strong><br>${escHtml(data.detail || JSON.stringify(data))}`;
-      btn.disabled = false;
-      btn.style.opacity = '1';
-      btn.textContent = 'Retry on ESPN';
+      if (resp.status === 401 || resp.status === 403) {
+        clearRejectedVaultKeyIfSaved();
+        renderLiveClaimModalBody(true);
+      }
+      const nextResBox = document.getElementById('live-tx-result') || resBox;
+      const nextBtn = document.getElementById('live-tx-submit-btn') || btn;
+      nextResBox.style.display = 'block';
+      nextResBox.style.background = '#450a0a';
+      nextResBox.style.border = '1px solid #ef4444';
+      nextResBox.style.color = '#fecaca';
+      nextResBox.innerHTML = `<strong>❌ ESPN Rejected Move:</strong><br>${escHtml(data.detail || JSON.stringify(data))}`;
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '1';
+      nextBtn.textContent = 'Retry on ESPN';
     }
   } catch (err) {
     resBox.style.display = 'block';
@@ -3379,6 +3548,25 @@ async function submitLiveClaim() {
   }
 }
 
+function canBenchSwapWithStarter(benchP, starterP, rosterArr) {
+  if (!benchP || !starterP || starterP.slot === 'BENCH' || starterP.slot === 'IR' || isPlayerLockedLive(starterP)) return false;
+  const sl = String(starterP.slot || '').toUpperCase();
+  if (starterP.pos === benchP.pos || sl === benchP.pos) return true;
+  if ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(benchP.pos)) return true;
+  if ((sl === 'SUPERFLEX' || sl === 'OP') && ['QB', 'RB', 'WR', 'TE'].includes(benchP.pos)) return true;
+  // Cross-pos 2-FLEX bridge: bench skill player can replace dedicated starter if an unlocked FLEX starter can shift into starterP.slot
+  if (['RB', 'WR', 'TE'].includes(benchP.pos) && ['RB', 'WR', 'TE'].includes(starterP.pos)) {
+    return (rosterArr || []).some(r =>
+      Number(r.player_id) !== Number(starterP.player_id)
+      && Number(r.player_id) !== Number(benchP.player_id)
+      && ['FLEX', 'FLX'].includes(String(r.slot || '').toUpperCase())
+      && !isPlayerLockedLive(r)
+      && isPosEligibleForSlot(r.pos, starterP.slot)
+    );
+  }
+  return false;
+}
+
 function openLiveSwapFromDossier(playerId, requestedTargetSlot) {
   const teamData = getActiveTeamData();
   if (!teamData) return;
@@ -3387,28 +3575,23 @@ function openLiveSwapFromDossier(playerId, requestedTargetSlot) {
   if (!p) return;
 
   if (p.slot === 'BENCH') {
-    // Promoting bench player -> pick unlocked starter in compatible slot (or lowest Wk PPG compatible starter)
-    const compatStarters = liveRoster.filter(st => {
-      if (st.slot === 'BENCH' || st.slot === 'IR' || isPlayerLockedLive(st)) return false;
-      const sl = String(st.slot || '').toUpperCase();
-      if (st.pos === p.pos || sl === p.pos) return true;
-      if ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(p.pos)) return true;
-      return false;
-    }).sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg);
+    const compatStarters = liveRoster
+      .filter(st => canBenchSwapWithStarter(p, st, liveRoster))
+      .sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg);
     const defaultSit = compatStarters[0] || null;
-    const slotTarget = defaultSit ? defaultSit.slot : requestedTargetSlot;
+    const slotTarget = defaultSit
+      ? (isPosEligibleForSlot(p.pos, defaultSit.slot) ? defaultSit.slot : 'FLEX')
+      : requestedTargetSlot;
     openLiveSwapModal(p.player_id, defaultSit ? defaultSit.player_id : 0, slotTarget, compatStarters);
   } else {
-    // Moving active starter to BENCH -> optionally pick an unlocked bench replacement!
-    const sl = String(p.slot || '').toUpperCase();
     const compatBench = liveRoster.filter(bn => {
       if (bn.slot !== 'BENCH' || isPlayerLockedLive(bn)) return false;
-      if (bn.pos === p.pos) return true;
-      if ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(bn.pos)) return true;
-      return false;
+      return canBenchSwapWithStarter(bn, p, liveRoster);
     }).sort((a, b) => calcBlend(b).wkPpg - calcBlend(a).wkPpg);
     if (compatBench.length > 0) {
-      openLiveSwapModal(compatBench[0].player_id, p.player_id, p.slot, compatBench, true);
+      const topBn = compatBench[0];
+      const slotTarget = isPosEligibleForSlot(topBn.pos, p.slot) ? p.slot : 'FLEX';
+      openLiveSwapModal(topBn.player_id, p.player_id, slotTarget, compatBench, true);
     } else {
       openLiveSwapModal(p.player_id, 0, 'BENCH', []);
     }
@@ -3428,18 +3611,29 @@ function openLiveSwapModal(startId, sitId, targetSlot, partnerChoices = null, pa
     choices = liveRoster.filter(st => {
       if (Number(st.player_id) === Number(pStart.player_id) || st.slot === 'IR' || isPlayerLockedLive(st)) return false;
       if (pStart.slot === 'BENCH') {
-        const sl = String(st.slot || '').toUpperCase();
-        return st.slot !== 'BENCH' && (st.pos === pStart.pos || sl === pStart.pos || ((sl === 'FLEX' || sl === 'FLX') && ['RB', 'WR', 'TE'].includes(pStart.pos)));
+        return canBenchSwapWithStarter(pStart, st, liveRoster);
+      }
+      if (pSit && pSit.slot !== 'BENCH') {
+        // Starter <-> Starter swap (e.g. Thursday FLEX <-> RB/WR/TE)
+        return st.slot !== 'BENCH' && isPosEligibleForSlot(pStart.pos, st.slot) && isPosEligibleForSlot(st.pos, pStart.slot);
       }
       return st.slot === 'BENCH';
     }).sort((a, b) => calcBlend(a).wkPpg - calcBlend(b).wkPpg);
   }
+  if (pSit && !choices.some(c => Number(c.player_id) === Number(pSit.player_id))) {
+    choices = [pSit, ...choices];
+  }
+
+  const rawTarget = targetSlot || (pSit ? pSit.slot : pStart.pos);
+  const resolvedTarget = (rawTarget === 'BENCH' || isPosEligibleForSlot(pStart.pos, rawTarget))
+    ? rawTarget
+    : 'FLEX';
 
   LIVE_TX_STATE = {
     kind: 'swap',
     startPlayer: pStart,
     sitPlayer: pSit,
-    targetSlot: targetSlot || (pSit ? pSit.slot : pStart.pos),
+    targetSlot: resolvedTarget,
     partnerChoices: choices,
     partnerIsPromoted: Boolean(partnerIsPromoted),
     locked: isPlayerLockedLive(pStart) || (pSit ? isPlayerLockedLive(pSit) : false)
@@ -3448,8 +3642,9 @@ function openLiveSwapModal(startId, sitId, targetSlot, partnerChoices = null, pa
   openDrawerModal('live-tx-backdrop');
 }
 
-function renderLiveSwapModalBody() {
+function renderLiveSwapModalBody(preserveDraft = false) {
   if (!LIVE_TX_STATE || LIVE_TX_STATE.kind !== 'swap') return;
+  const draft = preserveDraft ? captureLiveModalFormDraft() : null;
   const body = document.getElementById('live-tx-body');
   const teamData = getActiveTeamData();
   const wk = (LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || 7;
@@ -3458,7 +3653,9 @@ function renderLiveSwapModalBody() {
   const targetSlot = LIVE_TX_STATE.targetSlot;
   const bStart = calcBlend(pStart);
   const bSit = pSit ? calcBlend(pSit) : { wkPpg: 0 };
-  const wkGain = targetSlot === 'BENCH' ? (-bStart.wkPpg) : (bStart.wkPpg - bSit.wkPpg);
+  const isStarterToStarter = pStart.slot && pStart.slot !== 'BENCH' && pSit && pSit.slot && pSit.slot !== 'BENCH';
+  const wkGain = targetSlot === 'BENCH' ? (-bStart.wkPpg) : (isStarterToStarter ? 0 : (bStart.wkPpg - bSit.wkPpg));
+  const needsBridge = Boolean(pSit && pStart.slot === 'BENCH' && pSit.slot !== targetSlot && targetSlot === 'FLEX');
 
   let partnerSelectHtml = '';
   if (LIVE_TX_STATE.partnerChoices && LIVE_TX_STATE.partnerChoices.length > 0 && targetSlot !== 'BENCH') {
@@ -3468,13 +3665,13 @@ function renderLiveSwapModalBody() {
         ? ' selected'
         : '';
       return `<option value="${Number(c.player_id)}"${sel}>${escHtml(c.name)} (${escHtml(c.pos)} • ${escHtml(c.slot)}) — ${calcBlend(c).wkPpg.toFixed(1)} Wk PPG</option>`;
-    }).join('') + (!LIVE_TX_STATE.partnerIsPromoted ? `<option value="0"${!pSit ? ' selected' : ''}>Move into Open ${escHtml(targetSlot)} Slot (No Bench Swap)</option>` : '');
+    }).join('') + (!LIVE_TX_STATE.partnerIsPromoted && !isStarterToStarter ? `<option value="0"${!pSit ? ' selected' : ''}>Move into Open ${escHtml(targetSlot)} Slot (No Bench Swap)</option>` : '');
     partnerSelectHtml = `
       <div style="margin-top:8px;">
         <label style="display:block;font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">
-          ${LIVE_TX_STATE.partnerIsPromoted ? '🔄 Choose Bench Player to Start:' : '➖ Choose Active Starter to Move to BENCH:'}
+          ${LIVE_TX_STATE.partnerIsPromoted ? '🔄 Choose Bench Player to Start:' : (isStarterToStarter ? '🔄 Swap Active Slot With:' : '➖ Choose Active Starter to Move to BENCH:')}
         </label>
-        <select onchange="onLiveSwapPartnerChange(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:#1e293b;border:1px solid #475569;color:#ffffff;font-size:12px;font-weight:700;">
+        <select id="live-swap-partner-select" onchange="onLiveSwapPartnerChange(this.value)" style="width:100%;padding:8px 10px;border-radius:8px;background:#1e293b;border:1px solid #475569;color:#ffffff;font-size:12px;font-weight:700;">
           ${opts}
         </select>
       </div>
@@ -3498,7 +3695,7 @@ function renderLiveSwapModalBody() {
         }
       </div>
       ${pSit
-        ? `<div style="font-size:12px;color:#fca5a5;margin-top:4px;">Bench <strong>${escHtml(pSit.name)}</strong> (${bSit.wkPpg.toFixed(1)} Wk) → <strong>${escHtml(pStart.slot || 'BENCH')}</strong></div>`
+        ? `<div style="font-size:12px;color:#fca5a5;margin-top:4px;">${isStarterToStarter ? 'Swap' : 'Bench'} <strong>${escHtml(pSit.name)}</strong> (${bSit.wkPpg.toFixed(1)} Wk) → <strong>${escHtml(pStart.slot || 'BENCH')}</strong>${needsBridge ? ` <span style="color:#93c5fd;font-size:11px;">(Auto-shifts unlocked ${escHtml(pSit.pos)} from FLEX → ${escHtml(pSit.slot)})</span>` : ''}</div>`
         : ''
       }
       <div style="margin-top:6px;font-size:11.5px;color:${wkGain >= 0 ? '#4ade80' : '#fbbf24'};font-weight:800;">
@@ -3523,6 +3720,7 @@ function renderLiveSwapModalBody() {
 
     <div id="live-tx-result" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4;"></div>
   `;
+  if (draft) restoreLiveModalFormDraft(draft);
   updateLiveModalBtnState();
 }
 
@@ -3533,16 +3731,25 @@ function onLiveSwapPartnerChange(val) {
   const pid = Number(val || 0);
   if (LIVE_TX_STATE.partnerIsPromoted) {
     const nextStart = liveRoster.find(r => Number(r.player_id) === pid);
-    if (nextStart) LIVE_TX_STATE.startPlayer = nextStart;
+    if (nextStart) {
+      LIVE_TX_STATE.startPlayer = nextStart;
+      if (LIVE_TX_STATE.sitPlayer && LIVE_TX_STATE.sitPlayer.slot && LIVE_TX_STATE.sitPlayer.slot !== 'BENCH') {
+        LIVE_TX_STATE.targetSlot = isPosEligibleForSlot(nextStart.pos, LIVE_TX_STATE.sitPlayer.slot)
+          ? LIVE_TX_STATE.sitPlayer.slot
+          : 'FLEX';
+      }
+    }
   } else {
     const nextSit = pid ? liveRoster.find(r => Number(r.player_id) === pid) : null;
     LIVE_TX_STATE.sitPlayer = nextSit || null;
     if (nextSit && nextSit.slot && nextSit.slot !== 'BENCH') {
-      LIVE_TX_STATE.targetSlot = nextSit.slot;
+      LIVE_TX_STATE.targetSlot = isPosEligibleForSlot(LIVE_TX_STATE.startPlayer.pos, nextSit.slot)
+        ? nextSit.slot
+        : 'FLEX';
     }
   }
   LIVE_TX_STATE.locked = isPlayerLockedLive(LIVE_TX_STATE.startPlayer) || (LIVE_TX_STATE.sitPlayer ? isPlayerLockedLive(LIVE_TX_STATE.sitPlayer) : false);
-  renderLiveSwapModalBody();
+  renderLiveSwapModalBody(true);
 }
 
 async function submitLiveSwap() {
@@ -3590,13 +3797,20 @@ async function submitLiveSwap() {
       btn.textContent = '✅ Saved';
       await refreshLiveTelemetry(true);
     } else {
-      resBox.style.background = '#450a0a';
-      resBox.style.border = '1px solid #ef4444';
-      resBox.style.color = '#fecaca';
-      resBox.innerHTML = `<strong>❌ Lineup Swap Failed:</strong><br>${escHtml(data.detail || JSON.stringify(data))}`;
-      btn.disabled = false;
-      btn.style.opacity = '1';
-      btn.textContent = 'Retry Lineup Swap';
+      if (resp.status === 401 || resp.status === 403) {
+        clearRejectedVaultKeyIfSaved();
+        renderLiveSwapModalBody(true);
+      }
+      const nextResBox = document.getElementById('live-tx-result') || resBox;
+      const nextBtn = document.getElementById('live-tx-submit-btn') || btn;
+      nextResBox.style.display = 'block';
+      nextResBox.style.background = '#450a0a';
+      nextResBox.style.border = '1px solid #ef4444';
+      nextResBox.style.color = '#fecaca';
+      nextResBox.innerHTML = `<strong>❌ Lineup Swap Failed:</strong><br>${escHtml(data.detail || JSON.stringify(data))}`;
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '1';
+      nextBtn.textContent = 'Retry Lineup Swap';
     }
   } catch (err) {
     resBox.style.display = 'block';
@@ -3688,11 +3902,12 @@ async function hydratePushSettingsCard() {
         </div>
         <div style="font-family:monospace;font-size:11px;color:#e2e8f0;background:#111827;padding:5px 8px;border-radius:6px;margin:5px 0;word-break:break-all;">${escHtml(topic)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-          ${deepLink ? `<a href="${escHtml(deepLink)}" style="flex:1.3;text-align:center;text-decoration:none;background:#0284c7;color:#ffffff;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;">📲 Open in ntfy App</a>` : ''}
+          ${deepLink ? `<a href="${escHtml(deepLink)}" style="flex:1.2;text-align:center;text-decoration:none;background:#0284c7;color:#ffffff;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;">📲 Open in ntfy App</a>` : ''}
+          ${webUrl ? `<a href="${escHtml(webUrl)}" target="_blank" rel="noopener" style="flex:1;text-align:center;text-decoration:none;background:#0f172a;border:1px solid #1e3a8a;color:#7dd3fc;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;">🌐 Web Feed</a>` : ''}
           <button onclick="copyNtfyTopic('${escHtml(topic)}')" style="flex:1;background:#1e293b;border:1px solid #475569;color:#e2e8f0;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">📋 Copy Topic</button>
           <button onclick="sendTestPushFromSettings()" style="flex:1;background:#16a34a;border:none;color:#ffffff;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">🔔 Test Push</button>
         </div>
-        ${webUrl ? `<div style="margin-top:5px;font-size:10px;color:#64748b;">In Android <strong>ntfy</strong> app: tap <strong>+</strong> → paste topic above (or tap <em>Open in ntfy App</em>).</div>` : ''}
+        <div style="margin-top:5px;font-size:10px;color:#64748b;">Requires free Android <strong>ntfy</strong> app: tap <strong>+</strong> → paste topic above (or tap <em>Open in ntfy App</em> / <em>Web Feed</em>).</div>
       </div>
 
       <div style="margin-top:8px;background:#090d16;border:1px solid #1f2937;border-radius:9px;padding:9px 10px;">

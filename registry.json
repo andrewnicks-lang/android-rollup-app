@@ -104,7 +104,7 @@
     "apk_version": "1.0.0",
     "build_hash": "0a727a06bf",
     "stamped_version": "1.0.4",
-    "ota_etag": "7e41185322"
+    "ota_etag": "85e9c96495"
   },
   "apps": [
     {
@@ -160,7 +160,7 @@
       "icon": "\ud83c\udfc8",
       "accent": "#38bdf8",
       "category": "Sports & Analytics",
-      "version": "3.0.1",
+      "version": "3.0.2",
       "entry": "apps/fantasy-manager/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -190,9 +190,9 @@
           "defaultForAdmin": 60
         }
       ],
-      "build_hash": "6bb9f4dc50",
-      "stamped_version": "3.0.1",
-      "updated_at": "2026-10-25T10:06:53.244557",
+      "build_hash": "353573d385",
+      "stamped_version": "3.0.2",
+      "updated_at": "2026-10-25T11:04:30.958425",
       "manual_pdf": "manuals/fantasy-manager_User_Manual.pdf",
       "manual_html": "manuals/fantasy-manager_User_Manual.html",
       "manual_source_hash": "3e7dfb6c3b",
