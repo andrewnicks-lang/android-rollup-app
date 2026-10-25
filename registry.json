@@ -104,7 +104,7 @@
     "apk_version": "1.0.0",
     "build_hash": "c75b54bdcb",
     "stamped_version": "1.0.1",
-    "ota_etag": "a150832005"
+    "ota_etag": "24a838a9f4"
   },
   "apps": [
     {
@@ -156,7 +156,7 @@
       "icon": "\ud83c\udfc8",
       "accent": "#38bdf8",
       "category": "Sports & Analytics",
-      "version": "2.7.0",
+      "version": "2.7.1",
       "entry": "apps/fantasy-manager/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -186,9 +186,9 @@
           "defaultForAdmin": 60
         }
       ],
-      "build_hash": "254b027fd5",
-      "stamped_version": "2.7.0",
-      "updated_at": "2026-10-24T20:25:59.221110"
+      "build_hash": "a9fd2eae1c",
+      "stamped_version": "2.7.1",
+      "updated_at": "2026-10-24T21:25:01.443139"
     },
     {
       "id": "csc-site-discovery",

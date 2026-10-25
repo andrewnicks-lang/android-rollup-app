@@ -25,7 +25,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
-    padding: 0 0 calc(130px + env(safe-area-inset-bottom, 0px)) 0;
+    padding: 0 0 calc(176px + env(safe-area-inset-bottom, 0px)) 0;
     background: var(--bg-amoled);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'Google Sans', 'Segoe UI', Roboto, sans-serif;
@@ -220,68 +220,87 @@
     color: #94a3b8;
     letter-spacing: 0.3px;
   }
-  /* Docked NFL Scores Bar (Above Bottom Nav) */
-  .nfl-scores-dock {
+  /* Unified Fixed Bottom Chrome (Zero-Overlap NFL Scores + Nav Stack) */
+  .bottom-chrome {
     position: fixed;
-    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    bottom: 0;
     left: 0;
     right: 0;
-    z-index: 49;
+    z-index: 60;
     max-width: 480px;
     margin: 0 auto;
-    background: rgba(15, 23, 42, 0.97);
-    backdrop-filter: blur(14px);
-    border-top: 1px solid #1e3a8a;
-    padding: 5px 10px;
+    display: flex;
+    flex-direction: column;
+    background: #060a13;
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.85);
+  }
+  .nfl-scores-dock {
+    position: relative;
+    width: 100%;
+    background: #091122;
+    border-top: 2px solid #0284c7;
+    border-bottom: 1px solid #1e293b;
+    padding: 7px 10px;
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 -4px 14px rgba(0,0,0,0.45);
   }
   .nfl-dock-btn {
-    background: #1e3a8a;
+    background: linear-gradient(135deg, #0369a1, #1e3a8a);
     color: #ffffff;
-    border: 1px solid #38bdf8;
-    border-radius: 7px;
-    padding: 4px 8px;
-    font-size: 10.5px;
-    font-weight: 800;
+    border: 1.5px solid #38bdf8;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    font-weight: 900;
     white-space: nowrap;
     cursor: pointer;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
   }
   .nfl-dock-ticker {
     display: flex;
-    gap: 6px;
+    gap: 7px;
     overflow-x: auto;
     scrollbar-width: none;
     flex: 1;
+    align-items: center;
+    padding: 1px 0;
   }
   .nfl-dock-ticker::-webkit-scrollbar { display: none; }
   .nfl-mini-pill {
-    background: #090d16;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    padding: 3px 7px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #e2e8f0;
+    background: #0f172a;
+    border: 1.5px solid #334155;
+    border-radius: 8px;
+    padding: 5px 9px;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #f8fafc;
     white-space: nowrap;
     cursor: pointer;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1.2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   }
-  .nfl-mini-pill.live { border-color: #ef4444; background: #2a0a0a; color: #fecaca; }
-  /* Sticky Player Ribbon inside Dossier & Game Center */
+  .nfl-mini-pill.live {
+    border-color: #ef4444;
+    background: #2a0a0e;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.28);
+  }
+  /* Sticky Player Ribbon inside Dossier & Game Center (100% Opaque — Zero Bleed) */
   .dossier-sticky-ribbon {
     position: sticky;
     top: 0;
     z-index: 30;
     margin: 0 -16px 10px -16px;
-    padding: 10px 16px 9px 16px;
-    background: rgba(15, 23, 42, 0.97);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-bottom: 1px solid #1e293b;
+    padding: 12px 16px 10px 16px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65);
   }
   .box-tbl { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px; }
   .box-tbl th { text-align: right; color: #94a3b8; font-size: 9.5px; padding: 5px 4px; border-bottom: 1px solid #334155; text-transform: uppercase; }
@@ -524,20 +543,13 @@
     cursor: pointer;
     text-decoration: none;
   }
-  /* Bottom Navigation Bar */
+  /* Bottom Navigation Bar (Inside Unified .bottom-chrome) */
   .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    background: rgba(9, 13, 22, 0.96);
-    backdrop-filter: blur(16px);
-    border-top: 1px solid var(--border-active);
+    position: relative;
+    width: 100%;
+    background: #090d16;
     display: flex;
     justify-content: space-around;
-    max-width: 480px;
-    margin: 0 auto;
     padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)) 4px;
   }
   .nav-item {
@@ -557,20 +569,21 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.80);
+    background: rgba(0, 0, 0, 0.84);
     z-index: 10050;
     align-items: flex-end;
     justify-content: center;
+    padding-top: max(16px, env(safe-area-inset-top, 16px));
     overscroll-behavior: contain;
   }
   .drawer {
     width: 100%;
     max-width: 480px;
-    max-height: 88vh;
+    max-height: min(86dvh, calc(100vh - env(safe-area-inset-top, 20px) - 24px));
     background: #0f172a;
     border-top: 2px solid #38bdf8;
     border-radius: 18px 18px 0 0;
-    padding: 0 16px calc(44px + env(safe-area-inset-bottom, 0px)) 16px;
+    padding: 0 16px calc(48px + env(safe-area-inset-bottom, 0px)) 16px;
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -781,30 +794,31 @@
     <div id="breaking-news-container" style="padding:0 12px;"></div>
   </div>
 
-  <!-- DOCKED LIVE NFL SCORES BAR (EXPANDS INTO FULL NFL SCOREBOARD & BOX SCORE GAME CENTER) -->
-  <div class="nfl-scores-dock" id="nfl-scores-dock">
-    <button class="nfl-dock-btn" onclick="openNflScoreboardDrawer()">🏈 NFL Scores ▴</button>
-    <div class="nfl-dock-ticker" id="nfl-dock-ticker">
-      <span class="nfl-mini-pill" onclick="openNflScoreboardDrawer()">Loading live NFL scoreboard...</span>
+  <!-- UNIFIED FIXED BOTTOM CHROME (ZERO-OVERLAP LIVE NFL SCORES DOCK + 5-TAB NAVIGATION) -->
+  <div class="bottom-chrome" id="bottom-chrome">
+    <div class="nfl-scores-dock" id="nfl-scores-dock">
+      <button class="nfl-dock-btn" onclick="openNflScoreboardDrawer()">🏈 NFL Scores ▴</button>
+      <div class="nfl-dock-ticker" id="nfl-dock-ticker">
+        <span class="nfl-mini-pill" onclick="openNflScoreboardDrawer()">Loading live NFL scoreboard...</span>
+      </div>
     </div>
-  </div>
 
-  <!-- BOTTOM 5-TAB NAVIGATION -->
-  <div class="bottom-nav">
-    <div class="nav-item active" id="nav-team" onclick="switchTab('team')">
-      <span class="nav-icon">🏈</span>My Team
-    </div>
-    <div class="nav-item" id="nav-matchup" onclick="switchTab('matchup')">
-      <span class="nav-icon">🆚</span>Matchup
-    </div>
-    <div class="nav-item" id="nav-warroom" onclick="switchTab('warroom')">
-      <span class="nav-icon">⚔️</span>War Room
-    </div>
-    <div class="nav-item" id="nav-waivers" onclick="switchTab('waivers')">
-      <span class="nav-icon">💎</span>Waivers
-    </div>
-    <div class="nav-item" id="nav-news" onclick="switchTab('news')">
-      <span class="nav-icon">🏆</span>League
+    <div class="bottom-nav">
+      <div class="nav-item active" id="nav-team" onclick="switchTab('team')">
+        <span class="nav-icon">🏈</span>My Team
+      </div>
+      <div class="nav-item" id="nav-matchup" onclick="switchTab('matchup')">
+        <span class="nav-icon">🆚</span>Matchup
+      </div>
+      <div class="nav-item" id="nav-warroom" onclick="switchTab('warroom')">
+        <span class="nav-icon">⚔️</span>War Room
+      </div>
+      <div class="nav-item" id="nav-waivers" onclick="switchTab('waivers')">
+        <span class="nav-icon">💎</span>Waivers
+      </div>
+      <div class="nav-item" id="nav-news" onclick="switchTab('news')">
+        <span class="nav-icon">🏆</span>League
+      </div>
     </div>
   </div>
 </div>
@@ -2147,16 +2161,17 @@ function renderNflScoresDock() {
   if (!ticker) return;
   const games = (LIVE_NFL_SLATE && LIVE_NFL_SLATE.games) || [];
   if (!games.length) {
-    ticker.innerHTML = `<span class="nfl-mini-pill" onclick="openNflScoreboardDrawer()">Tap to load Week ${(LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || ''} NFL Scores</span>`;
+    ticker.innerHTML = `<span class="nfl-mini-pill" onclick="openNflScoreboardDrawer()">Tap to load Week ${escHtml((LEAGUE_BUNDLE && LEAGUE_BUNDLE.week) || '')} NFL Scores</span>`;
     return;
   }
   ticker.innerHTML = games.map(g => {
     const isLive = g.state === 'in';
-    const rz = (isLive && g.situation && g.situation.is_redzone) ? '🚨 ' : '';
-    const txt = (g.state === 'in' || g.state === 'post')
-      ? `${rz}${g.away.abbr} ${g.away.score} - ${g.home.abbr} ${g.home.score} (${g.status_short})`
-      : `${g.away.abbr} @ ${g.home.abbr} (${g.status_short})`;
-    return `<span class="nfl-mini-pill ${isLive ? 'live' : ''}" onclick="openNflGameCenter('${escHtml(g.event_id)}')">${escHtml(txt)}</span>`;
+    const isScored = isLive || g.state === 'post';
+    const rz = (isLive && g.situation && g.situation.is_redzone) ? '🚨 ' : (isLive ? '<span class="live-dot"></span>' : '');
+    const inner = isScored
+      ? `${rz}<span>${escHtml(g.away.abbr)} <span style="color:#4ade80;">${escHtml(g.away.score)}</span></span><span style="color:#64748b;">-</span><span>${escHtml(g.home.abbr)} <span style="color:#4ade80;">${escHtml(g.home.score)}</span></span><span style="color:${isLive ? '#fca5a5' : '#94a3b8'};font-size:10px;font-weight:700;">${escHtml(g.status_short)}</span>`
+      : `<span>${escHtml(g.away.abbr)} <span style="color:#64748b;">@</span> ${escHtml(g.home.abbr)}</span><span style="color:#7dd3fc;font-size:10px;font-weight:700;">${escHtml(g.status_short)}</span>`;
+    return `<span class="nfl-mini-pill ${isLive ? 'live' : ''}" onclick="openNflGameCenter('${escHtml(g.event_id)}')">${inner}</span>`;
   }).join('');
 }
 
