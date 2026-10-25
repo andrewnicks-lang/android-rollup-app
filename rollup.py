@@ -13,7 +13,9 @@ Commands:
 
 import argparse
 import datetime
+import hashlib
 import http.server
+import re
 import json
 import socket
 import socketserver
@@ -47,6 +49,194 @@ def load_registry() -> Dict[str, Any]:
 def save_registry(reg: Dict[str, Any]) -> None:
     reg.setdefault("hub", {})["updated_at"] = datetime.datetime.now().isoformat()
     REGISTRY_PATH.write_text(json.dumps(reg, indent=2), encoding="utf-8")
+
+
+_TEXT_EXTS = {".html", ".htm", ".js", ".mjs", ".css", ".json", ".svg", ".md", ".txt"}
+_SKIP_NAMES = {".DS_Store", "Thumbs.db", "__pycache__"}
+_FILE_DIGEST_CACHE: Dict[str, Any] = {}
+
+
+def _hash_single_file(fpath: Path) -> bytes:
+    st = fpath.stat()
+    cache_key = str(fpath)
+    cached = _FILE_DIGEST_CACHE.get(cache_key)
+    sig = (st.st_mtime_ns, st.st_size)
+    if cached and cached[0] == sig:
+        return cached[1]
+    raw = fpath.read_bytes()
+    if fpath.suffix.lower() in _TEXT_EXTS:
+        raw = raw.replace(b"\r\n", b"\n")
+    digest = hashlib.sha256(raw).digest()
+    _FILE_DIGEST_CACHE[cache_key] = (sig, digest)
+    return digest
+
+
+def compute_app_build_hash(app_id: str) -> str:
+    app_dir = ROOT_DIR / "apps" / app_id
+    if not app_dir.exists():
+        return "0000000000"
+    h = hashlib.sha256()
+    files = sorted(
+        (p for p in app_dir.rglob("*") if p.is_file() and p.name not in _SKIP_NAMES and not p.name.endswith((".pyc", ".log")) and "__pycache__" not in p.parts),
+        key=lambda x: x.relative_to(app_dir).as_posix(),
+    )
+    for fpath in files:
+        rel = fpath.relative_to(app_dir).as_posix().encode("utf-8")
+        h.update(rel + b"\0")
+        h.update(_hash_single_file(fpath))
+    return h.hexdigest()[:10]
+
+
+def compute_hub_build_hash() -> str:
+    h = hashlib.sha256()
+    for rel_str in ("index.html", "manifest.json", "bridge/rollup-bridge.js"):
+        fp = ROOT_DIR / rel_str
+        if fp.exists():
+            h.update(rel_str.encode("utf-8") + b"\0")
+            h.update(_hash_single_file(fp))
+    return h.hexdigest()[:10]
+
+
+def _bump_patch_version(ver_str: str) -> str:
+    parts = str(ver_str or "1.0.0").strip().split(".")
+    if len(parts) >= 3 and parts[-1].isdigit():
+        parts[-1] = str(int(parts[-1]) + 1)
+        return ".".join(parts)
+    if len(parts) == 2 and parts[-1].isdigit():
+        return f"{parts[0]}.{parts[1]}.1"
+    return f"{ver_str}.1"
+
+
+def sync_service_worker(reg: Dict[str, Any], ota_etag: str) -> bool:
+    sw_path = ROOT_DIR / "sw.js"
+    core_assets = [
+        "./",
+        "./index.html",
+        "./manifest.json",
+        "./registry.json",
+        "./assets/icon.svg",
+        "./assets/icon-192.png",
+        "./assets/icon-512.png",
+        "./bridge/rollup-bridge.js",
+    ]
+    seen = set(core_assets)
+    for app in reg.get("apps", []):
+        for asset in app.get("offline_assets", []):
+            norm = asset if asset.startswith("./") else f"./{asset.lstrip('/')}"
+            if norm not in seen:
+                seen.add(norm)
+                core_assets.append(norm)
+
+    assets_js = ",\n".join(f"  '{a}'" for a in core_assets)
+    cache_name = f"rollup-hub-{ota_etag[:8]}"
+    sw_content = f"""const CACHE_NAME = '{cache_name}';
+const CORE_ASSETS = [
+{assets_js}
+];
+
+self.addEventListener('install', (event) => {{
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => {{}})
+  );
+  self.skipWaiting();
+}});
+
+self.addEventListener('activate', (event) => {{
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+}});
+
+self.addEventListener('fetch', (event) => {{
+  if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith(self.location.origin)) return;
+  const u = new URL(event.request.url);
+  if (u.pathname.startsWith('/api/')) return;
+
+  // Live OTA version/hash checks bypass Service Worker & HTTP caches completely
+  if (u.searchParams.has('__ota')) {{
+    event.respondWith(fetch(event.request, {{ cache: 'no-store' }}));
+    return;
+  }}
+
+  event.respondWith(
+    fetch(event.request, {{ cache: 'no-cache' }})
+      .then((networkResp) => {{
+        if (networkResp && networkResp.status === 200) {{
+          const clone = networkResp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {{}});
+        }}
+        return networkResp;
+      }})
+      .catch(() => caches.match(event.request, {{ ignoreSearch: true }}))
+  );
+}});
+"""
+    existing = sw_path.read_text(encoding="utf-8").replace("\r\n", "\n") if sw_path.exists() else ""
+    if existing != sw_content:
+        sw_path.write_text(sw_content, encoding="utf-8")
+        return True
+    return False
+
+
+def stamp_build_hashes(persist: bool = True) -> Dict[str, Any]:
+    """Deterministically compute SHA-256 build_hash for Hub & all Mini-Apps and auto-bump forgotten patch versions."""
+    reg = load_registry()
+    now_iso = datetime.datetime.now().isoformat()
+    changed = False
+
+    hub = reg.setdefault("hub", {})
+    if "apk_version" not in hub:
+        hub["apk_version"] = "1.0.0"
+        changed = True
+
+    new_hub_hash = compute_hub_build_hash()
+    old_hub_hash = hub.get("build_hash", "")
+    cur_hub_ver = str(hub.get("version", "1.0.0"))
+    if old_hub_hash and new_hub_hash != old_hub_hash and cur_hub_ver == hub.get("stamped_version", ""):
+        cur_hub_ver = _bump_patch_version(cur_hub_ver)
+        hub["version"] = cur_hub_ver
+        changed = True
+    if new_hub_hash != old_hub_hash or hub.get("stamped_version") != cur_hub_ver:
+        hub["build_hash"] = new_hub_hash
+        hub["stamped_version"] = cur_hub_ver
+        hub["updated_at"] = now_iso
+        changed = True
+
+    overall = hashlib.sha256(f"hub:{new_hub_hash}|".encode("utf-8"))
+    for app in reg.get("apps", []):
+        app_id = app.get("id", "")
+        if not app_id:
+            continue
+        new_hash = compute_app_build_hash(app_id)
+        old_hash = app.get("build_hash", "")
+        cur_ver = str(app.get("version", "1.0.0"))
+        if old_hash and new_hash != old_hash and cur_ver == app.get("stamped_version", ""):
+            cur_ver = _bump_patch_version(cur_ver)
+            app["version"] = cur_ver
+            changed = True
+        if new_hash != old_hash or app.get("stamped_version") != cur_ver or "updated_at" not in app:
+            app["build_hash"] = new_hash
+            app["stamped_version"] = cur_ver
+            app["updated_at"] = now_iso
+            changed = True
+        overall.update(f"{app_id}:{new_hash}|".encode("utf-8"))
+
+    ota_etag = overall.hexdigest()[:10]
+    if hub.get("ota_etag") != ota_etag:
+        hub["ota_etag"] = ota_etag
+        changed = True
+
+    if persist:
+        if changed:
+            REGISTRY_PATH.write_text(json.dumps(reg, indent=2), encoding="utf-8")
+        sw_changed = sync_service_worker(reg, ota_etag)
+        if changed or sw_changed:
+            print(f"[RollupOS] Stamped deterministic OTA hashes (etag={ota_etag}, hub=v{hub['version']}#{new_hub_hash[:6]})")
+    return reg
 
 
 def get_lan_ip() -> str:
@@ -222,6 +412,19 @@ class RollupRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         if self._proxy_gravity("GET"):
             return
+        if self.path.startswith("/registry.json") and "__ota=" in self.path:
+            try:
+                live_reg = stamp_build_hashes(persist=False)
+                payload = json.dumps(live_reg, indent=2).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(payload)
+                return
+            except Exception:
+                pass
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -281,7 +484,8 @@ def cmd_serve(port: int = 8090) -> None:
 
 
 def cmd_publish(repo_name: str = "android-rollup-app") -> None:
-    """Initialize git repo if needed, commit all changes, and push to GitHub via gh CLI."""
+    """Stamp deterministic OTA build hashes, sync sw.js, commit all changes, and push to GitHub."""
+    stamp_build_hashes(persist=True)
     git_dir = ROOT_DIR / ".git"
     if not git_dir.exists():
         subprocess.run(["git", "init"], cwd=str(ROOT_DIR), check=True)
@@ -333,8 +537,10 @@ def main() -> None:
     p_auth.add_argument("--name", default="")
     p_auth.add_argument("--team-id", type=int, default=14)
 
-    p_pub = sub.add_parser("publish", help="Commit and push Hub + Mini-Apps to GitHub")
+    p_pub = sub.add_parser("publish", help="Stamp OTA hashes, commit, and push Hub + Mini-Apps to GitHub")
     p_pub.add_argument("--repo", default="android-rollup-app")
+
+    sub.add_parser("stamp", help="Deterministically compute SHA-256 build_hash for Hub & Mini-Apps and sync sw.js")
 
     args = parser.parse_args()
     if args.cmd == "serve":
@@ -347,6 +553,8 @@ def main() -> None:
         cmd_authorize_user(args.email, args.app_id, args.name, args.team_id)
     elif args.cmd == "publish":
         cmd_publish(args.repo)
+    elif args.cmd == "stamp":
+        stamp_build_hashes(persist=True)
     else:
         parser.print_help()
 

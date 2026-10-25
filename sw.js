@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-v6';
+const CACHE_NAME = 'rollup-hub-998302ad';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -11,8 +11,18 @@ const CORE_ASSETS = [
   './apps/gravity-agent-monitor/index.html',
   './apps/fantasy-manager/index.html',
   './apps/fantasy-manager/data/league_945552.json',
+  './apps/csc-site-discovery/index.html',
+  './apps/csc-site-discovery/css/field_ui.css',
+  './apps/csc-site-discovery/js/discovery_storage_adapter.js',
+  './apps/csc-site-discovery/js/app.js',
   './apps/field-snap/index.html',
-  './apps/bridge-lab/index.html'
+  './apps/bridge-lab/index.html',
+  './apps/shd-div2-intel/index.html',
+  './apps/shd-div2-intel/styles.css',
+  './apps/shd-div2-intel/shd_solver_portable.js',
+  './apps/shd-div2-intel/shd_storage_adapter.js',
+  './apps/shd-div2-intel/app.js',
+  './apps/sapphire-companion/index.html'
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,6 +46,12 @@ self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith(self.location.origin)) return;
   const u = new URL(event.request.url);
   if (u.pathname.startsWith('/api/')) return;
+
+  // Live OTA version/hash checks bypass Service Worker & HTTP caches completely
+  if (u.searchParams.has('__ota')) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
 
   event.respondWith(
     fetch(event.request, { cache: 'no-cache' })

@@ -10,6 +10,7 @@
   const IMPERSONATE_KEY = `${STORAGE_PREFIX}::auth::impersonate`;
   const ACL_STORAGE_KEY = `${STORAGE_PREFIX}::hub::acl`;
   const REGISTRY_CACHE_KEY = `${STORAGE_PREFIX}::hub::registry_cache`;
+  const INSTALLED_LEDGER_KEY = `${STORAGE_PREFIX}::device::installed_ledger`;
 
   function normEmail(email) {
     return String(email || 'guest@local').trim().toLowerCase();
@@ -610,6 +611,247 @@
     }
   };
 
+  // Over-The-Air (OTA) Build Hash & Version Update Detector
+  let _inAppPollTimer = null;
+  let _inAppListenersBound = false;
+
+  const updates = {
+    getLedger() {
+      try {
+        const raw = localStorage.getItem(INSTALLED_LEDGER_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            parsed.apps = parsed.apps || {};
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      return { hub: null, apps: {}, last_checked_at: null };
+    },
+
+    saveLedger(ledger) {
+      try {
+        localStorage.setItem(INSTALLED_LEDGER_KEY, JSON.stringify(ledger));
+      } catch (e) {}
+      return ledger;
+    },
+
+    _hasPriorDeviceFootprint(appId) {
+      try {
+        const needle = `::app::${appId}::`;
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.includes(needle)) return true;
+        }
+      } catch (e) {}
+      return false;
+    },
+
+    markAppInstalled(appId, version, buildHash) {
+      if (!appId) return;
+      const ledger = this.getLedger();
+      ledger.apps[appId] = {
+        version: String(version || '1.0.0'),
+        build_hash: String(buildHash || ''),
+        seen_at: new Date().toISOString()
+      };
+      this.saveLedger(ledger);
+    },
+
+    markHubInstalled(version, buildHash) {
+      const ledger = this.getLedger();
+      ledger.hub = {
+        version: String(version || '1.0.0'),
+        build_hash: String(buildHash || ''),
+        seen_at: new Date().toISOString()
+      };
+      this.saveLedger(ledger);
+    },
+
+    getAppStatus(remoteApp) {
+      if (!remoteApp || !remoteApp.id) {
+        return { state: 'unknown', hasUpdate: false };
+      }
+      const ledger = this.getLedger();
+      const installed = ledger.apps[remoteApp.id];
+      const remoteVer = String(remoteApp.version || '1.0.0');
+      const remoteHash = String(remoteApp.build_hash || '');
+
+      if (!installed) {
+        if (this._hasPriorDeviceFootprint(remoteApp.id)) {
+          return {
+            state: 'outdated',
+            hasUpdate: true,
+            hashOnlyChange: false,
+            installedVersion: 'prior',
+            installedHash: '',
+            remoteVersion: remoteVer,
+            remoteHash
+          };
+        }
+        return {
+          state: 'new',
+          hasUpdate: false,
+          hashOnlyChange: false,
+          installedVersion: null,
+          installedHash: '',
+          remoteVersion: remoteVer,
+          remoteHash
+        };
+      }
+
+      const instVer = String(installed.version || '');
+      const instHash = String(installed.build_hash || '');
+      const hashDiff = Boolean(remoteHash && instHash && remoteHash !== instHash);
+      const verDiff = Boolean(remoteVer && instVer && remoteVer !== instVer);
+      const missingHashStamp = Boolean(remoteHash && !instHash);
+      const hasUpdate = hashDiff || verDiff || missingHashStamp;
+
+      return {
+        state: hasUpdate ? 'outdated' : 'up_to_date',
+        hasUpdate,
+        hashOnlyChange: hashDiff && !verDiff,
+        installedVersion: instVer,
+        installedHash: instHash,
+        remoteVersion: remoteVer,
+        remoteHash,
+        seenAt: installed.seen_at || null
+      };
+    },
+
+    async fetchLiveRegistry() {
+      const url = `${resolveRegistryUrl()}?__ota=${Date.now()}`;
+      const resp = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (!resp.ok) throw new Error(`OTA check HTTP ${resp.status}`);
+      const reg = await resp.json();
+      const ledger = this.getLedger();
+      ledger.last_checked_at = new Date().toISOString();
+      this.saveLedger(ledger);
+      try {
+        localStorage.setItem(REGISTRY_CACHE_KEY, JSON.stringify(reg));
+        auth.seedACLFromRegistry(reg);
+      } catch (e) {}
+      return reg;
+    },
+
+    async purgeAppCache(appId, offlineAssets = []) {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.update().catch(() => {})));
+        }
+        if ('caches' in global) {
+          const keys = await caches.keys();
+          for (const k of keys) {
+            const c = await caches.open(k);
+            const reqs = await c.keys();
+            for (const req of reqs) {
+              if (
+                req.url.includes(`/apps/${appId}/`) ||
+                req.url.includes('/bridge/rollup-bridge.js') ||
+                req.url.endsWith('/registry.json')
+              ) {
+                await c.delete(req);
+              }
+            }
+          }
+          // Warm fresh assets into active cache if online
+          if (Array.isArray(offlineAssets) && offlineAssets.length > 0) {
+            const rootPrefix = resolveHubRootUrl().replace(/index\.html$/, '');
+            await Promise.all(
+              offlineAssets.map((rel) =>
+                fetch(`${rootPrefix}${rel.replace(/^\.\//, '')}?__ota=${Date.now()}`, { cache: 'no-store' }).catch(() => {})
+              )
+            );
+          }
+        }
+      } catch (e) {}
+    },
+
+    async applyInAppReload(appId, remoteApp) {
+      await this.purgeAppCache(appId, (remoteApp && remoteApp.offline_assets) || []);
+      if (remoteApp) {
+        this.markAppInstalled(appId, remoteApp.version, remoteApp.build_hash);
+      }
+      const nextVer = encodeURIComponent((remoteApp && remoteApp.version) || '1.0.0');
+      const nextHash = encodeURIComponent((remoteApp && remoteApp.build_hash) || Date.now());
+      global.location.replace(`${global.location.pathname}?v=${nextVer}&h=${nextHash}`);
+    },
+
+    startInAppWatcher(appId, callbacks = {}) {
+      if (!appId || appId === 'hub-root') return;
+      const params = new URLSearchParams(global.location.search || '');
+      const urlHash = params.get('h') || '';
+      const urlVer = params.get('v') || '';
+      let baseline = urlHash ? { version: urlVer, build_hash: urlHash } : null;
+
+      const checkOnce = async () => {
+        try {
+          const reg = await this.fetchLiveRegistry();
+          const remoteApp = (reg.apps || []).find((a) => a.id === appId);
+          if (!remoteApp) return;
+
+          if (!baseline) {
+            baseline = {
+              version: String(remoteApp.version || '1.0.0'),
+              build_hash: String(remoteApp.build_hash || '')
+            };
+            this.markAppInstalled(appId, baseline.version, baseline.build_hash);
+            if (typeof callbacks.onBaseline === 'function') {
+              callbacks.onBaseline(baseline, remoteApp);
+            }
+            return;
+          }
+
+          // Ensure initial URL-pinned launch records installed version
+          if (
+            (!remoteApp.build_hash || remoteApp.build_hash === baseline.build_hash) &&
+            String(remoteApp.version || '') === String(baseline.version || remoteApp.version || '')
+          ) {
+            this.markAppInstalled(appId, remoteApp.version, remoteApp.build_hash);
+            if (typeof callbacks.onBaseline === 'function') {
+              callbacks.onBaseline(baseline, remoteApp);
+            }
+            return;
+          }
+
+          const hashChanged = Boolean(
+            remoteApp.build_hash && baseline.build_hash && remoteApp.build_hash !== baseline.build_hash
+          );
+          const verChanged = Boolean(
+            remoteApp.version && baseline.version && String(remoteApp.version) !== String(baseline.version)
+          );
+          if (hashChanged || verChanged) {
+            if (typeof callbacks.onUpdate === 'function') {
+              callbacks.onUpdate(remoteApp, baseline);
+            }
+          }
+        } catch (e) {}
+      };
+
+      checkOnce();
+
+      if (_inAppPollTimer) clearInterval(_inAppPollTimer);
+      _inAppPollTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          checkOnce();
+        }
+      }, 45000);
+
+      if (!_inAppListenersBound) {
+        _inAppListenersBound = true;
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') checkOnce();
+        });
+        global.addEventListener('online', () => checkOnce());
+      }
+    }
+  };
+
   // In-App Security Gate & Floating Hub Switcher Pill
   function enforceAccessGate(appId, visibility = 'restricted') {
     const currentUser = auth.getCurrentUser();
@@ -701,11 +943,13 @@
         : '';
 
     pill.innerHTML = `
-      <a href="${hubUrl}" title="Back to RollupOS Hub" style="display:inline-flex;align-items:center;gap:5px;color:#38bdf8;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.1px;">
+      <a href="${hubUrl}" title="Back to RollupOS Hub" style="display:inline-flex;align-items:center;gap:5px;color:#38bdf8;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:0.1px;white-space:nowrap;">
         <span>←</span> <span>Rollup Hub</span>
       </a>
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+        <button id="rollup-ota-pill" title="A newer version of this app was published — tap to reload" style="display:none;align-items:center;gap:4px;background:linear-gradient(90deg,#b45309,#d97706);color:#fffbeb;border:1px solid #fbbf24;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 0 10px rgba(251,191,36,0.35);"></button>
         ${settingsBtnHtml}
+        <span id="rollup-pill-ver" style="font-size:9.5px;color:#475569;font-weight:700;white-space:nowrap;"></span>
         <span style="font-size:10px;color:#64748b;font-weight:700;" title="Signed in as ${currentUser.email}">
           ${currentUser.avatar || '👤'}
         </span>
@@ -722,10 +966,33 @@
       const cfgBtn = document.getElementById('rollup-pill-cfg');
       if (cfgBtn) cfgBtn.onclick = () => options.onOpenSettings();
     }
+
+    // Activate automatic OTA update watcher for this open mini-app
+    updates.startInAppWatcher(appId, {
+      onBaseline(base) {
+        const verEl = document.getElementById('rollup-pill-ver');
+        if (verEl && base && base.version) {
+          verEl.textContent = `v${base.version}`;
+        }
+      },
+      onUpdate(remoteApp) {
+        const otaBtn = document.getElementById('rollup-ota-pill');
+        const verEl = document.getElementById('rollup-pill-ver');
+        if (!otaBtn) return;
+        if (verEl) verEl.style.display = 'none';
+        otaBtn.style.display = 'inline-flex';
+        otaBtn.textContent = `⬆️ Out of Date • Update v${remoteApp.version}`;
+        otaBtn.onclick = async () => {
+          otaBtn.textContent = '⏳ Updating...';
+          otaBtn.disabled = true;
+          await updates.applyInAppReload(appId, remoteApp);
+        };
+      }
+    });
   }
 
   global.RollupBridge = {
-    version: '1.1.0',
+    version: '1.2.0',
     detectAppId,
     resolveHubRootUrl,
     resolveRegistryUrl,
@@ -735,6 +1002,7 @@
     vault,
     camera,
     files,
+    updates,
     enforceAccessGate,
     mountInAppConsolePill
   };

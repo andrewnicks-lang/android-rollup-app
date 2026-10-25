@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RollupOS — Automatic OTA Update Detection & Deterministic Build Hash Architecture</title>
+<style>
+  @page { size: letter; margin: 0.5in; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0f172a;
+    background: #ffffff;
+    margin: 0;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+  .hdr {
+    background: linear-gradient(135deg, #070b14, #1e293b);
+    color: #f8fafc;
+    padding: 18px 22px;
+    border-radius: 10px;
+    border-bottom: 4px solid #f59e0b;
+    margin-bottom: 16px;
+  }
+  .hdr-kicker {
+    font-size: 8.5pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+  }
+  .hdr h1 { margin: 4px 0 4px 0; font-size: 16.5pt; }
+  .hdr-sub { font-size: 9.5pt; color: #cbd5e1; }
+  h2 {
+    font-size: 12pt;
+    color: #0f172a;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 4px;
+    margin: 14px 0 8px 0;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .card-amber {
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 8pt;
+    font-weight: 800;
+  }
+  .b-amber { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+  .b-green { background: #dcfce7; color: #166534; border: 1px solid #22c55e; }
+  .b-blue { background: #e0f2fe; color: #075985; border: 1px solid #38bdf8; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.2pt;
+    margin-top: 6px;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #0f172a; color: #f8fafc; font-weight: 700; }
+  code {
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: Consolas, monospace;
+    font-size: 8.8pt;
+  }
+  ul { margin: 5px 0; padding-left: 18px; }
+  li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <div class="hdr">
+    <div class="hdr-kicker">RollupOS v1.2 • Over-The-Air (OTA) Telemetry &amp; Cache Governance</div>
+    <h1>Automatic App Update Detection &amp; Out-of-Date Notification System</h1>
+    <div class="hdr-sub">Deterministic SHA-256 Build Hashing • Service Worker Cache Bypass • Live Hub &amp; In-App Update Indicators</div>
+  </div>
+
+  <h2>1. How Users See Out-of-Date Apps (Two Live Surfaces)</h2>
+  <div class="grid-2">
+    <div class="card card-amber">
+      <strong>A. On the RollupOS Hub Launcher (<code>index.html</code>)</strong>
+      <ul>
+        <li><strong>Top OTA Banner:</strong> Lists all authorized apps with newer builds + a 1-tap <code>⬆️ Update All</code> button.</li>
+        <li><strong>App Card Badges:</strong> Cards transition automatically between <span class="badge b-blue">✨ Ready</span>, <span class="badge b-green">🟢 Up to Date</span>, and <span class="badge b-amber">🟠 vOld → vNew • ⬆️ Out of Date</span>.</li>
+        <li><strong>Auto-Check Triggers:</strong> Runs on Hub launch, every <strong>60s</strong> while visible, on phone unlock (<code>visibilitychange</code>), and on network reconnect (<code>online</code>).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>B. Inside Any Open Mini-App (<code>rollup-bridge.js v1.2.0</code>)</strong>
+      <ul>
+        <li><strong>29px Docked Top System Strip:</strong> Passively displays the active build version (<code>v1.3.0</code>) on the right side of the top strip.</li>
+        <li><strong>Live In-App Alert Pill:</strong> Polls every <strong>45s</strong> while open (and on phone unlock). The instant a new push lands on GitHub or LAN, an amber <code>⬆️ Out of Date • Update vX.Y.Z</code> pill lights up in the top strip.</li>
+        <li><strong>1-Tap Clean Reload:</strong> Purges stale CacheStorage entries for that app, updates the device ledger, and reloads cleanly.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2. 4-Pillar Systems Architecture &amp; Blind Spots Solved</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:24%;">Blind Spot / Trap</th>
+        <th style="width:36%;">Why Naive Version Checks Fail</th>
+        <th style="width:40%;">Deterministic RollupOS Solution</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Forgotten Manual Version Bumps</strong></td>
+        <td>Developers and AI coding sessions frequently edit <code>apps/&lt;id&gt;/index.html</code> and push without manually incrementing <code>"version"</code> in <code>registry.json</code>.</td>
+        <td><code>rollup.py stamp</code> &amp; <code>publish</code> deterministically hash every file in <code>apps/&lt;id&gt;/</code> (CRLF-normalized SHA-256 <code>build_hash</code>) and <strong>auto-bump the patch version</strong> whenever content changes.</td>
+      </tr>
+      <tr>
+        <td><strong>2. Service Worker Serving Stale <code>registry.json</code></strong></td>
+        <td>Standard PWA fetch handlers or browser HTTP caches return cached <code>registry.json</code> responses, blinding the phone to remote updates.</td>
+        <td><code>sw.js</code> explicitly routes any <code>?__ota=</code> probe straight to <code>fetch(req, { cache: 'no-store' })</code>, and <code>rollup.py serve</code> serves live in-memory hashes with <code>Cache-Control: no-store</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Multi-Session Git Lock Collisions</strong></td>
+        <td>Writing hashes to <code>registry.json</code> on disk during every local HTTP poll dirties the working tree while parallel agents are coding.</td>
+        <td>Local <code>GET /registry.json?__ota=...</code> computes hashes purely <strong>in-memory</strong> (cached by <code>mtime_ns</code>), writing to disk only on <code>rollup.py stamp</code> or <code>publish</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>4. APK Wrapper vs. Web Cartridge Split</strong></td>
+        <td>Users wonder if they must re-download <code>RollupOS.apk</code> whenever a mini-app changes.</td>
+        <td><strong>Zero APK reinstall required</strong> for mini-app, Hub, or Bridge updates (100% OTA). Only native Kotlin permission changes require a new APK (<code>hub.apk_version</code>).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Zero-Touch Developer Workflow</h2>
+  <div class="card">
+    <ul>
+      <li><strong>Cloud / GitHub Pages Push:</strong> Run <code>python rollup.py publish</code> — automatically stamps SHA-256 <code>build_hash</code> across all 7 mini-apps, auto-increments forgotten patch versions, updates <code>sw.js</code> (<code>CACHE_NAME = 'rollup-hub-&lt;etag&gt;'</code>), commits, and pushes.</li>
+      <li><strong>Instant Local LAN Testing (<code>http://192.168.86.47:8090</code>):</strong> Simply save any file inside <code>apps/&lt;id&gt;/</code> — within 45 seconds (or the instant you unlock/refocus your phone), the running app's top strip lights up with <code>⬆️ Out of Date • Update</code> even before pushing to GitHub!</li>
+    </ul>
+  </div>
+</body>
+</html>

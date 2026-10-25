@@ -9,7 +9,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
 <title>RollupOS — Multi-User Mobile App Hub</title>
-<script src="./bridge/rollup-bridge.js?v=1.1"></script>
+<script src="./bridge/rollup-bridge.js?v=1.2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
@@ -257,6 +257,32 @@
     align-items: center;
     gap: 5px;
   }
+  .app-card.outdated {
+    border-color: rgba(245, 158, 11, 0.8);
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.18), 0 8px 22px rgba(0, 0, 0, 0.4);
+  }
+  .app-ver.outdated {
+    background: #78350f;
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+  }
+  .launch-btn.outdated {
+    background: linear-gradient(135deg, #d97706, #ea580c);
+    color: #fffbeb;
+    box-shadow: 0 3px 10px rgba(234, 88, 12, 0.35);
+  }
+  .ota-banner {
+    margin: 10px 14px 2px 14px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #451a03, #78350f);
+    border: 1px solid #f59e0b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
   /* Admin Mode Cards */
   .admin-section {
     padding: 12px 14px;
@@ -450,7 +476,7 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <button class="btn-secondary" onclick="refreshOfflineCache()" title="Force pull latest code" style="padding:6px 9px;border-radius:99px;font-size:11px;border-color:#38bdf8;color:#38bdf8;">🔄 Update</button>
+          <button id="hdr-ota-btn" class="btn-secondary" onclick="handleHeaderUpdateBtn()" title="Auto-checking for app updates — tap to check or apply updates now" style="padding:6px 10px;border-radius:99px;font-size:11px;border-color:#38bdf8;color:#38bdf8;white-space:nowrap;">🔄 Check</button>
           <div class="user-pill" onclick="signOutHub()" title="Tap to Switch Google Account / Sign Out">
           <div class="avatar-circle" id="hdr-user-avatar">AN</div>
           <div style="font-size:11px;font-weight:700;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="hdr-user-name">User</div>
@@ -463,6 +489,7 @@
 
     <!-- TAB 1: MY APPS LAUNCHER -->
     <div id="hub-tab-apps">
+      <div id="hub-ota-banner" class="ota-banner" style="display:none;"></div>
       <div class="filter-bar" id="cat-filter-bar">
         <button class="filter-pill active" onclick="setCategoryFilter('ALL', this)">All Authorized Apps</button>
         <button class="filter-pill" onclick="setCategoryFilter('Sports & Analytics', this)">🏈 Sports &amp; Analytics</button>
@@ -583,6 +610,9 @@
 <script>
 let REGISTRY = null;
 let CURRENT_CAT = 'ALL';
+let HUB_BOOT_HASH = '';
+let HUB_SHELL_OUTDATED = false;
+let HUB_OTA_TIMER = null;
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -590,12 +620,166 @@ if ('serviceWorker' in navigator) {
 
 async function loadRegistry() {
   try {
-    const resp = await fetch('./registry.json?t=' + Date.now());
-    REGISTRY = await resp.json();
-    RollupBridge.auth.seedACLFromRegistry(REGISTRY);
+    REGISTRY = await RollupBridge.updates.fetchLiveRegistry();
+    if (!HUB_BOOT_HASH && REGISTRY && REGISTRY.hub && REGISTRY.hub.build_hash) {
+      HUB_BOOT_HASH = REGISTRY.hub.build_hash;
+      RollupBridge.updates.markHubInstalled(REGISTRY.hub.version, REGISTRY.hub.build_hash);
+    }
   } catch (e) {
-    REGISTRY = { apps: [] };
+    try {
+      const resp = await fetch('./registry.json');
+      REGISTRY = await resp.json();
+      RollupBridge.auth.seedACLFromRegistry(REGISTRY);
+    } catch (e2) {
+      REGISTRY = { apps: [] };
+    }
   }
+}
+
+function getOutdatedAuthorizedApps() {
+  const user = RollupBridge.auth.getCurrentUser();
+  if (!user || !REGISTRY || !Array.isArray(REGISTRY.apps)) return [];
+  return REGISTRY.apps.filter((app) => {
+    if (!RollupBridge.auth.canAccessApp(app.id, app.visibility)) return false;
+    const st = RollupBridge.updates.getAppStatus(app);
+    return st.hasUpdate;
+  });
+}
+
+function renderHubOtaState() {
+  const banner = document.getElementById('hub-ota-banner');
+  const hdrBtn = document.getElementById('hdr-ota-btn');
+  if (!banner || !hdrBtn) return;
+
+  const outdatedApps = getOutdatedAuthorizedApps();
+  const totalUpdates = outdatedApps.length + (HUB_SHELL_OUTDATED ? 1 : 0);
+
+  if (totalUpdates > 0) {
+    hdrBtn.style.background = '#78350f';
+    hdrBtn.style.borderColor = '#f59e0b';
+    hdrBtn.style.color = '#fde68a';
+    hdrBtn.textContent = `⬆️ Update (${totalUpdates})`;
+
+    const names = outdatedApps.map((a) => {
+      const st = RollupBridge.updates.getAppStatus(a);
+      const vLabel = (st.installedVersion && st.installedVersion !== 'prior' && st.installedVersion !== a.version)
+        ? `v${st.installedVersion} → v${a.version}`
+        : `v${a.version}`;
+      return `${a.icon || '📱'} ${a.title} (${vLabel})`;
+    });
+    if (HUB_SHELL_OUTDATED && REGISTRY && REGISTRY.hub) {
+      names.unshift(`🚀 RollupOS Hub Shell (v${REGISTRY.hub.version})`);
+    }
+
+    banner.style.display = 'flex';
+    banner.innerHTML = `
+      <div style="min-width:0;flex:1;">
+        <div style="font-size:12px;font-weight:800;color:#fef3c7;">
+          🟠 ${totalUpdates} Update${totalUpdates > 1 ? 's' : ''} Available (Out of Date)
+        </div>
+        <div style="font-size:11px;color:#fde68a;margin-top:2px;line-height:1.35;">
+          ${names.join(' • ')}
+        </div>
+      </div>
+      <button id="hub-ota-apply-btn" class="btn-primary" style="background:#f59e0b;color:#090d16;white-space:nowrap;padding:8px 12px;" onclick="applyAllOtaUpdates()">
+        ⬆️ Update All
+      </button>
+    `;
+  } else {
+    hdrBtn.style.background = '#052e16';
+    hdrBtn.style.borderColor = '#16a34a';
+    hdrBtn.style.color = '#86efac';
+    hdrBtn.textContent = '🟢 Up to Date';
+    banner.style.display = 'none';
+  }
+}
+
+async function checkHubOtaNow(manualFeedback = false) {
+  const hdrBtn = document.getElementById('hdr-ota-btn');
+  if (manualFeedback && hdrBtn) {
+    hdrBtn.textContent = '⏳ Checking...';
+  }
+  try {
+    const fresh = await RollupBridge.updates.fetchLiveRegistry();
+    if (fresh && fresh.apps) {
+      REGISTRY = fresh;
+      if (HUB_BOOT_HASH && fresh.hub && fresh.hub.build_hash && fresh.hub.build_hash !== HUB_BOOT_HASH) {
+        HUB_SHELL_OUTDATED = true;
+      }
+      if (RollupBridge.auth.getCurrentUser()) {
+        renderAppsDashboard();
+        renderHubOtaState();
+      }
+      if (manualFeedback && getOutdatedAuthorizedApps().length === 0 && !HUB_SHELL_OUTDATED && hdrBtn) {
+        hdrBtn.textContent = '✅ Checked Live';
+        setTimeout(() => renderHubOtaState(), 2200);
+      }
+    }
+  } catch (e) {
+    if (manualFeedback && hdrBtn) {
+      hdrBtn.textContent = '📴 Offline';
+      setTimeout(() => renderHubOtaState(), 2200);
+    }
+  }
+}
+
+async function handleHeaderUpdateBtn() {
+  const outdated = getOutdatedAuthorizedApps();
+  if (outdated.length > 0 || HUB_SHELL_OUTDATED) {
+    await applyAllOtaUpdates();
+  } else {
+    await checkHubOtaNow(true);
+  }
+}
+
+async function applyAllOtaUpdates() {
+  const applyBtn = document.getElementById('hub-ota-apply-btn');
+  if (applyBtn) {
+    applyBtn.textContent = '⏳ Updating...';
+    applyBtn.disabled = true;
+  }
+  const outdated = getOutdatedAuthorizedApps();
+  for (const app of outdated) {
+    await RollupBridge.updates.purgeAppCache(app.id, app.offline_assets || []);
+    RollupBridge.updates.markAppInstalled(app.id, app.version, app.build_hash);
+  }
+  if (HUB_SHELL_OUTDATED) {
+    if (REGISTRY && REGISTRY.hub) {
+      RollupBridge.updates.markHubInstalled(REGISTRY.hub.version, REGISTRY.hub.build_hash);
+    }
+    await refreshOfflineCache(true);
+    return;
+  }
+  renderAppsDashboard();
+  renderHubOtaState();
+}
+
+async function launchMiniApp(ev, appId) {
+  ev.preventDefault();
+  const app = ((REGISTRY && REGISTRY.apps) || []).find((a) => a.id === appId);
+  if (!app) return;
+  const ota = RollupBridge.updates.getAppStatus(app);
+  if (ota.hasUpdate) {
+    await RollupBridge.updates.purgeAppCache(app.id, app.offline_assets || []);
+  }
+  RollupBridge.updates.markAppInstalled(app.id, app.version, app.build_hash);
+  const targetUrl = `./${app.entry}?v=${encodeURIComponent(app.version || '1.0.0')}&h=${encodeURIComponent(app.build_hash || Date.now())}`;
+  window.location.href = targetUrl;
+}
+
+function startHubOtaPoller() {
+  if (HUB_OTA_TIMER) clearInterval(HUB_OTA_TIMER);
+  HUB_OTA_TIMER = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      checkHubOtaNow(false);
+    }
+  }, 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkHubOtaNow(false);
+    }
+  });
+  window.addEventListener('online', () => checkHubOtaNow(false));
 }
 
 function renderLoginScreen() {
@@ -745,18 +929,36 @@ function renderAppsDashboard() {
   grid.innerHTML = authorizedApps.map(app => {
     const userKeysCount = RollupBridge.storage.listKeys(app.id).length;
     const userCfg = RollupBridge.user.getAppConfig(app.id);
+    const ota = RollupBridge.updates.getAppStatus(app);
     const teamTag = (app.id === 'fantasy-manager' && userCfg && userCfg.team_name)
       ? `<span class="mini-badge" style="background:#172554;color:#93c5fd;border-color:#2563eb;">🏈 ${userCfg.team_name} (#${userCfg.team_id})</span>`
       : '';
 
+    let verPillHtml = `<span class="app-ver">v${app.version}</span>`;
+    let syncBadgeHtml = `<span class="mini-badge">🟢 Up to Date</span>`;
+    let launchLabel = 'Launch App ➔';
+
+    if (ota.hasUpdate) {
+      const verTransition = (ota.installedVersion && ota.installedVersion !== 'prior' && ota.installedVersion !== app.version)
+        ? `v${ota.installedVersion} → v${app.version}`
+        : `Update • v${app.version}`;
+      verPillHtml = `<span class="app-ver outdated">🟠 ${verTransition}</span>`;
+      syncBadgeHtml = `<span class="mini-badge" style="background:#451a03;color:#fde68a;border-color:#d97706;">⬆️ Out of Date</span>`;
+      launchLabel = '⬆️ Update &amp; Launch ➔';
+    } else if (ota.state === 'new') {
+      syncBadgeHtml = `<span class="mini-badge" style="background:#0c4a6e;color:#bae6fd;border-color:#0284c7;">✨ Ready • v${app.version}</span>`;
+    }
+
+    const hrefUrl = `./${app.entry}?v=${encodeURIComponent(app.version || '1.0.0')}&h=${encodeURIComponent(app.build_hash || Date.now())}`;
+
     return `
-      <div class="app-card">
+      <div class="app-card ${ota.hasUpdate ? 'outdated' : ''}">
         <div class="app-card-top">
-          <div class="app-icon-box" style="border-color:${app.accent || '#334155'};">${app.icon || '📱'}</div>
+          <div class="app-icon-box" style="border-color:${ota.hasUpdate ? '#f59e0b' : (app.accent || '#334155')};">${app.icon || '📱'}</div>
           <div class="app-meta">
             <div class="app-title-row">
               <span class="app-title">${app.title}</span>
-              <span class="app-ver">v${app.version}</span>
+              ${verPillHtml}
             </div>
             <div class="app-sub">${app.subtitle}</div>
             <div class="app-desc">${app.description}</div>
@@ -764,19 +966,20 @@ function renderAppsDashboard() {
         </div>
         <div class="app-footer">
           <div class="badge-row">
-            <span class="mini-badge">🟢 Offline Ready</span>
+            ${syncBadgeHtml}
             ${teamTag}
             <button class="btn-secondary" style="padding:3px 7px;font-size:10px;" onclick="clearMyAppData('${app.id}', '${app.title.replace(/'/g, "\\'")}')" title="Reset your isolated storage for this app">
               🧹 Data (${userKeysCount})
             </button>
           </div>
-          <a class="launch-btn" href="./${app.entry}?v=${encodeURIComponent(app.version || Date.now())}">
-            Launch App ➔
+          <a class="launch-btn ${ota.hasUpdate ? 'outdated' : ''}" href="${hrefUrl}" onclick="launchMiniApp(event, '${app.id}')">
+            ${launchLabel}
           </a>
         </div>
       </div>
     `;
   }).join('');
+  renderHubOtaState();
 }
 
 function clearMyAppData(appId, title) {
@@ -990,9 +1193,11 @@ function saveVaultSecrets() {
   setTimeout(() => { msg.style.display = 'none'; }, 3500);
 }
 
-async function refreshOfflineCache() {
+async function refreshOfflineCache(preserveLocalAcl = false) {
   try {
-    localStorage.removeItem('rollup::v1::hub::acl');
+    if (!preserveLocalAcl) {
+      localStorage.removeItem('rollup::v1::hub::acl');
+    }
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r => r.unregister()));
@@ -1045,6 +1250,7 @@ async function bootHub() {
     RollupBridge.auth.signInWithGoogleEmail('andrewnicks@gmail.com', 'Andrew Nicks');
   }
   renderHubApp();
+  startHubOtaPoller();
 }
 
 bootHub();
