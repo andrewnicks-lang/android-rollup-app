@@ -10,7 +10,7 @@
   "build_hash": "c9015163e7",
   "visibility": "restricted",
   "updated_at": "2026-10-26T15:03:07.425531",
-  "generated_at": "2026-10-26 15:13",
+  "generated_at": "2026-10-26 15:19",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -221,6 +221,11 @@
       "Encrypted On-Device Secret Vault"
     ],
     "recent_commits": [
+      {
+        "sha": "621ca1d",
+        "date": "2026-10-26",
+        "subject": "Auto-sync (NICKSANDREW/Heartbeat15m - 2026-10-26 15:15)"
+      },
       {
         "sha": "5d2f2a2",
         "date": "2026-10-24",
