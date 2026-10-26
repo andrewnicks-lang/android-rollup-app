@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.4",
-    "updated_at": "2026-10-25T10:06:53.244557",
+    "updated_at": "2026-10-26T11:00:42.404670",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -38,8 +38,8 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "http://192.168.86.47:8765",
-              "tailscale_workstation_url": "",
+              "primary_workstation_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+              "tailscale_workstation_url": "http://10.0.0.91:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
             "csc-site-discovery": {
@@ -104,37 +104,38 @@
     "apk_version": "1.0.0",
     "build_hash": "0a727a06bf",
     "stamped_version": "1.0.4",
-    "ota_etag": "00c98651fc"
+    "ota_etag": "94ae66f73f"
   },
   "apps": [
     {
       "id": "gravity-agent-monitor",
       "title": "Gravity Agent Monitor",
       "subtitle": "Live Antigravity Desktop Sidebar Replica, Trajectory & AgentAPI Bridge",
-      "description": "Real-time multi-workstation telemetry, bouncing/spinning/unread status indicators, Auxiliary Overview panel, and live 2-way prompt dispatch to DESKTOP-UHI3BO3 & Work PC.",
+      "description": "Real-time multi-workstation telemetry, collapsible thought/tool groups, and live 2-way prompt dispatch across HTTPS Tunnel & LAN.",
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.3.0",
+      "version": "1.3.2",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
-        "apps/gravity-agent-monitor/index.html"
+        "apps/gravity-agent-monitor/index.html",
+        "apps/gravity-agent-monitor/endpoints.json"
       ],
       "userConfigSchema": [
         {
           "key": "primary_workstation_url",
-          "label": "Primary Workstation Sidecar URL (LAN)",
+          "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "http://192.168.86.47:8765",
-          "defaultForAdmin": "http://192.168.86.47:8765"
+          "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+          "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
-          "label": "Tailscale Workstation URL (Optional)",
+          "label": "Secondary / Tailscale Workstation URL (Optional)",
           "type": "text",
-          "default": "",
-          "defaultForAdmin": ""
+          "default": "http://10.0.0.91:8765",
+          "defaultForAdmin": "http://10.0.0.91:8765"
         },
         {
           "key": "sidecar_token",
@@ -144,13 +145,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "0e11f8270e",
-      "stamped_version": "1.3.0",
-      "updated_at": "2026-10-25T09:33:07.205156",
+      "build_hash": "3da1ac6475",
+      "stamped_version": "1.3.2",
+      "updated_at": "2026-10-26T11:00:42.587497",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "0e11f8270e",
-      "manual_updated_at": "2026-10-25T09:33:08.362102"
+      "manual_source_hash": "3da1ac6475",
+      "manual_updated_at": "2026-10-26T11:00:45.851401"
     },
     {
       "id": "fantasy-manager",

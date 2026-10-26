@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-00c98651';
+const CACHE_NAME = 'rollup-hub-94ae66f7';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const CORE_ASSETS = [
   './assets/icon-512.png',
   './bridge/rollup-bridge.js',
   './apps/gravity-agent-monitor/index.html',
+  './apps/gravity-agent-monitor/endpoints.json',
   './manuals/gravity-agent-monitor_User_Manual.html',
   './apps/fantasy-manager/index.html',
   './apps/fantasy-manager/data/league_945552.json',

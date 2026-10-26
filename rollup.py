@@ -430,6 +430,14 @@ class RollupRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "ERROR", "error": str(exc)}).encode("utf-8"))
         return True
 
+    def end_headers(self) -> None:
+        clean_path = self.path.split("?")[0].lower()
+        if clean_path.endswith((".html", ".js", ".json")) or "/api/" in self.path or clean_path.endswith("/"):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_OPTIONS(self) -> None:
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
