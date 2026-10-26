@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-e5f04035';
+const CACHE_NAME = 'rollup-hub-bacfe437';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -30,7 +30,13 @@ const CORE_ASSETS = [
   './apps/shd-div2-intel/app.js',
   './manuals/shd-div2-intel_User_Manual.html',
   './apps/sapphire-companion/index.html',
-  './manuals/sapphire-companion_User_Manual.html'
+  './manuals/sapphire-companion_User_Manual.html',
+  './apps/lightning-garage/index.html',
+  './apps/lightning-garage/manifest.json',
+  './apps/lightning-garage/data/catalog_bundle.js',
+  './apps/lightning-garage/js/garage_engine.js',
+  './apps/lightning-garage/js/app.js',
+  './manuals/lightning-garage_User_Manual.html'
 ];
 
 self.addEventListener('install', (event) => {

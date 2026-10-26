@@ -1,0 +1,182 @@
+{
+  "app_id": "lightning-garage",
+  "title": "Lightning Garage",
+  "subtitle": "2023 F-150 Lightning ER Lariat \u2022 FORScan Menu, .abt/.ab Parser & VIN Companion",
+  "description": "100% Deterministic FORScan Mod Menu (59 F-150 recipes sorted by popularity & EV risk tier), ISO 3779 + NHTSA vPIC VIN Decoder (1FT6W1EV4PWG11434 Extended Range 131 kWh), .abt & Motorcraft .ab XML Importer/Differ, Live Nibble Mask & Checksum Engine, 87-Module Guide, and In-Cab Session Planner.",
+  "icon": "\u26a1",
+  "accent": "#38bdf8",
+  "category": "Automotive & Telemetry",
+  "version": "1.0.0",
+  "build_hash": "6fed71f75e",
+  "visibility": "restricted",
+  "updated_at": "2026-10-26T16:43:11.679912",
+  "generated_at": "2026-10-26 16:43",
+  "tagline": "2023 F-150 Lightning ER Lariat FORScan Mod Menu, Deterministic As-Built .abt/.ab Parser & Checksum Companion",
+  "quickstart": [
+    {
+      "step": "Verify Your Truck & VIN (`\u26a1 Truck & VIN`)",
+      "detail": "Launch Lightning Garage to view your pre-loaded 2023 F-150 Lightning ER Lariat (`1FT6W1EV4PWG11434`, 131 kWh Extended Range, 320 mi EPA). Tap `\ud83c\udf10 Verify w/ NHTSA vPIC` anytime to confirm factory BEV telemetry."
+    },
+    {
+      "step": "Load a Baseline (`.abt` / `.ab` or `\ud83e\uddea Demo Baseline`)",
+      "detail": "Tap `\ud83d\udcc2 Import .abt / .ab File` to load your real FORScan `.abt` module backups or Ford Motorcraft `.ab` XML\u2014or tap `\ud83e\uddea Load Demo Baseline` to preview live nibble mask and checksum dry-runs immediately."
+    },
+    {
+      "step": "Browse & Star Mods (`\ud83c\udf9b\ufe0f Mod Menu`)",
+      "detail": "Filter all 59 F-150 recipes by `\ud83d\udd25 Most Common (\u2605\u2605+)`, module (`726 BCM`, `7D0 APIM`, `720 IPC`, `740/741 DDM/PDM`), or Risk Tier (`T1 Cosmetic`, `T2 Behavior`, `T3 Locked`). Tap any card to inspect exact `BEFORE -> AFTER` hex bytes and recomputed checksums."
+    },
+    {
+      "step": "Run Your In-Cab FORScan Session (`\ud83d\udccb Session Plan`)",
+      "detail": "Open the `\ud83d\udccb Plan` tab in the truck cab with your OBDLink EX. Follow the 12V pre-flight checklist, verify every target module has a saved `.abt` backup, and copy or share your exact line-by-line write sheet."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\u26a1 Truck & VIN",
+      "purpose": "Offline ISO 3779 + NHTSA vPIC VIN decoder, readiness KPIs, 1-tap Demo Baseline loader, and JSON Vault export/import."
+    },
+    {
+      "screen": "\ud83c\udf9b\ufe0f Mod Menu (59 Recipes)",
+      "purpose": "Searchable FORScan mod catalog sorted by popularity and risk tier with live nibble-mask & checksum dry-run drawer."
+    },
+    {
+      "screen": "\ud83e\udde9 Modules (87 Addresses)",
+      "purpose": "Complete Ford control module directory (`726`, `7D0`, `720`, `706`, `7E7`, `746`, etc.) with EV notes, write-risk ratings, and backup evidence."
+    },
+    {
+      "screen": "\ud83d\udee1\ufe0f Backups & Factory .ab",
+      "purpose": "Pre-flight module backup coverage checker, `.abt`/`.ab` importer, Factory vs. Current byte drift differ, Motorcraft AsBuilt helper, and Checksum Calculator."
+    },
+    {
+      "screen": "\ud83d\udccb Session Plan",
+      "purpose": "Printable/shareable in-cab FORScan write sheet grouping required module backups and exact target hex lines."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "100% Deterministic Nibble Mask & Checksum Engine (`Code -> Never LLM`)",
+      "body": "Evaluates `set`, `bits`, and `offset` nibble operations across multi-step recipes with rolling same-address state compounding and recomputes exact Ford line checksums (`sum(header + data[:-1]) & 0xFF`)."
+    },
+    {
+      "title": "3-Tier Safety Gating & EV Applicability Filtering",
+      "body": "Automatically locks Tier 3 safety/HV/powertrain/ADAS modules (`7E7 BECM`, `746 SOBDMC`, `760 ABS`, `730 PSCM`, `706 IPMA`) and flags `ICE_ONLY` gas-engine recipes so they cannot be accidentally scheduled on your Lightning."
+    },
+    {
+      "title": "Ford Motorcraft `.ab` XML & FORScan `.abt` Diffing",
+      "body": "Parses both plain-text FORScan `.abt` backups and official Ford Motorcraft `.ab` XML files directly on your phone, surfacing byte-by-byte factory drift and hardware part numbers (`F111`, `F113`, `F188`)."
+    }
+  ],
+  "pro_tips": [
+    "Always save an untouched FORScan `.abt` backup of every target module before writing changes, and import the post-write `.abt` afterward to confirm exact byte matches.",
+    "Tap `\ud83d\udce4 Export Vault (.json)` on the Truck tab to back up your starred mods, personal notes, and imported `.abt`/`.ab` baselines across devices."
+  ],
+  "user_config_schema": [
+    {
+      "key": "default_vin",
+      "label": "Default 17-Character Truck VIN",
+      "type": "text",
+      "default": "1FT6W1EV4PWG11434",
+      "defaultForAdmin": "1FT6W1EV4PWG11434"
+    },
+    {
+      "key": "default_trim",
+      "label": "Default Trim Level",
+      "type": "text",
+      "default": "Lariat",
+      "defaultForAdmin": "Lariat"
+    },
+    {
+      "key": "default_battery",
+      "label": "Default HV Battery Pack",
+      "type": "text",
+      "default": "Extended Range (131 kWh)",
+      "defaultForAdmin": "Extended Range (131 kWh)"
+    }
+  ],
+  "offline_assets": [
+    "apps/lightning-garage/index.html",
+    "apps/lightning-garage/manifest.json",
+    "apps/lightning-garage/data/catalog_bundle.js",
+    "apps/lightning-garage/js/garage_engine.js",
+    "apps/lightning-garage/js/app.js"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "lightning-garage",
+    "file_inventory": [
+      "data/catalog_bundle.js",
+      "index.html",
+      "js/app.js",
+      "js/garage_engine.js",
+      "manifest.json"
+    ],
+    "tabs": [
+      "sec-truck",
+      "sec-mods",
+      "sec-modules",
+      "sec-backups",
+      "sec-plan",
+      "backups",
+      "mods",
+      "modules",
+      "plan",
+      "truck"
+    ],
+    "headings": [],
+    "buttons": [
+      {
+        "label": "\ud83d\udcd6 Guide",
+        "action": "RollupBridge && RollupBridge.manuals.open('lightning-garage')"
+      },
+      {
+        "label": "\u26a1 Truck & VIN",
+        "action": "switchTab('truck')"
+      },
+      {
+        "label": "\ud83c\udf9b\ufe0f Mod Menu (59)",
+        "action": "switchTab('mods')"
+      },
+      {
+        "label": "\ud83e\udde9 Modules (87)",
+        "action": "switchTab('modules')"
+      },
+      {
+        "label": "\ud83d\udee1\ufe0f Backups & Factory .ab",
+        "action": "switchTab('backups')"
+      },
+      {
+        "label": "\ud83d\udccb Session Plan (0)",
+        "action": "switchTab('plan')"
+      },
+      {
+        "label": "\ud83c\udf9b\ufe0f Mod Menu",
+        "action": "switchTab('mods')"
+      },
+      {
+        "label": "\ud83e\udde9 Modules",
+        "action": "switchTab('modules')"
+      },
+      {
+        "label": "\ud83d\udee1\ufe0f Backups/.ab",
+        "action": "switchTab('backups')"
+      },
+      {
+        "label": "\ud83d\udccb Plan (0)",
+        "action": "switchTab('plan')"
+      }
+    ],
+    "modals": [
+      "mod-detail-modal",
+      "mod-detail-content"
+    ],
+    "inputs": [],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)",
+      "Android Share Sheet & CSV/JSON Export"
+    ],
+    "recent_commits": []
+  }
+}

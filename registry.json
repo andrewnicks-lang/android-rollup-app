@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.5",
-    "updated_at": "2026-10-26T16:42:16.799914",
+    "version": "1.0.6",
+    "updated_at": "2026-10-26T16:45:08.449729",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -24,7 +24,8 @@
             "field-snap",
             "bridge-lab",
             "shd-div2-intel",
-            "csc-site-discovery"
+            "csc-site-discovery",
+            "lightning-garage"
           ],
           "default_app_configs": {
             "fantasy-manager": {
@@ -48,6 +49,11 @@
             },
             "sapphire-companion": {
               "sapphire_cloud_url": "http://127.0.0.1:8085"
+            },
+            "lightning-garage": {
+              "default_vin": "1FT6W1EV4PWG11434",
+              "default_trim": "Lariat",
+              "default_battery": "Extended Range (131 kWh)"
             }
           }
         },
@@ -102,9 +108,9 @@
       ]
     },
     "apk_version": "1.1.0",
-    "build_hash": "0ec73910a0",
-    "stamped_version": "1.0.5",
-    "ota_etag": "e5f0403547"
+    "build_hash": "2b3112af07",
+    "stamped_version": "1.0.6",
+    "ota_etag": "bacfe437e2"
   },
   "apps": [
     {
@@ -366,6 +372,55 @@
       "manual_html": "manuals/sapphire-companion_User_Manual.html",
       "manual_source_hash": "eea03fb812",
       "manual_updated_at": "2026-10-24T22:38:07.490073"
+    },
+    {
+      "id": "lightning-garage",
+      "title": "Lightning Garage",
+      "subtitle": "2023 F-150 Lightning ER Lariat \u2022 FORScan Menu, .abt/.ab Parser & VIN Companion",
+      "description": "100% Deterministic FORScan Mod Menu (59 F-150 recipes sorted by popularity & EV risk tier), ISO 3779 + NHTSA vPIC VIN Decoder (1FT6W1EV4PWG11434 Extended Range 131 kWh), .abt & Motorcraft .ab XML Importer/Differ, Live Nibble Mask & Checksum Engine, 87-Module Guide, and In-Cab Session Planner.",
+      "icon": "\u26a1",
+      "accent": "#38bdf8",
+      "category": "Automotive & Telemetry",
+      "version": "1.0.0",
+      "entry": "apps/lightning-garage/index.html",
+      "visibility": "restricted",
+      "offline_assets": [
+        "apps/lightning-garage/index.html",
+        "apps/lightning-garage/manifest.json",
+        "apps/lightning-garage/data/catalog_bundle.js",
+        "apps/lightning-garage/js/garage_engine.js",
+        "apps/lightning-garage/js/app.js"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "default_vin",
+          "label": "Default 17-Character Truck VIN",
+          "type": "text",
+          "default": "1FT6W1EV4PWG11434",
+          "defaultForAdmin": "1FT6W1EV4PWG11434"
+        },
+        {
+          "key": "default_trim",
+          "label": "Default Trim Level",
+          "type": "text",
+          "default": "Lariat",
+          "defaultForAdmin": "Lariat"
+        },
+        {
+          "key": "default_battery",
+          "label": "Default HV Battery Pack",
+          "type": "text",
+          "default": "Extended Range (131 kWh)",
+          "defaultForAdmin": "Extended Range (131 kWh)"
+        }
+      ],
+      "build_hash": "6fed71f75e",
+      "stamped_version": "1.0.0",
+      "updated_at": "2026-10-26T16:43:11.679912",
+      "manual_pdf": "manuals/lightning-garage_User_Manual.pdf",
+      "manual_html": "manuals/lightning-garage_User_Manual.html",
+      "manual_source_hash": "6fed71f75e",
+      "manual_updated_at": "2026-10-26T16:43:12.968588"
     }
   ]
 }

@@ -490,6 +490,52 @@ CURATED_BASELINES: Dict[str, Dict[str, Any]] = {
         "pro_tips": [
             "Use `👁️ Preview as User` in Hub Admin Mode first, then check which apps remain visible—confirming `admin_only` cartridges like Bridge Lab stay hidden from testers."
         ]
+    },
+    "lightning-garage": {
+        "tagline": "2023 F-150 Lightning ER Lariat FORScan Mod Menu, Deterministic As-Built .abt/.ab Parser & Checksum Companion",
+        "quickstart": [
+            {
+                "step": "Verify Your Truck & VIN (`⚡ Truck & VIN`)",
+                "detail": "Launch Lightning Garage to view your pre-loaded 2023 F-150 Lightning ER Lariat (`1FT6W1EV4PWG11434`, 131 kWh Extended Range, 320 mi EPA). Tap `🌐 Verify w/ NHTSA vPIC` anytime to confirm factory BEV telemetry."
+            },
+            {
+                "step": "Load a Baseline (`.abt` / `.ab` or `🧪 Demo Baseline`)",
+                "detail": "Tap `📂 Import .abt / .ab File` to load your real FORScan `.abt` module backups or Ford Motorcraft `.ab` XML—or tap `🧪 Load Demo Baseline` to preview live nibble mask and checksum dry-runs immediately."
+            },
+            {
+                "step": "Browse & Star Mods (`🎛️ Mod Menu`)",
+                "detail": "Filter all 59 F-150 recipes by `🔥 Most Common (★★+)`, module (`726 BCM`, `7D0 APIM`, `720 IPC`, `740/741 DDM/PDM`), or Risk Tier (`T1 Cosmetic`, `T2 Behavior`, `T3 Locked`). Tap any card to inspect exact `BEFORE -> AFTER` hex bytes and recomputed checksums."
+            },
+            {
+                "step": "Run Your In-Cab FORScan Session (`📋 Session Plan`)",
+                "detail": "Open the `📋 Plan` tab in the truck cab with your OBDLink EX. Follow the 12V pre-flight checklist, verify every target module has a saved `.abt` backup, and copy or share your exact line-by-line write sheet."
+            }
+        ],
+        "navigation_map": [
+            {"screen": "⚡ Truck & VIN", "purpose": "Offline ISO 3779 + NHTSA vPIC VIN decoder, readiness KPIs, 1-tap Demo Baseline loader, and JSON Vault export/import."},
+            {"screen": "🎛️ Mod Menu (59 Recipes)", "purpose": "Searchable FORScan mod catalog sorted by popularity and risk tier with live nibble-mask & checksum dry-run drawer."},
+            {"screen": "🧩 Modules (87 Addresses)", "purpose": "Complete Ford control module directory (`726`, `7D0`, `720`, `706`, `7E7`, `746`, etc.) with EV notes, write-risk ratings, and backup evidence."},
+            {"screen": "🛡️ Backups & Factory .ab", "purpose": "Pre-flight module backup coverage checker, `.abt`/`.ab` importer, Factory vs. Current byte drift differ, Motorcraft AsBuilt helper, and Checksum Calculator."},
+            {"screen": "📋 Session Plan", "purpose": "Printable/shareable in-cab FORScan write sheet grouping required module backups and exact target hex lines."}
+        ],
+        "deep_dive_features": [
+            {
+                "title": "100% Deterministic Nibble Mask & Checksum Engine (`Code -> Never LLM`)",
+                "body": "Evaluates `set`, `bits`, and `offset` nibble operations across multi-step recipes with rolling same-address state compounding and recomputes exact Ford line checksums (`sum(header + data[:-1]) & 0xFF`)."
+            },
+            {
+                "title": "3-Tier Safety Gating & EV Applicability Filtering",
+                "body": "Automatically locks Tier 3 safety/HV/powertrain/ADAS modules (`7E7 BECM`, `746 SOBDMC`, `760 ABS`, `730 PSCM`, `706 IPMA`) and flags `ICE_ONLY` gas-engine recipes so they cannot be accidentally scheduled on your Lightning."
+            },
+            {
+                "title": "Ford Motorcraft `.ab` XML & FORScan `.abt` Diffing",
+                "body": "Parses both plain-text FORScan `.abt` backups and official Ford Motorcraft `.ab` XML files directly on your phone, surfacing byte-by-byte factory drift and hardware part numbers (`F111`, `F113`, `F188`)."
+            }
+        ],
+        "pro_tips": [
+            "Always save an untouched FORScan `.abt` backup of every target module before writing changes, and import the post-write `.abt` afterward to confirm exact byte matches.",
+            "Tap `📤 Export Vault (.json)` on the Truck tab to back up your starred mods, personal notes, and imported `.abt`/`.ab` baselines across devices."
+        ]
     }
 }
 

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lightning Garage — RollupOS User Manual (v1.0.0)</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.48in 0.5in;
+  }
+  :root {
+    --accent: #38bdf8;
+    --bg-page: #070b14;
+    --bg-card: #111827;
+    --bg-subtle: #0f172a;
+    --text-main: #f8fafc;
+    --text-sec: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border: #1e293b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-main);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .manual-shell {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .screen-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+  .pdf-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #0284c7;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border-left: 5px solid var(--accent);
+    border-top: 1px solid #334155;
+    border-right: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 16px;
+  }
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .hero-kicker {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #38bdf8;
+  }
+  .hero h1 {
+    margin: 4px 0 4px 0;
+    font-size: 21px;
+    letter-spacing: -0.3px;
+  }
+  .hero-sub {
+    font-size: 12.5px;
+    color: #cbd5e1;
+  }
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+    font-size: 10.5px;
+  }
+  .meta-pill {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 700;
+  }
+  h2 {
+    font-size: 14.5px;
+    margin: 18px 0 9px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-main);
+    page-break-after: avoid;
+  }
+  .step-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .step-card {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    page-break-inside: avoid;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 99px;
+    background: var(--accent);
+    color: #070b14;
+    font-weight: 900;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-title {
+    font-weight: 800;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.8px;
+    margin-top: 6px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 7px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #0f172a;
+    color: #f8fafc;
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .feature-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 9px;
+    padding: 10px 13px;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  .feature-box h3 {
+    margin: 0 0 4px 0;
+    font-size: 13px;
+  }
+  .feature-box p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  .subtle-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-sec);
+    page-break-inside: avoid;
+  }
+  .delta-callout {
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid #f59e0b;
+    border-radius: 9px;
+    padding: 9px 12px;
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .chip {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #bae6fd;
+  }
+  .chip-muted {
+    background: var(--bg-subtle);
+    border-color: var(--border);
+    color: var(--text-sec);
+  }
+  code {
+    font-family: Consolas, 'SFMono-Regular', monospace;
+    font-size: 11px;
+    background: rgba(148, 163, 184, 0.16);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  ul {
+    margin: 6px 0;
+    padding-left: 19px;
+  }
+  li {
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+  .muted { color: var(--text-muted); }
+  .footer-stamp {
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 10.5px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Clean Executive Print Stylesheet for Edge Headless PDF Generation */
+  @media print {
+    :root {
+      --bg-page: #ffffff;
+      --bg-card: #f8fafc;
+      --bg-subtle: #f1f5f9;
+      --text-main: #0f172a;
+      --text-sec: #334155;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+    }
+    body {
+      padding: 0;
+      font-size: 9.8pt;
+      line-height: 1.42;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .screen-toolbar { display: none !important; }
+    .hero {
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    th, .step-num {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .step-num { color: #ffffff; background: #0f172a; }
+    .chip {
+      background: #e0f2fe;
+      border-color: #0284c7;
+      color: #075985;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .chip-muted {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    code {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="manual-shell">
+  <div class="screen-toolbar">
+    <span style="font-size:11.5px;font-weight:700;color:#93c5fd;">📖 RollupOS Auto-Maintained Application Manual</span>
+    <a class="pdf-dl-btn" href="./lightning-garage_User_Manual.pdf?h=6fed71f75e" target="_blank">📄 Open / Download Official PDF</a>
+  </div>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-kicker">RollupOS Application User Manual • Automotive &amp; Telemetry</div>
+        <h1>⚡ Lightning Garage</h1>
+        <div class="hero-sub">2023 F-150 Lightning ER Lariat FORScan Mod Menu, Deterministic As-Built .abt/.ab Parser &amp; Checksum Companion</div>
+      </div>
+    </div>
+    <div class="meta-strip">
+      <span class="meta-pill">Version: v1.0.0</span>
+      <span class="meta-pill">Build Hash: #6fed71f7</span>
+      <span class="meta-pill">🔒 Per-User Authorized Cartridge</span>
+      <span class="meta-pill">Auto-Synced: 2026-10-26 16:43</span>
+    </div>
+  </div>
+
+  
+
+  <h2>1. ⚡ 60-Second Quickstart Guide</h2>
+  <div class="step-grid">
+    
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Verify Your Truck &amp; VIN (`⚡ Truck &amp; VIN`)</div>
+            <div class="step-desc">Launch Lightning Garage to view your pre-loaded 2023 F-150 Lightning ER Lariat (`1FT6W1EV4PWG11434`, 131 kWh Extended Range, 320 mi EPA). Tap `🌐 Verify w/ NHTSA vPIC` anytime to confirm factory BEV telemetry.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Load a Baseline (`.abt` / `.ab` or `🧪 Demo Baseline`)</div>
+            <div class="step-desc">Tap `📂 Import .abt / .ab File` to load your real FORScan `.abt` module backups or Ford Motorcraft `.ab` XML—or tap `🧪 Load Demo Baseline` to preview live nibble mask and checksum dry-runs immediately.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Browse &amp; Star Mods (`🎛️ Mod Menu`)</div>
+            <div class="step-desc">Filter all 59 F-150 recipes by `🔥 Most Common (★★+)`, module (`726 BCM`, `7D0 APIM`, `720 IPC`, `740/741 DDM/PDM`), or Risk Tier (`T1 Cosmetic`, `T2 Behavior`, `T3 Locked`). Tap any card to inspect exact `BEFORE -&gt; AFTER` hex bytes and recomputed checksums.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Run Your In-Cab FORScan Session (`📋 Session Plan`)</div>
+            <div class="step-desc">Open the `📋 Plan` tab in the truck cab with your OBDLink EX. Follow the 12V pre-flight checklist, verify every target module has a saved `.abt` backup, and copy or share your exact line-by-line write sheet.</div>
+          </div>
+        </div>
+  </div>
+
+  <h2>2. 🧭 Screen-by-Screen &amp; Navigation Map</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%;">Screen / Tab / Modal</th>
+        <th>What It Controls &amp; How to Use It</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">⚡ Truck &amp; VIN</td>
+          <td>Offline ISO 3779 + NHTSA vPIC VIN decoder, readiness KPIs, 1-tap Demo Baseline loader, and JSON Vault export/import.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🎛️ Mod Menu (59 Recipes)</td>
+          <td>Searchable FORScan mod catalog sorted by popularity and risk tier with live nibble-mask &amp; checksum dry-run drawer.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🧩 Modules (87 Addresses)</td>
+          <td>Complete Ford control module directory (`726`, `7D0`, `720`, `706`, `7E7`, `746`, etc.) with EV notes, write-risk ratings, and backup evidence.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">🛡️ Backups &amp; Factory .ab</td>
+          <td>Pre-flight module backup coverage checker, `.abt`/`.ab` importer, Factory vs. Current byte drift differ, Motorcraft AsBuilt helper, and Checksum Calculator.</td>
+        </tr>
+
+        <tr>
+          <td style="font-weight:700;white-space:nowrap;">📋 Session Plan</td>
+          <td>Printable/shareable in-cab FORScan write sheet grouping required module backups and exact target hex lines.</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <h2>3. 🔬 In-Depth Feature Guide &amp; Workflows</h2>
+  
+        <div class="feature-box">
+          <h3>100% Deterministic Nibble Mask &amp; Checksum Engine (`Code -&gt; Never LLM`)</h3>
+          <p>Evaluates `set`, `bits`, and `offset` nibble operations across multi-step recipes with rolling same-address state compounding and recomputes exact Ford line checksums (`sum(header + data[:-1]) &amp; 0xFF`).</p>
+        </div>
+
+        <div class="feature-box">
+          <h3>3-Tier Safety Gating &amp; EV Applicability Filtering</h3>
+          <p>Automatically locks Tier 3 safety/HV/powertrain/ADAS modules (`7E7 BECM`, `746 SOBDMC`, `760 ABS`, `730 PSCM`, `706 IPMA`) and flags `ICE_ONLY` gas-engine recipes so they cannot be accidentally scheduled on your Lightning.</p>
+        </div>
+
+        <div class="feature-box">
+          <h3>Ford Motorcraft `.ab` XML &amp; FORScan `.abt` Diffing</h3>
+          <p>Parses both plain-text FORScan `.abt` backups and official Ford Motorcraft `.ab` XML files directly on your phone, surfacing byte-by-byte factory drift and hardware part numbers (`F111`, `F113`, `F188`).</p>
+        </div>
+
+  <h2>4. ⚙️ Settings, Secret Vault &amp; Multi-User Data Isolation</h2>
+  
+        <table>
+          <thead>
+            <tr>
+              <th>Setting Key</th>
+              <th>Field Description</th>
+              <th>Type</th>
+              <th>Default</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>default_vin</code></td>
+              <td style="font-weight:600;">Default 17-Character Truck VIN</td>
+              <td><code>text</code></td>
+              <td><code>1FT6W1EV4PWG11434</code></td>
+            </tr>
+
+            <tr>
+              <td><code>default_trim</code></td>
+              <td style="font-weight:600;">Default Trim Level</td>
+              <td><code>text</code></td>
+              <td><code>Lariat</code></td>
+            </tr>
+
+            <tr>
+              <td><code>default_battery</code></td>
+              <td style="font-weight:600;">Default HV Battery Pack</td>
+              <td><code>text</code></td>
+              <td><code>Extended Range (131 kWh)</code></td>
+            </tr></tbody>
+        </table>
+  <div class="subtle-box" style="margin-top:8px;">
+    <div><strong>🔒 Storage Namespace Pattern:</strong> <code>rollup::v1::u::&lt;google-email&gt;::app::lightning-garage::*</code></div>
+    <div style="margin-top:4px;"><strong>📦 Active App Storage Keys:</strong> <code>__user_config__</code> (Managed automatically)</div>
+    <div style="margin-top:4px;"><strong>🔐 Private On-Device Vault Secrets:</strong> None required (uses Hub session)</div>
+    <div class="chip-wrap"><span class="chip">Isolated Per-User Storage (RollupBridge)</span><span class="chip">Android Share Sheet &amp; CSV/JSON Export</span></div>
+  </div>
+
+  <h2>5. 🎛️ Live UI Controls Reference &amp; Recent Updates</h2>
+  <div class="subtle-box">
+    <div style="font-weight:700;margin-bottom:4px;">Interactive Controls Detected in Current Build (<code>v1.0.0</code>):</div>
+    <div class="chip-wrap"><span class="chip chip-muted">📖 Guide</span><span class="chip chip-muted">⚡ Truck &amp; VIN</span><span class="chip chip-muted">🎛️ Mod Menu (59)</span><span class="chip chip-muted">🧩 Modules (87)</span><span class="chip chip-muted">🛡️ Backups &amp; Factory .ab</span><span class="chip chip-muted">📋 Session Plan (0)</span><span class="chip chip-muted">🎛️ Mod Menu</span><span class="chip chip-muted">🧩 Modules</span><span class="chip chip-muted">🛡️ Backups/.ab</span><span class="chip chip-muted">📋 Plan (0)</span></div>
+    <div style="font-weight:700;margin:10px 0 4px 0;">Pro Tips &amp; Best Practices:</div>
+    <ul><li>Always save an untouched FORScan `.abt` backup of every target module before writing changes, and import the post-write `.abt` afterward to confirm exact byte matches.</li>
+<li>Tap `📤 Export Vault (.json)` on the Truck tab to back up your starred mods, personal notes, and imported `.abt`/`.ab` baselines across devices.</li></ul>
+    <div style="font-weight:700;margin:10px 0 4px 0;">Recent Cartridge Update Log (Auto-Tracked on Publish):</div>
+    <ul><li>Initial stamped cartridge release in RollupOS Hub.</li></ul>
+  </div>
+
+  <div class="footer-stamp">
+    <span>RollupOS Automated Documentation Engine • Cartridge ID: <code>lightning-garage</code></span>
+    <span>Canonical PDF: <code>manuals/lightning-garage_User_Manual.pdf</code></span>
+  </div>
+</div>
+</body>
+</html>
