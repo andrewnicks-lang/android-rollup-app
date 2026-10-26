@@ -7,10 +7,10 @@
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
   "version": "1.3.3",
-  "build_hash": "667e67b2ec",
+  "build_hash": "2bac957ff7",
   "visibility": "admin_only",
-  "updated_at": "2026-10-26T16:37:56.490240",
-  "generated_at": "2026-10-26 16:37",
+  "updated_at": "2026-10-26T16:40:40.885862",
+  "generated_at": "2026-10-26 16:40",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -93,10 +93,7 @@
     "apps/gravity-agent-monitor/index.html",
     "apps/gravity-agent-monitor/endpoints.json"
   ],
-  "newly_added_buttons": [
-    "\u2190",
-    "\ud83d\udccb"
-  ],
+  "newly_added_buttons": [],
   "ai_release_note": null,
   "inspected": {
     "app_id": "gravity-agent-monitor",
