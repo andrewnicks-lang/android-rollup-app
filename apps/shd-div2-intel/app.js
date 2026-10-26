@@ -13,6 +13,9 @@ let APP_STATE = {
   expertise: { expertise_level: 30, total_proficient: 413, total_items: 500, missing_count: 87, categories: [], items: [] },
   selectedBuildId: null,
   activeWorkbench: null,
+  wbCombatMode: "MAX_STACKS",
+  wbCoyoteBand: "MID_15_25M",
+  wbCompareTargetId: "NONE",
 };
 
 const SLOTS_ORDER = ["MASK", "BACKPACK", "CHEST", "GLOVES", "HOLSTER", "KNEEPADS"];
@@ -268,6 +271,37 @@ function renderBuildMatrix() {
         </div>`
       : "";
 
+  const bal = tel.ballistics || null;
+  const matrixBallisticsHtml = bal
+    ? `
+    <div style="margin-top:10px;padding:9px 11px;background:#10192b;border:1px solid var(--border);border-left:3px solid var(--shd-orange);border-radius:6px;">
+      <div style="font-size:10.5px;font-weight:800;color:var(--shd-orange);margin-bottom:5px;text-transform:uppercase;">
+        🎯 BALLISTICS &amp; TTK (${bal.weapon_name} // EXP ${bal.expertise_grade})
+      </div>
+      <div class="telemetry-row" style="padding:3px 0;">
+        <span style="color:var(--text-muted);">Burst DPS (Max Stacks)</span>
+        <strong style="color:#ffffff;">${(bal.burst_dps / 1000000).toFixed(2)}M / sec</strong>
+      </div>
+      <div class="telemetry-row" style="padding:3px 0;">
+        <span style="color:var(--text-muted);">Sustained DPS (w/ Reload)</span>
+        <strong style="color:#34d399;">${(bal.sustain_dps / 1000000).toFixed(2)}M / sec</strong>
+      </div>
+      ${
+        bal.pesti_max_tick > 0
+          ? `<div class="telemetry-row" style="padding:3px 0;">
+               <span style="color:#fbbf24;">☣️ Pestilence 50x Plague Tick</span>
+               <strong style="color:#fbbf24;">${(bal.pesti_max_tick / 1000000).toFixed(2)}M / sec</strong>
+             </div>`
+          : ""
+      }
+      <div class="telemetry-row" style="padding:3px 0;border-bottom:none;">
+        <span style="color:var(--text-muted);">Heroic 4P Named Elite TTK</span>
+        <strong style="color:#38bdf8;">${bal.heroic_elite_ttk_sec}s (29.5M EHP)</strong>
+      </div>
+    </div>
+  `
+    : "";
+
   document.getElementById("active-build-telemetry").innerHTML = `
     <div class="core-pills">
       <div class="core-box core-red">${tel.cores.RED} RED</div>
@@ -299,6 +333,8 @@ function renderBuildMatrix() {
       <span style="color:var(--text-muted);">Estimated Total Armor</span>
       <strong style="color:#60a5fa;">${tel.armor_total}</strong>
     </div>
+
+    ${matrixBallisticsHtml}
 
     <div style="margin-top:14px;margin-bottom:6px;font-weight:800;font-size:11px;color:var(--shd-orange);text-transform:uppercase;">
       🔧 TINKERING BENCH ACTION RECIPE
@@ -368,23 +404,35 @@ function renderCountdownRadar() {
     return;
   }
   el.innerHTML = radar
-    .map(
-      (r, idx) => `
-    <div class="slot-card" style="border-top:3px solid var(--shd-orange);">
+    .map((r, idx) => {
+      const dp = r.drop_pool || "COUNTDOWN_OPEN_WORLD";
+      const isDzExcl = dp === "DZ_NAMED_CACHE_ONLY" || dp === "CRAFTED_HUNTER_EXCLUSIVE";
+      const borderCol = isDzExcl ? "#ef4444" : "var(--shd-orange)";
+      const dpBadge = isDzExcl
+        ? `<div style="margin-top:6px;padding:4px 7px;background:rgba(239,68,68,0.16);border:1px solid #ef4444;border-radius:4px;color:#fca5a5;font-size:10.5px;font-weight:800;">
+             ${r.acquisition_hint || "⚠️ DZ / Named Item Cache Exclusive — Does NOT drop from Countdown Brand Targeted Loot!"}
+           </div>`
+        : `<div style="margin-top:6px;padding:3px 7px;background:rgba(16,185,129,0.14);border:1px solid #10b981;border-radius:4px;color:#6ee7b7;font-size:10.5px;font-weight:700;">
+             ✔ ${r.acquisition_hint || `Safe to set Countdown Targeted Loot to ${r.target_loot}`}
+           </div>`;
+
+      return `
+    <div class="slot-card" style="border-top:3px solid ${borderCol};">
       <div class="slot-head">
         <span>PRIORITY #${idx + 1} TARGETED LOOT</span>
         <span class="status-badge st-tinker">UNLOCKS ${r.builds_unlocked.length} BUILD(S)</span>
       </div>
       <div class="slot-title" style="font-size:16px;color:var(--shd-orange);margin-top:6px;">🎯 ${r.target_loot}</div>
+      ${dpBadge}
       <div style="font-size:12px;color:var(--text-main);margin:8px 0;">
-        Set your Countdown / Summit Targeted Loot to <strong>${r.target_loot}</strong> to fill <strong>${r.missing_count} missing slot(s)</strong>:
+        Needed across <strong>${r.missing_count} missing slot(s)</strong>:
       </div>
       <ul style="margin:4px 0 0 0;padding-left:18px;color:var(--text-muted);font-size:11.5px;">
         ${r.slots_needed.map((s) => `<li style="margin-bottom:3px;">${s}</li>`).join("")}
       </ul>
     </div>
-  `
-    )
+  `;
+    })
     .join("");
 }
 
@@ -655,8 +703,6 @@ function renderBackupModalContent() {
       </div>
       <button class="btn-action" onclick="closeBackupModal()">✕ Close</button>
     </div>
-
-    ${window.RollupBridge && window.RollupBridge.manuals ? window.RollupBridge.manuals.renderSettingsCardHtml('shd-div2-intel', 'SHD Build Intelligence Manual') : ''}
 
     <!-- Section 0: Android Rollup Hub Cartridge & PC Sync -->
     <div style="background:linear-gradient(135deg, rgba(255,107,0,0.14), rgba(15,23,42,0.95));border:1px solid var(--shd-orange);border-radius:6px;padding:12px;margin-bottom:14px;">
@@ -994,6 +1040,8 @@ function createNewBlankWorkbench() {
     primary_weapon: "Pestilence (Exotic LMG)",
     secondary_weapon: "Lexington (Named AR)",
     sidearm: "Orbit",
+    weapon_expertise: 30,
+    gear_mods: ["MOD_CHC", "MOD_CHD", "MOD_CHD"],
     skill_1: "Reviver Hive",
     skill_2: "Crusader Shield",
     notes: "Custom theorycrafted workbench build.",
@@ -1036,9 +1084,7 @@ function cloneAdminShowcaseLoadout(loadoutId) {
   showToast(`Cloned Admin Showcase '${found.name}' into your Workbench! Click Save to keep it in your Locker.`);
 }
 
-function cloneMatrixBuildToWorkbench(buildId) {
-  const b = (APP_STATE.solver.builds || []).find((x) => x.build_id === buildId);
-  if (!b) return;
+function _convertMatrixBuildToWorkbenchObject(b) {
   const slots = {};
   SLOTS_ORDER.forEach((s) => {
     const sObj = b.slots[s];
@@ -1076,21 +1122,456 @@ function cloneMatrixBuildToWorkbench(buildId) {
     }
   });
 
-  APP_STATE.activeWorkbench = {
+  return {
     loadout_id: null,
     name: `${b.name} (Workbench Copy)`,
     specialization: b.specialization.split(" (")[0],
-    primary_weapon: b.primary_weapons[0] || "St. Elmo's Engine",
-    secondary_weapon: b.primary_weapons[1] || "ACS-12",
+    primary_weapon: b.primary_weapons[0] || "St. Elmo's Engine (Exotic AR)",
+    secondary_weapon: b.primary_weapons[1] || "ACS-12 / Rock n' Roll (Stack Shotgun)",
     sidearm: "Orbit",
+    weapon_expertise: 30,
+    gear_mods: ["MOD_CHC", "MOD_CHD", "MOD_CHD"],
     skill_1: "Reviver Hive",
     skill_2: "Crusader Shield",
     notes: b.summary,
     slots,
   };
+}
+
+function cloneMatrixBuildToWorkbench(buildId) {
+  const b = (APP_STATE.solver.builds || []).find((x) => x.build_id === buildId);
+  if (!b) return;
+  APP_STATE.activeWorkbench = _convertMatrixBuildToWorkbenchObject(b);
   switchView("workbench");
   renderWorkbench();
   showToast(`Loaded '${b.name}' into the Interactive Workbench!`);
+}
+
+function computeWorkbenchTelemetryAndBallistics(wbSpec, combatMode, coyoteBand) {
+  const brandCounts = {};
+  let hasNinjabike = false;
+  let cores = { RED: 0, BLUE: 0, YELLOW: 0 };
+  let chcBase = 10.0; // SHD Watch +10% CHC
+  let chdBase = 45.0; // Base 25% + SHD Watch 20% CHD
+  let hsdBase = 75.0; // Base 55% + SHD Watch 20% HSD
+  let awd = 10.0; // SHD Watch +10% WD
+  let dta = 0.0;
+  let dttooc = 0.0;
+  let pfe = 0.0;
+  let skillHaste = 10.0;
+  let skillRepair = 10.0;
+  let armor = 726000;
+  const talentsList = [];
+
+  if ((wbSpec.specialization || "").includes("Technician")) cores.YELLOW += 1;
+
+  SLOTS_ORDER.forEach((s) => {
+    const sl = (wbSpec.slots || {})[s];
+    if (!sl) return;
+    const bName = sl.brand_or_set || "";
+    const iName = sl.item_name || "";
+    if (sl.talent) talentsList.push(sl.talent);
+    if (iName) talentsList.push(iName);
+
+    if (bName.toLowerCase().includes("ninjabike") || iName.toLowerCase().includes("ninjabike")) {
+      hasNinjabike = true;
+      cores.RED += 1;
+      cores.BLUE += 1;
+      cores.YELLOW += 1;
+      awd += 15.0;
+      armor += 170000;
+    } else if (bName.toLowerCase().includes("memento") || iName.toLowerCase().includes("memento")) {
+      cores.RED += 1;
+      cores.BLUE += 1;
+      cores.YELLOW += 1;
+      awd += 15.0;
+      armor += 170000;
+      talentsList.push("Kill Confirmed");
+    } else {
+      brandCounts[bName] = (brandCounts[bName] || 0) + 1;
+      if (sl.core_type === "WEAPON_DAMAGE") {
+        cores.RED += 1;
+        awd += parseFloat(sl.core_val || 15.0);
+      } else if (sl.core_type === "ARMOR") {
+        cores.BLUE += 1;
+        armor += parseFloat(sl.core_val || 170000);
+      } else {
+        cores.YELLOW += 1;
+      }
+    }
+
+    [
+      { stat: sl.m1_stat, val: parseFloat(sl.m1_val || 0) },
+      { stat: sl.m2_stat, val: parseFloat(sl.m2_val || 0) },
+    ].forEach((m) => {
+      if (m.stat === "CRITICAL_HIT_CHANCE") chcBase += m.val;
+      if (m.stat === "CRITICAL_HIT_DAMAGE") chdBase += m.val;
+      if (m.stat === "HEADSHOT_DAMAGE") hsdBase += m.val;
+      if (m.stat === "DAMAGE_TO_ARMOR") dta += m.val;
+      if (m.stat === "DTTOOC") dttooc += m.val;
+      if (m.stat === "SKILL_HASTE") skillHaste += m.val;
+      if (m.stat === "SKILL_REPAIR") skillRepair += m.val;
+    });
+  });
+
+  // Brand & Gear Set Bonuses
+  const activeBonusLines = [];
+  Object.entries(brandCounts).forEach(([bName, rawCnt]) => {
+    const effCnt = hasNinjabike ? rawCnt + 1 : rawCnt;
+    const gs = (APP_STATE.canonical.gear_sets || []).find((g) => g.name.toLowerCase() === bName.toLowerCase());
+    const bs = (APP_STATE.canonical.brand_sets || []).find(
+      (b) => b.name.toLowerCase() === bName.toLowerCase() || (b.aliases || []).some((a) => a.toLowerCase() === bName.toLowerCase())
+    );
+
+    if (gs) {
+      [2, 3, 4].forEach((tier) => {
+        if (effCnt >= tier && gs.bonuses?.[String(tier)]) {
+          activeBonusLines.push(`<div class="recipe-step" style="border-left-color:#10b981;"><strong>${gs.name} (${tier}/4):</strong> ${gs.bonuses[String(tier)]}</div>`);
+        }
+      });
+      if (gs.name.includes("Negotiator") || gs.name.includes("Umbra")) {
+        if (effCnt >= 2) chcBase += 15.0;
+        if (gs.name.includes("Negotiator") && effCnt >= 3) chdBase += 20.0;
+      }
+    } else if (bs) {
+      [1, 2, 3].forEach((tier) => {
+        if (effCnt >= tier && bs.bonuses?.[String(tier)]) {
+          activeBonusLines.push(`<div class="recipe-step"><strong>${bs.name} (${tier}/3):</strong> ${bs.bonuses[String(tier)]}</div>`);
+          if (bs.name.includes("Česká") && tier === 1) chcBase += 8.0;
+          if (bs.name.includes("Grupo") && tier === 1) chdBase += 13.0;
+          if (bs.name.includes("Providence")) {
+            if (tier === 1) hsdBase += 15.0;
+            if (tier === 2) chcBase += 8.0;
+            if (tier === 3) chdBase += 13.0;
+          }
+          if (bs.name.includes("Sokolov")) {
+            if (tier === 2) chdBase += 13.0;
+            if (tier === 3) chcBase += 8.0;
+          }
+          if (bs.name.includes("Walker") && tier === 2) dta += 5.0;
+        }
+      });
+    }
+  });
+
+  // Apply 3x Gear Mod Slots (Mask, Chest, Backpack)
+  const modCatalog = APP_STATE.canonical.gear_mods || [
+    { mod_id: "MOD_CHC", stat: "CRITICAL_HIT_CHANCE", value: 6.0 },
+    { mod_id: "MOD_CHD", stat: "CRITICAL_HIT_DAMAGE", value: 12.0 },
+    { mod_id: "MOD_HSD", stat: "HEADSHOT_DAMAGE", value: 10.0 },
+    { mod_id: "MOD_PFE", stat: "PROTECTION_FROM_ELITES", value: 13.0 },
+    { mod_id: "MOD_AOK", stat: "ARMOR_ON_KILL", value: 18935.0 },
+    { mod_id: "MOD_SH", stat: "SKILL_HASTE", value: 12.0 },
+    { mod_id: "MOD_SR", stat: "SKILL_REPAIR", value: 20.0 },
+  ];
+  const equippedMods = wbSpec.gear_mods || ["MOD_CHC", "MOD_CHD", "MOD_CHD"];
+  let modChc = 0.0;
+  let modChd = 0.0;
+  let modHsd = 0.0;
+  equippedMods.forEach((mId) => {
+    const mSpec = modCatalog.find((x) => x.mod_id === mId) || modCatalog[1];
+    if (mSpec.stat === "CRITICAL_HIT_CHANCE") modChc += mSpec.value;
+    else if (mSpec.stat === "CRITICAL_HIT_DAMAGE") modChd += mSpec.value;
+    else if (mSpec.stat === "HEADSHOT_DAMAGE") modHsd += mSpec.value;
+    else if (mSpec.stat === "PROTECTION_FROM_ELITES") pfe += mSpec.value;
+    else if (mSpec.stat === "SKILL_HASTE") skillHaste += mSpec.value;
+    else if (mSpec.stat === "SKILL_REPAIR") skillRepair += mSpec.value;
+  });
+
+  // Lookup Primary Weapon in Canonical Weapons DB
+  const weaponsList = APP_STATE.canonical.weapons || [];
+  const wLow = (wbSpec.primary_weapon || "").toLowerCase();
+  const wSpec =
+    weaponsList.find(
+      (w) =>
+        w.name.toLowerCase() === wLow ||
+        wLow.includes(w.name.toLowerCase()) ||
+        w.name.toLowerCase().includes(wLow) ||
+        (w.aliases || []).some((al) => wLow.includes(al.toLowerCase()))
+    ) || {
+      name: wbSpec.primary_weapon || "Pestilence (Exotic LMG)",
+      weapon_class: "LMG",
+      base_damage: 51126,
+      rpm: 550,
+      mag_size: 100,
+      reload_sec: 4.9,
+      native_dttooc: 10.0,
+      native_dta: 0.0,
+      native_chc: 0.0,
+      native_chd: 0.0,
+      native_hsd: 65.0,
+      mod_chc: 5.0,
+      mod_chd: 0.0,
+      pesti_tick_multiplier: (wbSpec.primary_weapon || "").toLowerCase().includes("pestilence") ? 1.0 : 0.0,
+    };
+
+  const wClass = wSpec.weapon_class || "AR";
+  const baseDmg = parseFloat(wSpec.base_damage || 48996);
+  let rpm = parseFloat(wSpec.rpm || 850);
+  const magSize = parseInt(wSpec.mag_size || 50, 10);
+  const reloadSec = Math.max(0.05, parseFloat(wSpec.reload_sec || 2.0));
+  const expGrade = parseInt(wbSpec.weapon_expertise ?? 30, 10);
+  const stackScale = combatMode === "COLD_START" ? 0.0 : combatMode === "MID_FIGHT" ? 0.5 : 1.0;
+
+  // Weapon Type Damage (WTD: +15% Specialization + Brand/Set bonuses)
+  let wtd = 15.0;
+  Object.entries(brandCounts).forEach(([bName, rawCnt]) => {
+    const cnt = hasNinjabike ? rawCnt + 1 : rawCnt;
+    const bLow = bName.toLowerCase();
+    if (wClass === "LMG") {
+      if (bLow.includes("lengmo") && cnt >= 3) wtd += 30.0;
+      if (bLow.includes("petrov") && cnt >= 1) wtd += 10.0;
+      if (bLow.includes("heartbreaker") && cnt >= 2) wtd += 15.0;
+    } else if (wClass === "AR") {
+      if (bLow.includes("fenris") && cnt >= 1) wtd += 10.0;
+      if (bLow.includes("heartbreaker") && cnt >= 2) wtd += 15.0;
+    } else if (wClass === "SMG") {
+      if (bLow.includes("sokolov") && cnt >= 1) wtd += 10.0;
+      if (bLow.includes("hunter") && cnt >= 2) wtd += 15.0;
+    } else if (wClass === "SHOTGUN") {
+      if (bLow.includes("badger") && cnt >= 1) wtd += 10.0;
+      if (bLow.includes("hunter") && cnt >= 2) wtd += 15.0;
+    } else if (wClass === "MMR") {
+      if (bLow.includes("hotshot") && cnt >= 2) wtd += 30.0;
+      if (bLow.includes("airaldi") && cnt >= 1) wtd += 10.0;
+      if (bLow.includes("habsburg") && cnt >= 2) wtd += 20.0;
+    }
+    if (bLow.includes("walker") && cnt >= 1) wtd += 5.0;
+    if (bLow.includes("striker") && cnt >= 3) rpm = rpm * 1.15;
+  });
+
+  // Total Weapon Damage (TWD) & Amplified Damage (Amp) Buckets
+  let twd = parseFloat(wSpec.twd_bonus_max || 0.0) * stackScale;
+  const ampMultipliers = [];
+  if (wSpec.amp_bonus_max) {
+    ampMultipliers.push(1.0 + (parseFloat(wSpec.amp_bonus_max) * stackScale) / 100.0);
+  }
+
+  const talJoined = talentsList.join(" | ").toLowerCase();
+  const hasTurmoil = talJoined.includes("turmoil");
+  const hasCoyote = talJoined.includes("coyote") || talJoined.includes("pack instincts");
+
+  if (talJoined.includes("perfect glass cannon") || talJoined.includes("the sacrifice")) {
+    ampMultipliers.push(1.30);
+  } else if (talJoined.includes("glass cannon")) {
+    ampMultipliers.push(1.25);
+  }
+  if (talJoined.includes("perfect spotter") || talJoined.includes("closer")) {
+    ampMultipliers.push(1.20);
+  } else if (talJoined.includes("spotter")) {
+    ampMultipliers.push(1.15);
+  }
+  if (talJoined.includes("perfect unstoppable force") || talJoined.includes("backbone")) {
+    twd += 35.0 * stackScale;
+  } else if (talJoined.includes("unstoppable force")) {
+    twd += 25.0 * stackScale;
+  }
+  if (talJoined.includes("obliterate")) twd += 20.0 * stackScale;
+  if (talJoined.includes("vigilance") || talJoined.includes("the gift")) twd += 25.0;
+  if (talJoined.includes("kill confirmed") || talJoined.includes("memento")) twd += 30.0 * stackScale;
+
+  Object.entries(brandCounts).forEach(([bName, rawCnt]) => {
+    const cnt = hasNinjabike ? rawCnt + 1 : rawCnt;
+    const bLow = bName.toLowerCase();
+    if (bLow.includes("striker") && cnt >= 4) {
+      const perStack = talJoined.includes("risk management") ? 0.90 : 0.65;
+      const maxStacks = talJoined.includes("press the advantage") ? 200.0 : 100.0;
+      ampMultipliers.push(1.0 + (perStack * maxStacks * stackScale) / 100.0);
+    }
+    if (bLow.includes("heartbreaker") && cnt >= 4) {
+      const maxStacks = talJoined.includes("max bpm") ? 100.0 : 50.0;
+      ampMultipliers.push(1.0 + (1.0 * maxStacks * stackScale) / 100.0);
+    }
+    if (bLow.includes("hunter") && cnt >= 4) {
+      ampMultipliers.push(1.20);
+      twd += 25.0 * stackScale;
+    }
+    if (bLow.includes("umbra") && cnt >= 4 && stackScale > 0) {
+      rpm = rpm * 1.30;
+      chdBase += 100.0 * stackScale;
+    }
+  });
+
+  let coyoteChc = 0.0;
+  let coyoteChd = 0.0;
+  if (hasCoyote) {
+    if (coyoteBand === "CLOSE_0_15M") coyoteChd += 25.0;
+    else if (coyoteBand === "LONG_25M_PLUS") coyoteChc += 25.0;
+    else {
+      coyoteChc += 10.0;
+      coyoteChd += 10.0;
+    }
+  }
+
+  const uncappedChcBeforeMods = chcBase + parseFloat(wSpec.native_chc || 0) + parseFloat(wSpec.mod_chc || 0) + coyoteChc;
+  const uncappedChc = uncappedChcBeforeMods + modChc;
+  const finalChc = Math.min(60.0, Math.round(uncappedChc * 10) / 10);
+  const finalChd = Math.round((chdBase + modChd + parseFloat(wSpec.native_chd || 0) + parseFloat(wSpec.mod_chd || 0) + coyoteChd) * 10) / 10;
+  const finalHsd = Math.round((hsdBase + modHsd + parseFloat(wSpec.native_hsd || 55) - 55.0) * 10) / 10;
+  const finalDta = Math.round((dta + parseFloat(wSpec.native_dta || 0)) * 10) / 10;
+  const finalDttooc = Math.round((dttooc + parseFloat(wSpec.native_dttooc || 10.0)) * 10) / 10;
+
+  // 7-Bucket Multiplier Math
+  const mWd = 1.0 + (awd + wtd + expGrade) / 100.0;
+  const mTwd = 1.0 + twd / 100.0;
+  const hsProb = wClass === "MMR" ? 0.85 : 0.20;
+  const mCritHs = 1.0 + (finalChc / 100.0) * (finalChd / 100.0) + hsProb * (finalHsd / 100.0);
+  const mAmp = ampMultipliers.reduce((acc, v) => acc * v, 1.0);
+  const mDttooc = 1.0 + finalDttooc / 100.0;
+  const mDta = 1.0 + (finalDta / 100.0) * 0.68;
+
+  const nonCritBody = baseDmg * mWd * mTwd * mAmp * mDttooc * mDta;
+  const critBody = nonCritBody * (1.0 + finalChd / 100.0);
+  const avgShot = baseDmg * mWd * mTwd * mCritHs * mAmp * mDttooc * mDta;
+  const rps = rpm / 60.0;
+  const burstDps = avgShot * rps;
+  const magDumpSec = magSize / Math.max(0.1, rps);
+  let sustainDps = (avgShot * magSize) / (magDumpSec + reloadSec);
+
+  let pestiTick = 0.0;
+  if (wSpec.pesti_tick_multiplier || (wSpec.name || "").toLowerCase().includes("pestilence")) {
+    pestiTick = nonCritBody * (5.0 * Math.max(0.2, stackScale));
+    sustainDps += pestiTick;
+  }
+
+  const ttkSec = Math.round((29500000.0 / Math.max(1.0, sustainDps)) * 100) / 100;
+
+  return {
+    cores,
+    hasNinjabike,
+    hasCoyote,
+    hasTurmoil,
+    activeBonusLines,
+    weaponName: wSpec.name,
+    weaponClass: wClass,
+    rpm: Math.round(rpm),
+    magSize,
+    reloadSec,
+    expGrade,
+    awd,
+    wtd,
+    twd,
+    ampPct: Math.round((mAmp - 1.0) * 1000) / 10,
+    uncappedChcBeforeMods,
+    uncappedChc,
+    finalChc,
+    finalChd,
+    finalHsd,
+    finalDta,
+    finalDttooc,
+    pfe,
+    armor,
+    critBody: Math.round(critBody),
+    avgShot: Math.round(avgShot),
+    burstDps: Math.round(burstDps),
+    sustainDps: Math.round(sustainDps),
+    pestiTick: Math.round(pestiTick),
+    ttkSec,
+  };
+}
+
+function setWorkbenchCombatMode(mode) {
+  APP_STATE.wbCombatMode = mode;
+  renderWorkbench();
+}
+
+function setWorkbenchCoyoteBand(band) {
+  APP_STATE.wbCoyoteBand = band;
+  renderWorkbench();
+}
+
+function setWorkbenchCompareTarget(targetId) {
+  APP_STATE.wbCompareTargetId = targetId;
+  renderWorkbench();
+}
+
+function updateWorkbenchModSlot(idx, modId) {
+  if (!APP_STATE.activeWorkbench) return;
+  if (!Array.isArray(APP_STATE.activeWorkbench.gear_mods)) {
+    APP_STATE.activeWorkbench.gear_mods = ["MOD_CHC", "MOD_CHD", "MOD_CHD"];
+  }
+  APP_STATE.activeWorkbench.gear_mods[idx] = modId;
+  renderWorkbench();
+}
+
+function autoOptimizeWorkbenchMods() {
+  if (!APP_STATE.activeWorkbench) return;
+  const curStats = computeWorkbenchTelemetryAndBallistics(
+    APP_STATE.activeWorkbench,
+    APP_STATE.wbCombatMode,
+    APP_STATE.wbCoyoteBand
+  );
+  const neededChc = Math.max(0.0, 60.0 - curStats.uncappedChcBeforeMods);
+  const chcModsNeeded = Math.min(3, Math.ceil(neededChc / 6.0 - 0.15));
+  const newMods = [];
+  for (let i = 0; i < 3; i++) {
+    newMods.push(i < chcModsNeeded ? "MOD_CHC" : "MOD_CHD");
+  }
+  APP_STATE.activeWorkbench.gear_mods = newMods;
+  renderWorkbench();
+  showToast(`Auto-Balanced 3x Gear Mods (${chcModsNeeded}x +6% CHC, ${3 - chcModsNeeded}x +12% CHD) to target 60% CHC Cap!`);
+}
+
+async function copyWorkbenchShareCode() {
+  if (!APP_STATE.activeWorkbench) return;
+  const jsonStr = JSON.stringify(APP_STATE.activeWorkbench);
+  const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  const code = `SHD5:${b64}`;
+  try {
+    await navigator.clipboard.writeText(code);
+    showToast("Copied compact SHD5:... Build Share Code to clipboard!");
+  } catch (e) {
+    window.prompt("Copy your SHD5 Build Share Code below:", code);
+  }
+}
+
+function promptPasteWorkbenchShareCode() {
+  const raw = window.prompt("Paste an SHD5:... Build Share Code to load into the Workbench:");
+  if (!raw || !raw.trim()) return;
+  const clean = raw.trim().replace(/^SHD5:/i, "");
+  try {
+    const decoded = decodeURIComponent(escape(atob(clean)));
+    const parsed = JSON.parse(decoded);
+    if (parsed && parsed.slots) {
+      parsed.loadout_id = null;
+      APP_STATE.activeWorkbench = parsed;
+      renderWorkbench();
+      showToast(`Imported shared loadout '${parsed.name || "Shared Build"}' into Workbench!`);
+    }
+  } catch (err) {
+    showToast("Invalid SHD5 Share Code format.");
+  }
+}
+
+function _resolveCompareBaselineLoadout(targetId) {
+  if (!targetId || targetId === "NONE") return null;
+  if (targetId.startsWith("SAVED:")) {
+    const id = targetId.slice(6);
+    return (APP_STATE.saved_loadouts || []).find((x) => x.loadout_id === id) || null;
+  }
+  if (targetId.startsWith("SHOWCASE:")) {
+    const id = targetId.slice(9);
+    return (APP_STATE.admin_showcase_loadouts || []).find((x) => x.loadout_id === id) || null;
+  }
+  if (targetId.startsWith("META:")) {
+    const id = targetId.slice(5);
+    const mb = (APP_STATE.solver.builds || []).find((x) => x.build_id === id);
+    return mb ? _convertMatrixBuildToWorkbenchObject(mb) : null;
+  }
+  return null;
+}
+
+function _formatDeltaBadge(currVal, baseVal, unit = "", invertGood = false, scaleDiv = 1) {
+  if (baseVal === undefined || baseVal === null) return "";
+  const diff = (currVal - baseVal) / scaleDiv;
+  if (Math.abs(diff) < 0.05) {
+    return `<span style="font-size:10.5px;color:var(--text-muted);margin-left:6px;">(±0${unit})</span>`;
+  }
+  const isPositiveGood = invertGood ? diff < 0 : diff > 0;
+  const col = isPositiveGood ? "#34d399" : "#f87171";
+  const sign = diff > 0 ? "+" : "";
+  const formatted = Math.abs(diff) >= 10 ? Math.round(diff).toLocaleString() : diff.toFixed(2);
+  return `<span style="font-size:10.5px;color:${col};font-weight:800;margin-left:6px;">(${sign}${formatted}${unit})</span>`;
 }
 
 function renderWorkbench() {
@@ -1103,6 +1584,12 @@ function renderWorkbench() {
     createNewBlankWorkbench();
   }
   const wb = APP_STATE.activeWorkbench;
+  if (!Array.isArray(wb.gear_mods) || wb.gear_mods.length !== 3) {
+    wb.gear_mods = ["MOD_CHC", "MOD_CHD", "MOD_CHD"];
+  }
+  if (wb.weapon_expertise === undefined || wb.weapon_expertise === null) {
+    wb.weapon_expertise = 30;
+  }
 
   // 1. Left Column: Saved Loadouts Locker + Admin Showcase Loadouts
   const personalHtml =
@@ -1153,7 +1640,39 @@ function renderWorkbench() {
 
   listEl.innerHTML = personalHtml + showcaseHtml;
 
-  // 2. Center Column: Interactive 6-Gear + Weapons + Spec Canvas
+  // 2. Center Column: Interactive 6-Gear + Weapons + 3x Gear Mods + Spec Canvas
+  const weaponsCatalog = APP_STATE.canonical.weapons || [];
+  const weaponsDatalistHtml = `
+    <datalist id="canonical-weapons-list">
+      ${weaponsCatalog.map((w) => `<option value="${w.name}">${w.weapon_class} // ${w.rpm} RPM</option>`).join("")}
+    </datalist>
+  `;
+
+  const modOptions = APP_STATE.canonical.gear_mods || [
+    { mod_id: "MOD_CHC", label: "+6.0% Crit Hit Chance (Red)" },
+    { mod_id: "MOD_CHD", label: "+12.0% Crit Hit Damage (Red)" },
+    { mod_id: "MOD_HSD", label: "+10.0% Headshot Damage (Red)" },
+    { mod_id: "MOD_PFE", label: "+13.0% Protection from Elites (Blue)" },
+    { mod_id: "MOD_AOK", label: "+18,935 Armor on Kill (Blue)" },
+    { mod_id: "MOD_SH", label: "+12.0% Skill Haste (Yellow)" },
+    { mod_id: "MOD_SR", label: "+20.0% Repair-Skills (Yellow)" },
+  ];
+  const modSlotLabels = ["MASK MOD", "CHEST MOD", "BACKPACK MOD"];
+  const gearModsRowHtml = [0, 1, 2]
+    .map(
+      (idx) => `
+      <div>
+        <label style="font-size:10px;color:var(--text-muted);font-weight:700;">${modSlotLabels[idx]}</label>
+        <select onchange="updateWorkbenchModSlot(${idx}, this.value)" style="width:100%;background:#070a10;border:1px solid var(--border);color:#38bdf8;padding:4px 6px;border-radius:4px;font-size:11px;font-weight:700;">
+          ${modOptions
+            .map((m) => `<option value="${m.mod_id}" ${wb.gear_mods[idx] === m.mod_id ? "selected" : ""}>${m.label}</option>`)
+            .join("")}
+        </select>
+      </div>
+    `
+    )
+    .join("");
+
   const slotsHtml = SLOTS_ORDER.map((s) => {
     const sl = wb.slots[s] || {};
     const cLabel =
@@ -1183,8 +1702,9 @@ function renderWorkbench() {
   }).join("");
 
   centerEl.innerHTML = `
+    ${weaponsDatalistHtml}
     <div style="background:#121a2b;border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:10px;">
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px;">
+      <div style="display:grid;grid-template-columns:2fr 1fr 95px;gap:8px;margin-bottom:8px;">
         <div>
           <label style="font-size:10.5px;color:var(--text-muted);font-weight:700;">LOADOUT NAME</label>
           <input type="text" id="wb-input-name" value="${wb.name}" oninput="APP_STATE.activeWorkbench.name=this.value" style="width:100%;background:#070a10;border:1px solid var(--border);color:#fff;padding:5px 8px;border-radius:4px;font-weight:700;">
@@ -1197,20 +1717,35 @@ function renderWorkbench() {
               .join("")}
           </select>
         </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--shd-orange);font-weight:800;">WPN EXP (0-30)</label>
+          <input type="number" min="0" max="30" value="${wb.weapon_expertise}" onchange="APP_STATE.activeWorkbench.weapon_expertise=parseInt(this.value||'30',10);renderWorkbench()" style="width:100%;background:#070a10;border:1px solid var(--shd-orange);color:var(--shd-orange);padding:5px 8px;border-radius:4px;font-weight:800;">
+        </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
-          <label style="font-size:10.5px;color:var(--text-muted);">PRIMARY WEAPON</label>
-          <input type="text" value="${wb.primary_weapon || ""}" oninput="APP_STATE.activeWorkbench.primary_weapon=this.value" style="width:100%;background:#070a10;border:1px solid var(--border);color:#ff9e44;padding:5px 8px;border-radius:4px;font-size:11.5px;font-weight:700;">
+          <label style="font-size:10.5px;color:var(--text-muted);">PRIMARY WEAPON (SELECT OR TYPE)</label>
+          <input type="text" list="canonical-weapons-list" value="${wb.primary_weapon || ""}" onchange="APP_STATE.activeWorkbench.primary_weapon=this.value;renderWorkbench()" style="width:100%;background:#070a10;border:1px solid var(--border);color:#ff9e44;padding:5px 8px;border-radius:4px;font-size:11.5px;font-weight:700;">
         </div>
         <div>
           <label style="font-size:10.5px;color:var(--text-muted);">SECONDARY WEAPON</label>
-          <input type="text" value="${wb.secondary_weapon || ""}" oninput="APP_STATE.activeWorkbench.secondary_weapon=this.value" style="width:100%;background:#070a10;border:1px solid var(--border);color:#fff;padding:5px 8px;border-radius:4px;font-size:11.5px;">
+          <input type="text" list="canonical-weapons-list" value="${wb.secondary_weapon || ""}" onchange="APP_STATE.activeWorkbench.secondary_weapon=this.value;renderWorkbench()" style="width:100%;background:#070a10;border:1px solid var(--border);color:#fff;padding:5px 8px;border-radius:4px;font-size:11.5px;">
         </div>
         <div>
           <label style="font-size:10.5px;color:var(--text-muted);">SKILLS (1 &amp; 2)</label>
           <input type="text" value="${wb.skill_1 || "Reviver Hive"} / ${wb.skill_2 || "Pulse"}" oninput="const p=this.value.split('/');APP_STATE.activeWorkbench.skill_1=(p[0]||'').trim();APP_STATE.activeWorkbench.skill_2=(p[1]||'').trim();" style="width:100%;background:#070a10;border:1px solid var(--border);color:#fde047;padding:5px 8px;border-radius:4px;font-size:11.5px;">
+        </div>
+      </div>
+
+      <!-- 3x Gear Mod Slots + Auto-Cap 60% CHC Button -->
+      <div style="background:#0b101b;border:1px solid var(--border);border-radius:5px;padding:7px 9px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <span style="font-size:10.5px;font-weight:800;color:#38bdf8;">💎 3x GEAR MOD SLOTS (MASK / CHEST / BACKPACK)</span>
+          <button class="btn-action" style="padding:2px 8px;font-size:10px;border-color:#34d399;color:#34d399;" onclick="autoOptimizeWorkbenchMods()">⚡ Auto-Balance Mods to 60% CHC Cap</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          ${gearModsRowHtml}
         </div>
       </div>
 
@@ -1223,124 +1758,144 @@ function renderWorkbench() {
     <div class="slots-grid">${slotsHtml}</div>
   `;
 
-  // 3. Right Column: Live Set Bonus & Telemetry Calculator
-  const brandCounts = {};
-  let hasNinjabike = false;
-  let cores = { RED: 0, BLUE: 0, YELLOW: 0 };
-  let chc = 10.0; // SHD Watch
-  let chd = 45.0; // Base + Watch
-  let awd = 10.0; // Watch
-  let dta = 0.0;
-  let dttooc = 10.0; // Weapon native
-  let armor = 726000;
+  // 3. Right Column: Live 7-Bucket Ballistics, Combat Stack Switcher & A/B Loadout Diff Comparator
+  const cur = computeWorkbenchTelemetryAndBallistics(wb, APP_STATE.wbCombatMode, APP_STATE.wbCoyoteBand);
+  const baseLoadout = _resolveCompareBaselineLoadout(APP_STATE.wbCompareTargetId);
+  const base = baseLoadout
+    ? computeWorkbenchTelemetryAndBallistics(baseLoadout, APP_STATE.wbCombatMode, APP_STATE.wbCoyoteBand)
+    : null;
 
-  if (wb.specialization === "Technician") cores.YELLOW += 1;
+  const compareOptionsHtml = [
+    `<option value="NONE" ${APP_STATE.wbCompareTargetId === "NONE" ? "selected" : ""}>— No Baseline (Standalone View) —</option>`,
+    ...(APP_STATE.saved_loadouts || []).map(
+      (l) => `<option value="SAVED:${l.loadout_id}" ${APP_STATE.wbCompareTargetId === `SAVED:${l.loadout_id}` ? "selected" : ""}>🛡️ Saved: ${l.name}</option>`
+    ),
+    ...(APP_STATE.admin_showcase_loadouts || []).map(
+      (s) => `<option value="SHOWCASE:${s.loadout_id}" ${APP_STATE.wbCompareTargetId === `SHOWCASE:${s.loadout_id}` ? "selected" : ""}>👑 Showcase: ${s.name}</option>`
+    ),
+    ...(APP_STATE.solver.builds || []).map(
+      (b) => `<option value="META:${b.build_id}" ${APP_STATE.wbCompareTargetId === `META:${b.build_id}` ? "selected" : ""}>📋 Meta: ${b.name}</option>`
+    ),
+  ].join("");
 
-  SLOTS_ORDER.forEach((s) => {
-    const sl = wb.slots[s];
-    if (!sl) return;
-    const bName = sl.brand_or_set || "";
-    if (bName.toLowerCase().includes("ninjabike")) {
-      hasNinjabike = true;
-      cores.RED += 1;
-      cores.BLUE += 1;
-      cores.YELLOW += 1;
-      awd += 15.0;
-      armor += 170000;
-    } else if (bName.toLowerCase().includes("memento")) {
-      cores.RED += 1;
-      cores.BLUE += 1;
-      cores.YELLOW += 1;
-      awd += 15.0;
-      armor += 170000;
-    } else {
-      brandCounts[bName] = (brandCounts[bName] || 0) + 1;
-      if (sl.core_type === "WEAPON_DAMAGE") {
-        cores.RED += 1;
-        awd += parseFloat(sl.core_val || 15.0);
-      } else if (sl.core_type === "ARMOR") {
-        cores.BLUE += 1;
-        armor += parseFloat(sl.core_val || 170000);
-      } else {
-        cores.YELLOW += 1;
-      }
-    }
-
-    [
-      { stat: sl.m1_stat, val: parseFloat(sl.m1_val || 0) },
-      { stat: sl.m2_stat, val: parseFloat(sl.m2_val || 0) },
-    ].forEach((m) => {
-      if (m.stat === "CRITICAL_HIT_CHANCE") chc += m.val;
-      if (m.stat === "CRITICAL_HIT_DAMAGE") chd += m.val;
-      if (m.stat === "DAMAGE_TO_ARMOR") dta += m.val;
-      if (m.stat === "DTTOOC") dttooc += m.val;
-    });
-  });
-
-  // Resolve active Brand & Gear Set bonuses
-  const activeBonusLines = [];
-  Object.entries(brandCounts).forEach(([bName, rawCnt]) => {
-    const effCnt = hasNinjabike ? rawCnt + 1 : rawCnt;
-    const gs = (APP_STATE.canonical.gear_sets || []).find((g) => g.name.toLowerCase() === bName.toLowerCase());
-    const bs = (APP_STATE.canonical.brand_sets || []).find((b) => b.name.toLowerCase() === bName.toLowerCase());
-
-    if (gs) {
-      [2, 3, 4].forEach((tier) => {
-        if (effCnt >= tier && gs.bonuses?.[String(tier)]) {
-          activeBonusLines.push(`<div class="recipe-step" style="border-left-color:#10b981;"><strong>${gs.name} (${tier}/4):</strong> ${gs.bonuses[String(tier)]}</div>`);
-        }
-      });
-    } else if (bs) {
-      [1, 2, 3].forEach((tier) => {
-        if (effCnt >= tier && bs.bonuses?.[String(tier)]) {
-          activeBonusLines.push(`<div class="recipe-step"><strong>${bs.name} (${tier}/3):</strong> ${bs.bonuses[String(tier)]}</div>`);
-          if (bs.name.includes("Česká") && tier === 1) chc += 8.0;
-          if (bs.name.includes("Grupo") && tier === 1) chd += 13.0;
-        }
-      });
-    }
-  });
-
-  // Add 3 Gear Mods (+6% CHC / +24% CHD)
-  const finalChc = Math.min(60.0, Math.round((chc + 6.0) * 10) / 10);
-  const finalChd = Math.round((chd + 24.0) * 10) / 10;
+  const coyoteRowHtml = cur.hasCoyote
+    ? `
+      <div style="display:flex;gap:4px;margin-top:6px;">
+        ${[
+          { id: "CLOSE_0_15M", label: "🐺 <15m (+25% CHD)" },
+          { id: "MID_15_25M", label: "🐺 15-25m (+10/10)" },
+          { id: "LONG_25M_PLUS", label: "🐺 >25m (+25% CHC)" },
+        ]
+          .map(
+            (b) => `<button class="btn-action ${APP_STATE.wbCoyoteBand === b.id ? "btn-primary" : ""}" style="flex:1;padding:3px 4px;font-size:10px;" onclick="setWorkbenchCoyoteBand('${b.id}')">${b.label}</button>`
+          )
+          .join("")}
+      </div>
+    `
+    : "";
 
   rightEl.innerHTML = `
+    <!-- A/B Loadout Diff Selector -->
+    <div style="background:#121a2b;border:1px solid var(--border);border-radius:6px;padding:7px 9px;margin-bottom:8px;">
+      <label style="font-size:10px;font-weight:800;color:#38bdf8;display:block;margin-bottom:4px;">⚖️ SIDE-BY-SIDE COMPARE VS. BASELINE LOADOUT</label>
+      <select onchange="setWorkbenchCompareTarget(this.value)" style="width:100%;background:#070a10;border:1px solid var(--border);color:#fff;padding:4px 6px;border-radius:4px;font-size:11px;">
+        ${compareOptionsHtml}
+      </select>
+    </div>
+
+    <!-- Combat Buff & Stack Switcher -->
+    <div style="background:#0b101b;border:1px solid var(--border);border-radius:6px;padding:7px 9px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:800;color:var(--shd-orange);margin-bottom:5px;">🔥 COMBAT BUFF &amp; STACK STATE (LIVE BALLISTICS)</div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn-action ${APP_STATE.wbCombatMode === "COLD_START" ? "btn-primary" : ""}" style="flex:1;padding:4px;font-size:10.5px;" onclick="setWorkbenchCombatMode('COLD_START')">❄️ Cold (0%)</button>
+        <button class="btn-action ${APP_STATE.wbCombatMode === "MID_FIGHT" ? "btn-primary" : ""}" style="flex:1;padding:4px;font-size:10.5px;" onclick="setWorkbenchCombatMode('MID_FIGHT')">⚡ Mid (50%)</button>
+        <button class="btn-action ${APP_STATE.wbCombatMode === "MAX_STACKS" ? "btn-primary" : ""}" style="flex:1;padding:4px;font-size:10.5px;" onclick="setWorkbenchCombatMode('MAX_STACKS')">🔥 Max (100%)</button>
+      </div>
+      ${coyoteRowHtml}
+    </div>
+
     <div class="core-pills">
-      <div class="core-box core-red">${cores.RED} RED</div>
-      <div class="core-box core-blue">${cores.BLUE} BLUE</div>
-      <div class="core-box core-yellow">${cores.YELLOW} YLW</div>
+      <div class="core-box core-red">${cur.cores.RED} RED</div>
+      <div class="core-box core-blue">${cur.cores.BLUE} BLUE</div>
+      <div class="core-box core-yellow">${cur.cores.YELLOW} YLW</div>
+    </div>
+
+    <!-- Ballistics & TTK Highlight Box -->
+    <div style="background:linear-gradient(135deg, rgba(255,107,0,0.14), rgba(15,23,42,0.95));border:1px solid var(--shd-orange);border-radius:6px;padding:9px 11px;margin-bottom:10px;">
+      <div style="font-size:10.5px;font-weight:800;color:var(--shd-orange);margin-bottom:5px;">
+        🎯 ${cur.weaponName} (${cur.rpm} RPM // MAG ${cur.magSize} // EXP +${cur.expGrade}%)
+      </div>
+      <div class="telemetry-row" style="padding:3px 0;">
+        <span style="color:#cbd5e1;">Burst DPS</span>
+        <strong><span style="color:#ffffff;font-size:13.5px;">${(cur.burstDps / 1000000).toFixed(2)}M/s</span>${base ? _formatDeltaBadge(cur.burstDps, base.burstDps, "M/s", false, 1000000) : ""}</strong>
+      </div>
+      <div class="telemetry-row" style="padding:3px 0;">
+        <span style="color:#cbd5e1;">Sustained DPS (w/ Reload)</span>
+        <strong><span style="color:#34d399;font-size:13.5px;">${(cur.sustainDps / 1000000).toFixed(2)}M/s</span>${base ? _formatDeltaBadge(cur.sustainDps, base.sustainDps, "M/s", false, 1000000) : ""}</strong>
+      </div>
+      <div class="telemetry-row" style="padding:3px 0;">
+        <span style="color:#cbd5e1;">Crit Body Shot</span>
+        <strong><span style="color:#ffffff;">${(cur.critBody / 1000).toFixed(0)}k</span>${base ? _formatDeltaBadge(cur.critBody, base.critBody, "k", false, 1000) : ""}</strong>
+      </div>
+      ${
+        cur.pestiTick > 0
+          ? `<div class="telemetry-row" style="padding:3px 0;">
+               <span style="color:#fbbf24;font-weight:700;">☣️ Pestilence 50x Plague Tick</span>
+               <strong><span style="color:#fbbf24;font-size:13.5px;">${(cur.pestiTick / 1000000).toFixed(2)}M/s</span>${base ? _formatDeltaBadge(cur.pestiTick, base.pestiTick, "M/s", false, 1000000) : ""}</strong>
+             </div>`
+          : ""
+      }
+      ${
+        cur.hasTurmoil
+          ? `<div class="telemetry-row" style="padding:3px 0;">
+               <span style="color:#d8b4fe;">⚡ Turmoil 50% Split-Target Mode</span>
+               <strong style="color:#d8b4fe;">ACTIVE (2x Targets)</strong>
+             </div>`
+          : ""
+      }
+      <div class="telemetry-row" style="padding:3px 0;border-bottom:none;">
+        <span style="color:#cbd5e1;">Heroic 4P Named Elite TTK</span>
+        <strong><span style="color:#38bdf8;font-size:13.5px;">${cur.ttkSec}s</span>${base ? _formatDeltaBadge(cur.ttkSec, base.ttkSec, "s", true, 1) : ""}</strong>
+      </div>
     </div>
 
     <div class="telemetry-row">
-      <span style="color:var(--text-muted);">All Weapon Damage (w/ Cores)</span>
-      <strong style="color:#ffffff;font-size:13.5px;">+${awd.toFixed(1)}%</strong>
+      <span style="color:var(--text-muted);">AWD + Weapon Type + Exp</span>
+      <strong>+${(cur.awd + cur.wtd + cur.expGrade).toFixed(1)}%${base ? _formatDeltaBadge(cur.awd + cur.wtd + cur.expGrade, base.awd + base.wtd + base.expGrade, "%") : ""}</strong>
+    </div>
+    <div class="telemetry-row">
+      <span style="color:var(--text-muted);">Total Weapon DMG (TWD) / Amp</span>
+      <strong>+${cur.twd.toFixed(1)}% TWD // +${cur.ampPct.toFixed(1)}% Amp</strong>
     </div>
     <div class="telemetry-row">
       <span style="color:var(--text-muted);">Crit Hit Chance (60% Cap)</span>
-      <strong style="color:#34d399;">${finalChc}% ${chc + 6 > 60 ? "(CAPPED)" : ""}</strong>
+      <strong style="color:#34d399;">${cur.finalChc}% ${cur.uncappedChc > 60 ? `<span style="color:#fbbf24;font-size:10px;">(${cur.uncappedChc.toFixed(1)}% OVERCAP)</span>` : ""}${base ? _formatDeltaBadge(cur.finalChc, base.finalChc, "%") : ""}</strong>
     </div>
     <div class="telemetry-row">
       <span style="color:var(--text-muted);">Crit Hit Damage (w/ Mods)</span>
-      <strong style="color:var(--shd-orange);">${finalChd}%</strong>
+      <strong style="color:var(--shd-orange);">${cur.finalChd}%${base ? _formatDeltaBadge(cur.finalChd, base.finalChd, "%") : ""}</strong>
     </div>
     <div class="telemetry-row">
-      <span style="color:var(--text-muted);">Damage to Armor (DTA)</span>
-      <strong>+${dta.toFixed(1)}%</strong>
+      <span style="color:var(--text-muted);">DTA / DTTOOC Multipliers</span>
+      <strong>+${cur.finalDta}% DTA // +${cur.finalDttooc}% DTTOOC</strong>
     </div>
-    <div class="telemetry-row">
-      <span style="color:var(--text-muted);">DMG to Target Out of Cover</span>
-      <strong>+${dttooc.toFixed(1)}%</strong>
-    </div>
+    ${
+      cur.pfe > 0
+        ? `<div class="telemetry-row">
+             <span style="color:#60a5fa;">Protection from Elites (PfE)</span>
+             <strong style="color:#60a5fa;">+${cur.pfe.toFixed(0)}%</strong>
+           </div>`
+        : ""
+    }
     <div class="telemetry-row">
       <span style="color:var(--text-muted);">Total Armor (Est.)</span>
-      <strong style="color:#60a5fa;">${(armor / 1000000).toFixed(2)}M</strong>
+      <strong style="color:#60a5fa;">${(cur.armor / 1000000).toFixed(2)}M${base ? _formatDeltaBadge(cur.armor, base.armor, "M", false, 1000000) : ""}</strong>
     </div>
 
-    <div style="margin-top:14px;margin-bottom:6px;font-weight:800;font-size:11px;color:var(--shd-orange);text-transform:uppercase;">
-      ⚡ ACTIVE BRAND &amp; GEAR SET BONUSES ${hasNinjabike ? "(+1 NINJABIKE)" : ""}
+    <div style="margin-top:12px;margin-bottom:6px;font-weight:800;font-size:11px;color:var(--shd-orange);text-transform:uppercase;">
+      ⚡ ACTIVE BRAND &amp; GEAR SET BONUSES ${cur.hasNinjabike ? "(+1 NINJABIKE)" : ""}
     </div>
-    ${activeBonusLines.join("") || `<div style="color:var(--text-muted);font-size:11.5px;">Click any slot card in the center panel to equip owned items or theorycraft brands.</div>`}
+    ${cur.activeBonusLines.join("") || `<div style="color:var(--text-muted);font-size:11.5px;">Click any slot card in the center panel to equip owned items or theorycraft brands.</div>`}
   `;
 }
 

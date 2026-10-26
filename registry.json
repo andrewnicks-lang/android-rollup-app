@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.4",
-    "updated_at": "2026-10-26T11:00:42.404670",
+    "version": "1.0.5",
+    "updated_at": "2026-10-26T15:13:53.670226",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -101,10 +101,10 @@
         }
       ]
     },
-    "apk_version": "1.0.0",
-    "build_hash": "0a727a06bf",
-    "stamped_version": "1.0.4",
-    "ota_etag": "94ae66f73f"
+    "apk_version": "1.1.0",
+    "build_hash": "0ec73910a0",
+    "stamped_version": "1.0.5",
+    "ota_etag": "900c9f18a4"
   },
   "apps": [
     {
@@ -202,12 +202,12 @@
     {
       "id": "csc-site-discovery",
       "title": "CSC Site Discovery",
-      "subtitle": "HVAC/BAS Checklists, CLAHE Nameplate OCR, 150Hz Audio & 4-Layer Building Mapper",
-      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion: 7 Dynamic RFI-23-001..011 Checklists, 3-Slot Camera Burst w/ CLAHE Stamped-Metal Contrast & Serial Vintage Decoder, 150Hz Filtered Walk-Talk Audio, Video Laplacian Sharpness Mapper, Evacuation Map Pinning, Live GNSS+Compass, and Valve/VA/Labor Sizers.",
+      "subtitle": "Quick Walk (<15s), 8x8 CLAHE OCR, Step-PDR, Hold-to-Talk Mic & .cscwalk.zip",
+      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v2.0: <15s Quick Walk Single-Card Mode, Clone +1 Tag Incrementer, Global Hold-to-Talk 150Hz Mic Pill, 8x8 Local Tile CLAHE + Raw Color Toggle, Binary EXIF GPS/Compass, ASHRAE Ch. 38 + EPA A2L Serial/Model Decoder, BAS Thermistor/I-O Overlay, Pinch-Zoom Map + In-App Camera Step-Peak PDR Walk, Fail-Open Valve/Damper/VA Sizers, and .cscwalk.zip Packager.",
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -232,13 +232,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "aeb188532b",
-      "stamped_version": "1.0.1",
-      "updated_at": "2026-10-24T22:15:40.485020",
+      "build_hash": "c9015163e7",
+      "stamped_version": "2.0.0",
+      "updated_at": "2026-10-26T15:03:07.425531",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "aeb188532b",
-      "manual_updated_at": "2026-10-24T22:15:52.788434"
+      "manual_source_hash": "c9015163e7",
+      "manual_updated_at": "2026-10-26T15:13:53.512032"
     },
     {
       "id": "field-snap",
@@ -302,7 +302,7 @@
       "icon": "\ud83e\udd85",
       "accent": "#ff6b00",
       "category": "Gaming & Tactical Tools",
-      "version": "4.2.1",
+      "version": "4.2.0",
       "entry": "apps/shd-div2-intel/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -328,13 +328,13 @@
           "defaultForAdmin": "true"
         }
       ],
-      "build_hash": "281d6d1c69",
-      "stamped_version": "4.2.1",
-      "updated_at": "2026-10-24T22:15:40.485020",
+      "build_hash": "bd8b573ae1",
+      "stamped_version": "4.2.0",
+      "updated_at": "2026-10-26T15:03:07.425531",
       "manual_pdf": "manuals/shd-div2-intel_User_Manual.pdf",
       "manual_html": "manuals/shd-div2-intel_User_Manual.html",
-      "manual_source_hash": "281d6d1c69",
-      "manual_updated_at": "2026-10-24T22:16:04.902684"
+      "manual_source_hash": "bd8b573ae1",
+      "manual_updated_at": "2026-10-26T15:10:27.103956"
     },
     {
       "id": "sapphire-companion",

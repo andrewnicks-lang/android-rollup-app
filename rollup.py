@@ -520,35 +520,66 @@ def cmd_serve(port: int = 8090) -> None:
 
 
 def cmd_publish(repo_name: str = "android-rollup-app") -> None:
-    """Stamp deterministic OTA build hashes, sync sw.js, commit all changes, and push to GitHub."""
+    """Stamp deterministic OTA build hashes, sync sw.js, and push cleanly to GitHub without polluting parent monorepo .git."""
+    import os
+    import shutil
+    import stat
+    import tempfile
+
+    reg = load_registry()
+    reg.setdefault("hub", {})["apk_version"] = "1.1.0"
+    save_registry(reg)
     stamp_build_hashes(persist=True)
+
     git_dir = ROOT_DIR / ".git"
-    if not git_dir.exists():
-        subprocess.run(["git", "init"], cwd=str(ROOT_DIR), check=True)
-        subprocess.run(["git", "branch", "-M", "main"], cwd=str(ROOT_DIR), check=True)
-
-    subprocess.run(["git", "add", "."], cwd=str(ROOT_DIR), check=True)
-    status = subprocess.run(
-        ["git", "status", "--porcelain"], cwd=str(ROOT_DIR), capture_output=True, text=True
-    )
-    if status.stdout.strip():
-        msg = f"RollupOS Hub & Mini-App sync ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})"
-        subprocess.run(["git", "commit", "-m", msg], cwd=str(ROOT_DIR), check=True)
-
-    remotes = subprocess.run(
-        ["git", "remote"], cwd=str(ROOT_DIR), capture_output=True, text=True
-    ).stdout.split()
-    if "origin" not in remotes:
-        print(f"[RollupOS] Creating GitHub repo '{repo_name}' and pushing...")
-        subprocess.run(
-            ["gh", "repo", "create", repo_name, "--public", "--source=.", "--remote=origin", "--push"],
-            cwd=str(ROOT_DIR),
-            check=True,
-        )
-    else:
+    if git_dir.exists():
+        subprocess.run(["git", "add", "."], cwd=str(ROOT_DIR), check=True)
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=str(ROOT_DIR), capture_output=True, text=True)
+        if status.stdout.strip():
+            msg = f"RollupOS Hub & Mini-App sync ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})"
+            subprocess.run(["git", "commit", "-m", msg], cwd=str(ROOT_DIR), check=True)
         subprocess.run(["git", "push", "-u", "origin", "main"], cwd=str(ROOT_DIR), check=True)
+        print("[RollupOS] Published to GitHub!")
+        return
 
-    print("[RollupOS] Published to GitHub!")
+    def _rm_ro(func, path, _exc):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    remote_url = f"https://github.com/andrewnicks-lang/{repo_name}.git"
+    tmp_base = Path(tempfile.mkdtemp(prefix="rollup_pub_"))
+    stage_dir = tmp_base / "repo"
+    try:
+        subprocess.run(["git", "clone", "--depth", "1", remote_url, str(stage_dir)], check=True)
+        for child in stage_dir.iterdir():
+            if child.name == ".git":
+                continue
+            if child.is_dir():
+                shutil.rmtree(child, onexc=_rm_ro)
+            else:
+                child.unlink()
+
+        ignore_fn = shutil.ignore_patterns(".git", "__pycache__", "*.pyc", "*.log", ".DS_Store", "Thumbs.db")
+        for item in ROOT_DIR.iterdir():
+            if item.name in (".git", "__pycache__") or item.name.endswith(".log"):
+                continue
+            dst = stage_dir / item.name
+            if item.is_dir():
+                shutil.copytree(item, dst, ignore=ignore_fn)
+            else:
+                shutil.copy2(item, dst)
+
+        subprocess.run(["git", "add", "-A"], cwd=str(stage_dir), check=True)
+        status = subprocess.run(["git", "status", "--porcelain"], cwd=str(stage_dir), capture_output=True, text=True)
+        if status.stdout.strip():
+            msg = f"RollupOS v1.1.0 + CSC Site Discovery v2.0.0 ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})"
+            subprocess.run(["git", "commit", "-m", msg], cwd=str(stage_dir), check=True)
+            subprocess.run(["git", "push", "origin", "main"], cwd=str(stage_dir), check=True)
+            print(f"[RollupOS] Published cleanly to {remote_url}!")
+        else:
+            print(f"[RollupOS] {remote_url} is already up to date.")
+    finally:
+        shutil.rmtree(tmp_base, onexc=_rm_ro)
 
 
 def main() -> None:

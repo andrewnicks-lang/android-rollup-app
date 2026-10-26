@@ -1,7 +1,8 @@
 {
-  "name": "CSC Site Discovery & Field Survey Companion",
+  "name": "CSC Site Discovery & Field Survey Companion v2.0",
   "short_name": "CSC Discovery",
-  "description": "Offline-First HVAC Controls & Mechanical Equipment Field Discovery Companion for Control Service Company (CSC)",
+  "version": "2.0.0",
+  "description": "Streamlined <15s HVAC Controls & Mechanical Equipment Field Discovery Companion (Quick Walk, 8x8 CLAHE, Step-PDR, .cscwalk.zip) for Control Service Company (CSC)",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",

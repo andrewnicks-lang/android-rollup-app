@@ -495,6 +495,14 @@
       }
     },
 
+    get(secretName, defaultVal = '') {
+      return this.getSecret(secretName, defaultVal);
+    },
+
+    set(secretName, secretValue) {
+      return this.setSecret(secretName, secretValue);
+    },
+
     listConfiguredSecrets() {
       const u = auth.getCurrentUser();
       const email = normEmail((u && u.email) || 'guest@local');
@@ -566,9 +574,38 @@
     }
   };
 
-  // File Export & Native Share Sheet
+  // File Export & Native Share Sheet (RollupNative Android APK Bridge + Browser Fallback)
   const files = {
+    downloadBase64(filename, base64Data, mimeType = 'application/octet-stream') {
+      if (global.RollupNative && typeof global.RollupNative.saveBase64File === 'function') {
+        global.RollupNative.saveBase64File(filename, mimeType, base64Data);
+        return true;
+      }
+      const clean = String(base64Data || '').includes(',') ? String(base64Data).split(',')[1] : String(base64Data || '');
+      const bin = atob(clean);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+      return true;
+    },
+
     downloadText(filename, content, mimeType = 'text/plain;charset=utf-8') {
+      if (global.RollupNative && typeof global.RollupNative.saveBase64File === 'function') {
+        const bytes = new TextEncoder().encode(String(content ?? ''));
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        global.RollupNative.saveBase64File(filename, mimeType, btoa(binary));
+        return;
+      }
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

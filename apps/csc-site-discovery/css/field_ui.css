@@ -27,20 +27,21 @@ body.sunlight-mode {
 
 body {
   margin: 0;
-  padding: 0 0 88px 0;
+  padding: 0 0 118px 0;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Google Sans', Roboto, sans-serif;
   background-color: var(--bg-main);
   color: var(--text-main);
   font-size: 14px;
   line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* LOTO & Governance Top Banners */
 .loto-bar {
   background: linear-gradient(90deg, #991b1b, #dc2626);
   color: #ffffff;
-  padding: 7px 14px;
-  font-size: 11.5px;
+  padding: 6px 14px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   justify-content: space-between;
@@ -52,17 +53,17 @@ body {
 .top-nav {
   background: var(--bg-card);
   border-bottom: 2px solid var(--accent-teal);
-  padding: 10px 14px;
+  padding: 9px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 9px;
 }
 
 .brand-title h1 {
   margin: 0;
-  font-size: 16.5px;
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: -0.2px;
 }
@@ -75,8 +76,39 @@ body {
 .toolbar-controls {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   flex-wrap: wrap;
+}
+
+/* Quick Walk (<15s) vs Deep Engineering Segmented Switch */
+.mode-switch-group {
+  display: inline-flex;
+  background: var(--bg-main);
+  border: 1.5px solid var(--accent-teal);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.mode-switch-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 6px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mode-switch-btn.active {
+  background: var(--accent-teal);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .pill-badge {
@@ -101,12 +133,17 @@ body {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.08s;
+  user-select: none;
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn:hover {
@@ -134,20 +171,26 @@ body {
   color: #ffffff;
 }
 
+.btn-green {
+  background: var(--accent-green);
+  color: #ffffff;
+}
+
 /* Responsive Split Layout: 2-Column on iPad/Desktop, 1-Column on Android Phone */
 .workspace-grid {
   display: grid;
   grid-template-columns: 45% 55%;
   gap: 14px;
   padding: 12px;
-  max-width: 1740px;
+  max-width: 1760px;
   margin: 0 auto;
 }
 
 @media (max-width: 1024px) {
   .workspace-grid {
     grid-template-columns: 1fr;
-    padding: 10px;
+    padding: 9px;
+    gap: 10px;
   }
 }
 
@@ -155,10 +198,10 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-col);
   border-radius: 10px;
-  padding: 13px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 10px;
 }
 
 .section-header {
@@ -168,19 +211,19 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid var(--border-col);
-  padding-bottom: 8px;
+  padding-bottom: 7px;
 }
 
 .section-header h2 {
   margin: 0;
-  font-size: 14.5px;
+  font-size: 14px;
   color: var(--accent-teal);
 }
 
 /* Floor Tabs & Inspector Tabs */
 .floor-tabs, .inspector-tabs {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
@@ -188,9 +231,9 @@ body {
   background: var(--bg-panel);
   color: var(--text-main);
   border: 1px solid var(--border-col);
-  padding: 7px 11px;
+  padding: 7px 10px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
   min-height: 38px;
@@ -202,13 +245,14 @@ body {
   border-color: #60a5fa;
 }
 
-/* Interactive Floor/Roof SVG Map Container */
+/* Interactive Floor/Roof SVG Map Container + Pinch-Zoom Controls */
 .map-viewport {
   background: #0f172a;
   border: 2px solid var(--border-col);
   border-radius: 8px;
   position: relative;
   overflow: hidden;
+  user-select: none;
 }
 
 body.sunlight-mode .map-viewport {
@@ -220,28 +264,86 @@ body.sunlight-mode .map-viewport {
   height: auto;
   display: block;
   cursor: crosshair;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
-/* Station Selector Strip */
+.interactive-svg.pan-mode {
+  cursor: grab;
+}
+
+.interactive-svg.pan-mode:active {
+  cursor: grabbing;
+}
+
+.map-zoom-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 15;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-col);
+}
+
+.map-zoom-btn {
+  background: var(--bg-panel);
+  color: var(--text-main);
+  border: 1px solid var(--border-col);
+  border-radius: 5px;
+  min-width: 32px;
+  min-height: 30px;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.map-zoom-btn.active {
+  background: var(--accent-amber);
+  color: #0f172a;
+  border-color: #fbbf24;
+}
+
+/* Station Selector Strip with 4-Color Status Indicators */
 .station-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 7px;
 }
 
 .station-pill {
   background: var(--bg-panel);
   border: 1.5px solid var(--border-col);
+  border-left: 5px solid #64748b;
   border-radius: 7px;
-  padding: 8px 9px;
+  padding: 7px 9px;
   cursor: pointer;
   text-align: left;
   position: relative;
 }
 
+.station-pill.status-red {
+  border-left-color: #ef4444;
+}
+
+.station-pill.status-amber {
+  border-left-color: #f59e0b;
+}
+
+.station-pill.status-green {
+  border-left-color: #10b981;
+}
+
+.station-pill.status-unvisited {
+  border-left-color: #64748b;
+}
+
 .station-pill.active {
   border-color: var(--accent-teal);
+  border-left-width: 5px;
   background: rgba(13, 148, 136, 0.18);
 }
 
@@ -255,13 +357,117 @@ body.sunlight-mode .map-viewport {
   font-size: 10.5px;
 }
 
+/* ⚡ Quick Walk (<15s) Unified Single-Card Mode */
+.quick-walk-card {
+  background: var(--bg-panel);
+  border: 1.5px solid var(--accent-teal);
+  border-radius: 10px;
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.quick-photo-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.quick-photo-slot {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-col);
+  border-radius: 7px;
+  padding: 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.quick-photo-thumb {
+  width: 100%;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: #020617;
+  cursor: zoom-in;
+}
+
+.stepper-ctrl {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-col);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-main);
+}
+
+.stepper-btn {
+  background: var(--bg-panel);
+  color: var(--text-main);
+  border: none;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.stepper-val {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 0 5px;
+}
+
+.quick-flag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quick-flag-chip {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-col);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 38px;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.quick-flag-chip.flagged {
+  background: rgba(220, 38, 38, 0.22);
+  color: #fecaca;
+  border: 1.5px solid #ef4444;
+}
+
+body.sunlight-mode .quick-flag-chip.flagged {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.quick-flag-chip.verified-pass {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+}
+
 /* Checklist & Red-Flag Cards */
 .checklist-card {
   background: var(--bg-panel);
   border: 1px solid var(--border-col);
   border-radius: 8px;
   padding: 11px;
-  margin-bottom: 10px;
+  margin-bottom: 9px;
 }
 
 .chip-group {
@@ -280,7 +486,7 @@ body.sunlight-mode .map-viewport {
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 38px;
   text-align: left;
 }
 
@@ -291,6 +497,12 @@ body.sunlight-mode .map-viewport {
 }
 
 .option-chip.selected.red-flag {
+  background: var(--accent-red);
+  color: #ffffff;
+  border-color: #f87171;
+}
+
+.option-chip.selected.amber-flag {
   background: var(--accent-amber);
   color: #0f172a;
   border-color: #fbbf24;
@@ -308,8 +520,8 @@ body.sunlight-mode .map-viewport {
 /* Nameplate & Calculators Grid */
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-  gap: 9px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 8px;
 }
 
 .input-group {
@@ -332,6 +544,7 @@ body.sunlight-mode .map-viewport {
   border-radius: 6px;
   font-size: 13px;
   font-family: inherit;
+  min-height: 36px;
 }
 
 /* 3-Slot Burst Camera Cards */
@@ -341,9 +554,10 @@ body.sunlight-mode .map-viewport {
   gap: 8px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .burst-slots {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
   }
 }
 
@@ -351,9 +565,9 @@ body.sunlight-mode .map-viewport {
   background: var(--bg-panel);
   border: 1.5px dashed var(--border-col);
   border-radius: 8px;
-  padding: 9px;
+  padding: 8px;
   text-align: center;
-  font-size: 11.5px;
+  font-size: 11px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -362,7 +576,7 @@ body.sunlight-mode .map-viewport {
 
 .burst-thumb {
   width: 100%;
-  height: 105px;
+  height: 92px;
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--border-col);
@@ -394,6 +608,21 @@ body.sunlight-mode .map-viewport {
   font-size: 12px;
 }
 
+/* Live In-App PDR Camera & Torch HUD */
+.pdr-hud-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-main);
+  border: 1px solid var(--border-col);
+  border-radius: 7px;
+  padding: 7px 10px;
+  margin-top: 7px;
+  font-size: 11.5px;
+}
+
 /* Audio Meter */
 .audio-meter-wrap {
   height: 10px;
@@ -408,6 +637,54 @@ body.sunlight-mode .map-viewport {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  transition: width 0.08s linear;
+}
+
+/* Global Floating Hold-to-Talk / Tap-to-Talk Mic Pill (Above RollupOS Pill at bottom:18px) */
+.floating-ptt-pill {
+  position: fixed;
+  right: 14px;
+  bottom: 68px;
+  z-index: 9980;
+  background: linear-gradient(135deg, #0f766e, #0d9488);
+  color: #ffffff;
+  border: 2px solid #5eead4;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.floating-ptt-pill.recording {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+  border-color: #fca5a5;
+  animation: pttPulse 1.1s infinite ease-in-out;
+}
+
+@keyframes pttPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65); }
+  50% { box-shadow: 0 0 0 11px rgba(239, 68, 68, 0); }
+}
+
+.ptt-mini-meter {
+  width: 34px;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ptt-mini-meter-fill {
+  height: 100%;
+  width: 0%;
+  background: #fde047;
   transition: width 0.08s linear;
 }
 
@@ -440,7 +717,7 @@ body.sunlight-mode .map-viewport {
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 14px;
 }
 
 .modal-card {
@@ -448,7 +725,7 @@ body.sunlight-mode .map-viewport {
   border: 1px solid var(--border-col);
   border-radius: 12px;
   padding: 16px;
-  max-width: 640px;
+  max-width: 680px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;

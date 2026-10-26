@@ -39,15 +39,17 @@ jobs:
       - name: Generate Android Signing Keystore
         working-directory: android/app
         run: |
-          keytool -genkeypair -v \
-            -keystore rollupos-release.jks \
-            -alias rollupos \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass rollupos2026 \
-            -keypass rollupos2026 \
-            -dname "CN=RollupOS Hub, OU=Mobile, O=Andrew Nicks, L=Kansas City, ST=MO, C=US"
+          if [ ! -f rollupos-release.jks ]; then
+            keytool -genkeypair -v \
+              -keystore rollupos-release.jks \
+              -alias rollupos \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass rollupos2026 \
+              -keypass rollupos2026 \
+              -dname "CN=RollupOS Hub, OU=Mobile, O=Andrew Nicks, L=Kansas City, ST=MO, C=US"
+          fi
 
       - name: Compile Signed Release APK
         working-directory: android
@@ -64,14 +66,18 @@ jobs:
           name: RollupOS-APK
           path: RollupOS.apk
 
-      - name: Publish / Update GitHub Release (RollupOS.apk)
+      - name: Publish / Update GitHub Release (RollupOS.apk v1.1.0 + v1.0.0)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            gh release upload v1.0.0 RollupOS.apk --clobber
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            gh release upload v1.1.0 RollupOS.apk --clobber
           else
-            gh release create v1.0.0 RollupOS.apk \
-              --title "RollupOS Multi-User Android Hub v1.0.0" \
-              --notes "Installable Android APK for RollupOS Hub. Mini-apps and permissions update dynamically over-the-air from GitHub Pages without needing to reinstall the APK."
+            gh release create v1.1.0 RollupOS.apk \
+              --latest \
+              --title "RollupOS Multi-User Android Hub v1.1.0 (Mic + GNSS + Camera Torch + Native File Export)" \
+              --notes "Upgraded Android WebView Host v1.1.0: Native RECORD_AUDIO (150Hz WebAudio Mic), ACCESS_FINE_LOCATION (GNSS), Sequential Camera/Torch Permissions, and RollupNative.saveBase64File (.cscwalk.zip, .csv, .json direct Downloads)."
+          fi
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            gh release upload v1.0.0 RollupOS.apk --clobber || true
           fi

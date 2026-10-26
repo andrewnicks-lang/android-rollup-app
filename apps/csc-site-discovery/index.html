@@ -4,41 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1120" />
-  <title>CSC Site Discovery &amp; Field Survey Companion — Automated Logic® WebCTRL®</title>
+  <title>CSC Site Discovery &amp; Field Survey Companion v2.0 — Automated Logic® WebCTRL®</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./css/field_ui.css?v=10" />
+  <link rel="stylesheet" href="./css/field_ui.css?v=20" />
 </head>
 <body>
 
   <!-- Mandatory LOTO & Governance Top Banner -->
   <div class="loto-bar">
     <div>⚡ MANDATORY NFPA 70E &amp; OSHA 1910.147 LOTO: Verify zero energy before opening live 120V/480V panels or inspecting VFD/board jumpers.</div>
-    <div>🛡️ POL-IT-AI-001: Local Whisper Consent | Tier-0 Field Provenance</div>
+    <div id="governanceSubBadge">🛡️ POL-IT-AI-001: 100% Local Audio Store | Tier-0 Field Provenance</div>
   </div>
 
-  <!-- Top Navigation & Hardware Controls -->
+  <!-- Top Navigation, Quick/Deep Mode Switcher & Hardware Controls -->
   <header class="top-nav">
     <div class="brand-title">
       <div>
-        <h1>🧭 CSC Site Discovery &amp; Field Survey Companion</h1>
+        <h1>🧭 CSC Site Discovery Companion <span style="font-size:11px;color:var(--accent-teal);font-weight:700;">v2.0</span></h1>
         <div id="jobHeaderSub" class="brand-sub">Job: CSC-26-4182 — Lee's Summit West Science &amp; PAC Retrofit</div>
       </div>
     </div>
 
     <div class="toolbar-controls">
+      <!-- Phase 1: Quick Walk (<15s) vs Deep Engineering Mode Switch -->
+      <div class="mode-switch-group" title="Switch between rapid <15s single-card field walk and 6-tab engineering inspector">
+        <button id="modeQuickBtn" class="mode-switch-btn active" onclick="setUiMode('quick')">⚡ Quick Walk</button>
+        <button id="modeDeepBtn" class="mode-switch-btn" onclick="setUiMode('deep')">🔬 Deep Inspector</button>
+      </div>
+
       <button id="rfi11ToggleBtn" class="btn btn-danger" onclick="toggleRfi23011HardStop()" title="Toggle Pre-Commissioning Temporary Conditioning Hard-Stop (RFI-23-011)">
-        🚨 RFI-23-011 HARD-STOP ACTIVE
+        🚨 RFI-23-011 HARD-STOP
       </button>
+
       <div class="pill-badge" title="Android GNSS &amp; Magnetometer Compass">
         <span id="liveSensorReadout">Indoor Pin Mode</span>
-        <button id="sensorLockBtn" class="btn btn-secondary" style="padding:3px 8px;min-height:26px;" onclick="toggleLiveSensors()">📡 Lock GPS/Compass</button>
+        <button id="sensorLockBtn" class="btn btn-secondary" style="padding:3px 8px;min-height:26px;" onclick="toggleLiveSensors()">📡 GPS/Compass</button>
       </div>
-      <div class="pill-badge" title="Barometric Altimeter Floor Detection">
+
+      <div class="pill-badge" title="Barometric Altimeter Floor Step">
         🌡️ <code id="baroReadout">988.86 hPa (+14.0 ft)</code>
         <button class="btn btn-secondary" style="padding:3px 7px;min-height:26px;" onclick="simulateStairClimb(1)">⬆️+1</button>
         <button class="btn btn-secondary" style="padding:3px 7px;min-height:26px;" onclick="simulateStairClimb(-1)">⬇️-1</button>
       </div>
-      <button class="btn btn-secondary" onclick="toggleSunlightMode()">☀️/🌙 Glare</button>
+
+      <button class="btn btn-secondary" onclick="toggleSunlightMode()" title="High-contrast rooftop sunlight mode">☀️/🌙</button>
       <button class="btn btn-blue" onclick="openSessionManagerModal()">⚙️ Walk / Export</button>
     </div>
   </header>
@@ -51,11 +60,14 @@
     <!-- LEFT PANE: 4-Layer Spatial Building Mapper & Station Strip -->
     <section class="pane-card">
       <div class="section-header">
-        <h2>🗺️ 4-Layer Spatial Building Mapper (Pin + Video Crumb + GNSS)</h2>
-        <label style="font-size:11.5px;display:flex;align-items:center;gap:5px;cursor:pointer;">
-          <input type="checkbox" checked onchange="state.showVideoCrumb = this.checked; persistWalkState(); renderInteractiveMap();" />
-          🎥 Video Trail
-        </label>
+        <h2>🗺️ Spatial Building Mapper (Pin + PDR Crumb + GNSS)</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:11.5px;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input id="showTrailCheck" type="checkbox" checked onchange="state.showVideoCrumb = this.checked; persistWalkState(); renderInteractiveMap();" />
+            🎥 Trail
+          </label>
+          <button class="btn btn-secondary" style="padding:3px 8px;min-height:28px;font-size:11px;" onclick="addCustomFloor()">➕ Floor</button>
+        </div>
       </div>
 
       <!-- Floor Selector Tabs -->
@@ -63,308 +75,619 @@
 
       <div id="mapSourceLabel" style="font-size:11.5px;color:var(--text-muted);"></div>
 
-      <!-- Interactive SVG Map Canvas (Supports Snapped Evacuation Map Background!) -->
-      <div class="map-viewport">
-        <svg id="floorMapSvg" viewBox="0 0 1000 380" class="interactive-svg" onclick="handleMapClick(event)"></svg>
+      <!-- Interactive Pinch-Zoom / Pan / Drag-Pin SVG Map Canvas -->
+      <div class="map-viewport" id="mapViewport">
+        <div class="map-zoom-controls">
+          <button class="map-zoom-btn" onclick="zoomMap(1.35)" title="Zoom In">➕</button>
+          <button class="map-zoom-btn" onclick="zoomMap(0.74)" title="Zoom Out">➖</button>
+          <button class="map-zoom-btn" onclick="resetMapZoom()" title="Reset Fit">⟲</button>
+          <button id="mapModeToggleBtn" class="map-zoom-btn" onclick="toggleMapInteractionMode()" title="Toggle Tap-to-Pin vs Pan/Drag">📍 Pin</button>
+        </div>
+        <svg id="floorMapSvg" viewBox="0 0 1000 380" class="interactive-svg"></svg>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--text-muted);">
-        <span>🔵 Pinned | 🟠 Interpolated Crumb | 🟢 Active | 🎥 Video Keyframe</span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-secondary" style="padding:5px 10px;min-height:30px;font-size:11.5px;" onclick="captureFloorEvacuationMap()">
-            📷 Snap Evacuation / Floor Map
+        <span>🔴 Red-Flag | 🟠 Amber/Delta | 🟢 Clean | ⚪ Unchecked | Drag Active Pin to Nudge</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" style="padding:5px 9px;min-height:30px;font-size:11px;" onclick="captureFloorEvacuationMap(true)">
+            📷 Snap Evac Map
           </button>
-          <button id="clearMapBtn" class="btn btn-danger" style="display:none;padding:5px 9px;min-height:30px;font-size:11px;" onclick="clearCustomFloorMap()">
-            🗑️ Clear Map
+          <button class="btn btn-secondary" style="padding:5px 9px;min-height:30px;font-size:11px;" onclick="captureFloorEvacuationMap(false)">
+            🖼️ Load Plan / PNG
+          </button>
+          <button id="clearMapBtn" class="btn btn-danger" style="display:none;padding:5px 8px;min-height:30px;font-size:11px;" onclick="clearCustomFloorMap()">
+            🗑️ Clear
           </button>
         </div>
       </div>
 
-      <div class="section-header" style="margin-top:4px;">
-        <h2>⚡ Equipment Stations (Tap Map to Add Pin)</h2>
-        <button class="btn btn-secondary" style="padding:4px 9px;min-height:28px;font-size:11px;" onclick="exportScheduleCsv()">📤 Export CSV</button>
+      <div class="section-header" style="margin-top:2px;">
+        <h2>⚡ Stations (<span id="stationSummaryCount">6</span>)</h2>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-amber" style="padding:4px 9px;min-height:30px;font-size:11.5px;" onclick="cloneActiveStation()" title="Duplicate active station &amp; auto-increment equipment tag">
+            📋 Clone +1
+          </button>
+          <button class="btn btn-blue" style="padding:4px 9px;min-height:30px;font-size:11.5px;" onclick="exportFullWalkZipBundle()" title="Export complete .cscwalk.zip with photos, maps &amp; audio">
+            📦 .cscwalk.zip
+          </button>
+          <button class="btn btn-secondary" style="padding:4px 8px;min-height:30px;font-size:11px;" onclick="exportScheduleCsv()">📊 CSV</button>
+        </div>
       </div>
       <div id="stationStrip" class="station-strip"></div>
     </section>
 
-    <!-- RIGHT PANE: Active Equipment Station Multimodal Inspector -->
+    <!-- RIGHT PANE: Dual-Mode Station Inspector (Quick Walk <15s vs 6-Tab Deep Inspector) -->
     <section class="pane-card">
-      <!-- Editable Station Identity + Tier-0 vs Tier-2 Count Delta Bar -->
-      <div class="checklist-card" style="margin-bottom:2px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <strong style="color:var(--accent-teal);font-size:12.5px;">🏷️ Active Station Identity &amp; Tier-0 vs. Tier-2 Scope Delta</strong>
-          <button class="btn btn-secondary" style="padding:3px 8px;min-height:26px;font-size:11px;" onclick="deleteActiveStation()">🗑️ Delete Pin</button>
-        </div>
-        <div class="field-grid">
-          <div class="input-group">
-            <label>Equipment Tag &amp; System</label>
-            <input id="stTagInput" type="text" oninput="updateStationIdentityFields()" />
-          </div>
-          <div class="input-group">
-            <label>Room / Zone / Roof Sector</label>
-            <input id="stRoomInput" type="text" oninput="updateStationIdentityFields()" />
-          </div>
-          <div class="input-group">
-            <label>Contract Scheduled Qty (Tier 2)</label>
-            <input id="stSchedQty" type="number" min="0" oninput="updateStationIdentityFields()" />
-          </div>
-          <div class="input-group">
-            <label>Field Observed Qty (Tier 0)</label>
-            <input id="stObsQty" type="number" min="0" oninput="updateStationIdentityFields()" />
-          </div>
-        </div>
-        <div class="input-group" style="margin-top:7px;">
-          <label>Field Scope / Clarification / Exclusion Note</label>
-          <input id="stDeltaNote" type="text" oninput="updateStationIdentityFields()" placeholder="e.g., +2 unscheduled VAVs in Chem Prep; CMU walls need Wiremold..." />
-        </div>
-        <div id="scopeDeltaBadge" class="status-callout" style="margin-top:8px;"></div>
-      </div>
 
-      <!-- 5 Inspector Mode Tabs -->
-      <div class="inspector-tabs">
-        <button class="tab-btn inspector-tab-btn active" data-tab="checklist" onclick="switchTab('checklist')">☑️ 1. Checklists</button>
-        <button class="tab-btn inspector-tab-btn" data-tab="nameplate" onclick="switchTab('nameplate')">📸 2. Nameplate &amp; OCR</button>
-        <button class="tab-btn inspector-tab-btn" data-tab="video" onclick="switchTab('video')">🎥 3. Video Mapper</button>
-        <button class="tab-btn inspector-tab-btn" data-tab="audio" onclick="switchTab('audio')">🎙️ 4. Walk-Talk Mic</button>
-        <button class="tab-btn inspector-tab-btn" data-tab="calculators" onclick="switchTab('calculators')">📐 5. Valve/VA/Labor</button>
-      </div>
-
-      <!-- TAB 1: Context-Aware Checklists & Live RFI Red Flags -->
-      <div id="panel-checklist" class="tab-panel">
-        <div class="field-grid" style="margin-bottom:10px;">
-          <div class="input-group">
-            <label>Equipment Archetype (Loads Dynamic RFI-23-001..011 Checklist)</label>
-            <select id="archetypeSelect" onchange="changeStationArchetype(this.value)"></select>
-          </div>
-          <div class="input-group">
-            <label>Default CSC / ALC WebCTRL® Strategy</label>
-            <div id="defaultAlcBadge" class="pill-badge" style="min-height:36px;"></div>
-          </div>
-        </div>
-        <div id="checklistContainer"></div>
-      </div>
-
-      <!-- TAB 2: Real 3-Slot Burst Camera, CLAHE Contrast & Live Vision/Serial Decoder -->
-      <div id="panel-nameplate" class="tab-panel" style="display:none;">
-        <div id="burstSlotsContainer" class="burst-slots" style="margin-bottom:10px;"></div>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-          <button id="liveOcrBtn" class="btn btn-blue" onclick="runLiveVisionOcrOnSlot2()">
-            🤖 Auto-Read Plate (Live Vision / Offline Queue)
-          </button>
-          <span style="font-size:11px;color:var(--text-muted);">Snapped photos persist offline in IndexedDB &amp; support 🔦 CLAHE stamped-metal boost</span>
-        </div>
-
-        <div class="field-grid" style="margin-bottom:10px;">
-          <div class="input-group">
-            <label>Manufacturer (Trane, ABB, Lochinvar, Carrier...)</label>
-            <input id="npMfg" type="text" oninput="runLiveSerialDecode()" />
-          </div>
-          <div class="input-group">
-            <label>Model Number</label>
-            <input id="npModel" type="text" oninput="runLiveSerialDecode()" />
-          </div>
-          <div class="input-group">
-            <label>Serial Number (Deterministic Vintage Decode)</label>
-            <input id="npSerial" type="text" oninput="runLiveSerialDecode()" />
-          </div>
-          <div class="input-group">
-            <label>Electrical &amp; Capacity</label>
-            <input id="npElec" type="text" oninput="runLiveSerialDecode()" />
-          </div>
-          <div class="input-group">
-            <label>Observed Legacy / OEM Controller (Auto-Maps ALC!)</label>
-            <input id="npLegacy" type="text" oninput="onLegacyControllerInput()" placeholder="Try: DX-9100, Symbio 700, Spyder, Pneumatic..." />
-          </div>
-          <div class="input-group">
-            <label>Recommended ALC WebCTRL® Replacement</label>
-            <input id="npAlcTarget" type="text" oninput="runLiveSerialDecode()" />
-          </div>
-        </div>
-
-        <div id="serialDecodeOutput" class="status-callout"></div>
-      </div>
-
-      <!-- TAB 3: Real Walkthrough Video Player & Laplacian Sharpness Keyframe Slicer -->
-      <div id="panel-video" class="tab-panel" style="display:none;">
-        <div class="checklist-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <strong style="color:var(--accent-teal);">🎥 Record / Load Walkthrough Video (Real Laplacian Sharpness $\text{Var}(\nabla^2 I)$ Slicer)</strong>
-            <label class="btn" style="font-size:11.5px;padding:6px 11px;">
-              📹 Record / Open Video Clip
-              <input type="file" accept="video/*" capture="environment" style="display:none;" onchange="loadWalkthroughVideoFile(this)" />
-            </label>
-          </div>
-          <video id="walkVideoPlayer" controls playsinline style="display:none;width:100%;max-height:240px;margin-top:8px;border-radius:8px;background:#000;"></video>
-          <div id="videoGrabControls" style="display:none;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center;">
-            <input id="videoSignInput" type="text" placeholder="Door Sign / Equipment Tag (e.g., RM 206 / VAV-206)" style="flex:1;min-width:160px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:7px;border-radius:6px;" />
-            <input id="videoNarrInput" type="text" placeholder="Spoken observation..." style="flex:1;min-width:160px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:7px;border-radius:6px;" />
-            <button class="btn btn-amber" onclick="grabLiveVideoKeyframe()">⚡ Grab Keyframe &amp; Map Position</button>
-          </div>
-        </div>
-
-        <!-- Interactive Time-Linear Walk Path Interpolator -->
-        <div class="checklist-card">
-          <strong style="color:var(--accent-teal);">⏱️ Time-Linear Walk-Path Interpolator (Between Known Video Doorways)</strong>
-          <div class="field-grid" style="margin-top:8px;">
-            <div class="input-group">
-              <label>Anchor A Time (sec)</label>
-              <input id="interpTa" type="number" value="8" oninput="runLinearInterpolatorDemo()" />
+      <!-- ================================================================== -->
+      <!-- MODE A: ⚡ QUICK WALK (<15s SINGLE-CARD FIELD CAPTURE)             -->
+      <!-- ================================================================== -->
+      <div id="quickWalkView">
+        <div class="quick-walk-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:190px;">
+              <span id="qwStationIdBadge" class="pill-badge" style="font-weight:800;border-color:var(--accent-teal);">STN-01</span>
+              <select id="qwArchetypeSelect" onchange="changeStationArchetype(this.value)" style="flex:1;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);border-radius:6px;padding:6px;font-size:12px;font-weight:700;"></select>
             </div>
-            <div class="input-group">
-              <label>Mid-Walk Capture Time (sec)</label>
-              <input id="interpTarget" type="number" value="52" oninput="runLinearInterpolatorDemo()" />
-            </div>
-            <div class="input-group">
-              <label>Anchor B Time (sec)</label>
-              <input id="interpTb" type="number" value="96" oninput="runLinearInterpolatorDemo()" />
+            <div style="display:flex;gap:5px;">
+              <button class="btn btn-amber" style="padding:5px 10px;min-height:34px;" onclick="cloneActiveStation()" title="Clone repetitive VAV / RTU / Sensor (+1 tag)">📋 Clone +1</button>
+              <button class="btn btn-secondary" style="padding:5px 8px;min-height:34px;" onclick="deleteActiveStation()" title="Delete Station">🗑️</button>
             </div>
           </div>
-          <div id="interpResultBox" class="amber-callout" style="margin-top:8px;"></div>
-        </div>
 
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Keyframe</th>
-              <th>Sharpness</th>
-              <th>Door / Plaque OCR</th>
-              <th>Aligned Narration</th>
-              <th>Topological Map Action</th>
-            </tr>
-          </thead>
-          <tbody id="videoKeyframesBody"></tbody>
-        </table>
-      </div>
+          <div class="field-grid">
+            <div class="input-group">
+              <label>Equipment Tag</label>
+              <input id="qwTagInput" type="text" oninput="syncQuickWalkInputs()" placeholder="e.g., VAV-204 or RTU-7" />
+            </div>
+            <div class="input-group">
+              <label>Room / Zone / Roof Sector</label>
+              <input id="qwRoomInput" type="text" oninput="syncQuickWalkInputs()" placeholder="e.g., Corridor 204 / West Roof" />
+            </div>
+          </div>
 
-      <!-- TAB 4: Real WebAudio 150Hz High-Pass Mic Recorder & Playback -->
-      <div id="panel-audio" class="tab-panel" style="display:none;">
-        <div class="checklist-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <button id="micToggleBtn" class="btn" onclick="toggleWalkTalkMic()">
-              🎙️ Start Walk-Talk Mic (150Hz Filter)
+          <!-- 3-Slot Compact Horizontal Photo Strip -->
+          <div id="qwPhotoStrip" class="quick-photo-row"></div>
+
+          <!-- Quick Nameplate + Thumb Steppers -->
+          <div class="field-grid">
+            <div class="input-group">
+              <label>Mfg &amp; Model (Auto-Reads Tonnage / A2L)</label>
+              <div style="display:flex;gap:4px;">
+                <input id="qwMfgInput" type="text" style="width:42%;" oninput="syncQuickWalkInputs()" placeholder="Trane..." />
+                <input id="qwModelInput" type="text" style="width:58%;" oninput="syncQuickWalkInputs()" placeholder="Model #" />
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Serial # (Auto Vintage) &amp; OEM/Legacy Ctrl</label>
+              <div style="display:flex;gap:4px;">
+                <input id="qwSerialInput" type="text" style="width:48%;" oninput="syncQuickWalkInputs()" placeholder="Serial #" />
+                <input id="qwLegacyInput" type="text" style="width:52%;" oninput="syncQuickWalkLegacy()" placeholder="DX-9100 / Symbio" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:var(--bg-card);padding:7px 9px;border-radius:7px;border:1px solid var(--border-col);">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10px;">SCHED QTY (TIER 2)</small>
+                <div class="stepper-ctrl">
+                  <button class="stepper-btn" onclick="stepStationQty('scheduledQty', -1)">−</button>
+                  <span id="qwSchedVal" class="stepper-val">1</span>
+                  <button class="stepper-btn" onclick="stepStationQty('scheduledQty', 1)">+</button>
+                </div>
+              </div>
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10px;">FOUND QTY (TIER 0)</small>
+                <div class="stepper-ctrl">
+                  <button class="stepper-btn" onclick="stepStationQty('observedQty', -1)">−</button>
+                  <span id="qwObsVal" class="stepper-val">1</span>
+                  <button class="stepper-btn" onclick="stepStationQty('observedQty', 1)">+</button>
+                </div>
+              </div>
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10px;">SENSOR CURVE</small>
+                <select id="qwCurveSelect" onchange="updateQuickCurve(this.value)" style="background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);border-radius:6px;padding:5px 7px;font-size:11.5px;min-height:34px;">
+                  <option value="10k_TYPE_II">10k Type II (ALC/Belimo)</option>
+                  <option value="10k_TYPE_III">10k Type III (Legacy)</option>
+                  <option value="20k_NTC">20k NTC (Honeywell)</option>
+                  <option value="1k_NICKEL">1kΩ Nickel (JCI)</option>
+                  <option value="1k_PLATINUM">1kΩ Pt RTD</option>
+                  <option value="RNET_DIGITAL">ALC ZS Pro (Rnet)</option>
+                  <option value="PNEUMATIC">Pneumatic Stat</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-blue" style="padding:6px 10px;min-height:34px;" onclick="runLiveVisionOcrOnSlot2()">🤖 OCR Plate</button>
+          </div>
+
+          <div id="qwInstantAuditBadge" class="status-callout" style="font-size:11.5px;padding:7px 9px;"></div>
+
+          <!-- 1-Tap Exception Red-Flag Chips -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px;flex-wrap:wrap;">
+              <strong style="font-size:11.5px;color:var(--accent-amber);">⚡ 1-Tap Red-Flag Exceptions (Tap Only Issues Found — or Mark Clean):</strong>
+              <button class="btn btn-green" style="padding:3px 9px;min-height:28px;font-size:11px;" onclick="markAllChecksClean()">✅ Mark All Verified Clean</button>
+            </div>
+            <div id="qwFlagsContainer" class="quick-flag-grid"></div>
+          </div>
+
+          <div class="input-group">
+            <label>Quick Field Note / Exclusion / Scope Delta (or tap 🎙️ Hold-to-Talk pill below)</label>
+            <input id="qwDeltaInput" type="text" oninput="syncQuickWalkInputs()" placeholder="e.g., SPST freeze stat only; CMU wall needs Wiremold; +2 unscheduled VAVs..." />
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;padding-top:4px;border-top:1px solid var(--border-col);">
+            <small id="qwVerificationCounter" style="color:var(--text-muted);font-weight:700;"></small>
+            <button class="btn btn-secondary" style="font-size:11.5px;padding:5px 10px;min-height:32px;" onclick="setUiMode('deep')">
+              🔬 Open Deep Engineering Tabs (I/O, Valve/Damper/VA, PDR Walk) &rarr;
             </button>
-            <span id="micStatusText" style="font-size:11.5px;color:var(--text-muted);">
-              🟢 Ready — WebAudio 150Hz Rumble Filter + Offline IndexedDB Audio Store
-            </span>
-          </div>
-          <div class="audio-meter-wrap" title="Live 150Hz High-Pass Filtered Input Level">
-            <div id="audioMeterBar" class="audio-meter-bar"></div>
-          </div>
-          <div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;">
-            <input id="quickVoiceNoteInput" type="text" placeholder="Live speech draft or type site-pro remark to pin to station..." style="flex:1;min-width:190px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:8px;border-radius:6px;" />
-            <button class="btn btn-amber" onclick="bookmarkAudioMoment()">📌 Pin Note to Station</button>
-          </div>
-          <div style="margin-top:6px;font-size:10.5px;color:var(--text-muted);">
-            <strong>CSC HVAC Whisper Lexicon:</strong> <code>WebCTRL, OptiFlex, ZN551, ZN341v, ZS Pro, Rnet, BACnet MS/TP, Symbio 700, VCCX2, Belimo, PICCV, DPDT freeze stat, thermowell, threadolet, ACH580</code>
           </div>
         </div>
-
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Clip / Time</th>
-              <th>Speaker &amp; Station</th>
-              <th>Transcript &amp; Offline Audio Playback</th>
-              <th>Auto-Triggered RFI / Insight</th>
-            </tr>
-          </thead>
-          <tbody id="audioLogBody"></tbody>
-        </table>
       </div>
 
-      <!-- TAB 5: Deterministic Construction & Retrofit Calculators -->
-      <div id="panel-calculators" class="tab-panel" style="display:none;">
-        <div class="checklist-card">
-          <strong style="color:var(--accent-teal);">1️⃣ Hydronic Control Valve Cv, Authority (β &ge; 0.50) &amp; Reducer Sizer (RFI-23-002 / 005)</strong>
-          <div class="field-grid" style="margin-top:8px;">
-            <div class="input-group">
-              <label>Design Flow (GPM)</label>
-              <input id="calcGpm" type="number" step="0.5" value="42.0" oninput="runFieldCalculators()" />
-            </div>
-            <div class="input-group">
-              <label>Existing Pipe Line Size (in)</label>
-              <select id="calcPipeSize" onchange="runFieldCalculators()">
-                <option value="0.75">3/4"</option>
-                <option value="1.0">1"</option>
-                <option value="1.25">1-1/4"</option>
-                <option value="1.5">1-1/2"</option>
-                <option value="2.0" selected>2"</option>
-                <option value="2.5">2-1/2"</option>
-                <option value="3.0">3"</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Fluid Specific Gravity (Glycol %)</label>
-              <select id="calcFluidSg" onchange="runFieldCalculators()">
-                <option value="1.000">100% Water (SG = 1.000)</option>
-                <option value="1.026">25% Propylene Glycol (SG = 1.026)</option>
-                <option value="1.032" selected>30% Propylene Glycol (SG = 1.032)</option>
-                <option value="1.045">30% Ethylene Glycol (SG = 1.045)</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Est. Coil ΔP (psi)</label>
-              <input id="calcCoilDp" type="number" step="0.5" value="4.0" oninput="runFieldCalculators()" />
+      <!-- ================================================================== -->
+      <!-- MODE B: 🔬 DEEP ENGINEERING 6-TAB MULTIMODAL INSPECTOR             -->
+      <!-- ================================================================== -->
+      <div id="deepInspectorView" style="display:none;">
+        <!-- Editable Station Identity + Tier-0 vs Tier-2 Count Delta Bar -->
+        <div class="checklist-card" style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:6px;flex-wrap:wrap;">
+            <strong style="color:var(--accent-teal);font-size:12.5px;">🏷️ Active Station Identity &amp; Tier-0 vs. Tier-2 Scope Delta</strong>
+            <div style="display:flex;gap:5px;">
+              <button class="btn btn-amber" style="padding:3px 9px;min-height:28px;font-size:11px;" onclick="cloneActiveStation()">📋 Clone +1</button>
+              <button class="btn btn-secondary" style="padding:3px 8px;min-height:28px;font-size:11px;" onclick="deleteActiveStation()">🗑️ Delete Pin</button>
             </div>
           </div>
-          <div id="valveCalcOutput" class="status-callout" style="margin-top:8px;"></div>
+          <div class="field-grid">
+            <div class="input-group">
+              <label>Equipment Tag &amp; System</label>
+              <input id="stTagInput" type="text" oninput="updateStationIdentityFields()" />
+            </div>
+            <div class="input-group">
+              <label>Room / Zone / Roof Sector</label>
+              <input id="stRoomInput" type="text" oninput="updateStationIdentityFields()" />
+            </div>
+            <div class="input-group">
+              <label>Contract Scheduled Qty (Tier 2)</label>
+              <input id="stSchedQty" type="number" min="0" oninput="updateStationIdentityFields()" />
+            </div>
+            <div class="input-group">
+              <label>Field Observed Qty (Tier 0)</label>
+              <input id="stObsQty" type="number" min="0" oninput="updateStationIdentityFields()" />
+            </div>
+          </div>
+          <div class="input-group" style="margin-top:7px;">
+            <label>Field Scope / Clarification / Exclusion Note</label>
+            <input id="stDeltaNote" type="text" oninput="updateStationIdentityFields()" placeholder="e.g., +2 unscheduled VAVs in Chem Prep; CMU walls need Wiremold..." />
+          </div>
+          <div id="scopeDeltaBadge" class="status-callout" style="margin-top:8px;"></div>
         </div>
 
-        <div class="checklist-card">
-          <strong style="color:var(--accent-teal);">2️⃣ TCP Panel 24VAC Class 2 Transformer 80% Derating Sizer (RFI-23-009)</strong>
-          <div class="field-grid" style="margin-top:8px;">
-            <div class="input-group">
-              <label>ALC OptiFlex / ZN551 Controllers (28 VA ea)</label>
-              <input id="calcCtrlCount" type="number" value="1" oninput="runFieldCalculators()" />
-            </div>
-            <div class="input-group">
-              <label>Belimo Spring-Return Actuators (7 VA ea)</label>
-              <input id="calcSrActCount" type="number" value="6" oninput="runFieldCalculators()" />
-            </div>
-            <div class="input-group">
-              <label>ALC ZS Pro Rnet Sensors (1.5 VA ea)</label>
-              <input id="calcZsCount" type="number" value="2" oninput="runFieldCalculators()" />
-            </div>
-          </div>
-          <div id="vaCalcOutput" class="status-callout" style="margin-top:8px;"></div>
+        <!-- 6 Inspector Mode Tabs -->
+        <div class="inspector-tabs" style="margin-bottom:9px;">
+          <button class="tab-btn inspector-tab-btn active" data-tab="checklist" onclick="switchTab('checklist')">☑️ 1. Checklists</button>
+          <button class="tab-btn inspector-tab-btn" data-tab="nameplate" onclick="switchTab('nameplate')">📸 2. Nameplate &amp; Board</button>
+          <button class="tab-btn inspector-tab-btn" data-tab="bas_io" onclick="switchTab('bas_io')">🔌 3. BAS Overlay &amp; I/O</button>
+          <button class="tab-btn inspector-tab-btn" data-tab="video" onclick="switchTab('video')">🎥 4. PDR &amp; Video</button>
+          <button class="tab-btn inspector-tab-btn" data-tab="audio" onclick="switchTab('audio')">🎙️ 5. Walk-Talk Mic</button>
+          <button class="tab-btn inspector-tab-btn" data-tab="calculators" onclick="switchTab('calculators')">📐 6. Valve/Damper/VA</button>
         </div>
 
-        <div class="checklist-card">
-          <strong style="color:var(--accent-teal);">3️⃣ Physical Access, Ceiling, CMU Wall &amp; Shift Labor Multiplier ("Estimator Margin Saver")</strong>
-          <div class="field-grid" style="margin-top:8px;">
+        <!-- TAB 1: Context-Aware Checklists & Live RFI Red Flags -->
+        <div id="panel-checklist" class="tab-panel">
+          <div class="field-grid" style="margin-bottom:10px;">
             <div class="input-group">
-              <label>Ceiling / Plenum Access</label>
-              <select id="calcCeilFactor" onchange="runFieldCalculators()">
-                <option value="1.0">2x4 Lay-in Tile / Mech Room (1.00x)</option>
-                <option value="1.15" selected>Tight Pipe Congestion Above Tile (1.15x)</option>
-                <option value="1.35">Hard Lid Drywall — Access Door Req'd (1.35x)</option>
-                <option value="1.50">High Bay &gt;16 ft — Scissor Lift Req'd (1.50x)</option>
-              </select>
+              <label>Equipment Archetype (Loads Dynamic RFI-23-001..011 + A2L Checklist)</label>
+              <select id="archetypeSelect" onchange="changeStationArchetype(this.value)"></select>
             </div>
             <div class="input-group">
-              <label>Wall Surface (Zone Sensor Pathway)</label>
-              <select id="calcWallFactor" onchange="runFieldCalculators()">
-                <option value="1.0">Drywall Hollow Stud / Existing EMT (1.00x)</option>
-                <option value="1.40" selected>CMU Cinderblock — Surface Wiremold Req'd (1.40x)</option>
-                <option value="1.60">Historic Brick / Marble / Tile (1.60x)</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Working Hours / ICRA Containment</label>
-              <select id="calcShiftFactor" onchange="runFieldCalculators()">
-                <option value="1.0">Standard Daytime Hours 7am-3:30pm (1.00x)</option>
-                <option value="1.30" selected>2nd Shift After School/Occupied Hours (1.30x)</option>
-                <option value="1.65">Hospital ICRA Tenting &amp; HEPA Cart (1.65x)</option>
-              </select>
+              <label>Checklist Verification Status &amp; Default ALC Strategy</label>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <div id="defaultAlcBadge" class="pill-badge" style="min-height:36px;flex:1;"></div>
+                <button class="btn btn-green" style="padding:5px 9px;min-height:36px;font-size:11px;" onclick="markAllChecksClean()">✅ Pass Unchecked</button>
+              </div>
             </div>
           </div>
-          <div id="laborCalcOutput" class="amber-callout" style="margin-top:8px;"></div>
+          <div id="checklistContainer"></div>
+        </div>
+
+        <!-- TAB 2: Real 3-Slot Burst Camera, Non-Destructive 8x8 CLAHE & Board Reference -->
+        <div id="panel-nameplate" class="tab-panel" style="display:none;">
+          <div id="burstSlotsContainer" class="burst-slots" style="margin-bottom:10px;"></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <button id="liveOcrBtn" class="btn btn-blue" onclick="runLiveVisionOcrOnSlot2()">
+              🤖 Auto-Read Plate (Live Vision / Offline Queue)
+            </button>
+            <span style="font-size:11px;color:var(--text-muted);">EXIF GPS/Compass extracted pre-resize + non-destructive <code>8x8</code> Tile CLAHE / Raw Color toggle</span>
+          </div>
+
+          <div class="field-grid" style="margin-bottom:10px;">
+            <div class="input-group">
+              <label>Manufacturer (Trane, ABB, Lochinvar, Carrier...)</label>
+              <input id="npMfg" type="text" oninput="runLiveSerialDecode()" />
+            </div>
+            <div class="input-group">
+              <label>Model Number (Tonnage / MBH / A2L Decode)</label>
+              <input id="npModel" type="text" oninput="runLiveSerialDecode()" />
+            </div>
+            <div class="input-group">
+              <label>Serial Number (ASHRAE Ch. 38 Vintage Audit)</label>
+              <input id="npSerial" type="text" oninput="runLiveSerialDecode()" />
+            </div>
+            <div class="input-group">
+              <label>Electrical &amp; Capacity</label>
+              <input id="npElec" type="text" oninput="runLiveSerialDecode()" />
+            </div>
+            <div class="input-group">
+              <label>Observed Legacy / OEM Controller (Auto-Maps ALC &amp; Board Ref)</label>
+              <input id="npLegacy" type="text" oninput="onLegacyControllerInput()" placeholder="Try: DX-9100, Symbio 700, ACH580, ZN551..." />
+            </div>
+            <div class="input-group">
+              <label>Recommended ALC WebCTRL® Replacement / Overlay</label>
+              <input id="npAlcTarget" type="text" oninput="runLiveSerialDecode()" />
+            </div>
+          </div>
+
+          <div id="serialDecodeOutput" class="status-callout"></div>
+          <div id="boardRefOutput" class="amber-callout" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- TAB 3 (NEW PHASE 2): BAS Overlay, Thermistor Curve, Hardware I/O Tally & Trunk Topology -->
+        <div id="panel-bas_io" class="tab-panel" style="display:none;">
+          <div class="checklist-card">
+            <strong style="color:var(--accent-teal);">🔌 Existing Sensor Thermistor Curve &amp; Hardware I/O Point Tally</strong>
+            <div class="field-grid" style="margin-top:8px;">
+              <div class="input-group">
+                <label>Existing Field Thermistor / RTD Curve</label>
+                <select id="ioThermistorSelect" onchange="updateStationBasIo()">
+                  <option value="10k_TYPE_II">10kΩ Type II (ALC / Precon ST-**3 / Belimo Default)</option>
+                  <option value="10k_TYPE_III">10kΩ Type III (Legacy Andover / CSI)</option>
+                  <option value="20k_NTC">20kΩ NTC (Honeywell C7041 / Spyder)</option>
+                  <option value="1k_NICKEL">1,000Ω Nickel RTD (Johnson Controls Legacy)</option>
+                  <option value="1k_PLATINUM">1,000Ω Platinum RTD (385 Alpha — Siemens)</option>
+                  <option value="RNET_DIGITAL">ALC ZS Pro Digital Rnet Bus (RFI-23-008)</option>
+                  <option value="PNEUMATIC">Pneumatic 3–15 psi (Replace Sensor &amp; Pull Cable)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Feeds From TCP / 120V Panel &amp; Ckt (RFI-23-009)</label>
+                <input id="ioParentPanel" type="text" oninput="updateStationBasIo()" placeholder="e.g., TCP-204 / Panel LP-2A Ckt #14" />
+              </div>
+              <div class="input-group">
+                <label>Served By (Upstream AHU / Plant Loop)</label>
+                <input id="ioServedBy" type="text" oninput="updateStationBasIo()" placeholder="e.g., AHU-2 &amp; HWS-1 Loop" />
+              </div>
+              <div class="input-group">
+                <label>BACnet MS/TP Trunk / MAC / Baud / EOL</label>
+                <input id="ioMstpMac" type="text" oninput="updateStationBasIo()" placeholder="e.g., Trunk 2 | MAC 14 | 76.8k | EOL=OFF" />
+              </div>
+            </div>
+
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10.5px;">UI (TEMP / STATIC / OA)</small>
+                <div class="stepper-ctrl">
+                  <button class="stepper-btn" onclick="stepIoCount('ui', -1)">−</button>
+                  <span id="ioUiVal" class="stepper-val">4</span>
+                  <button class="stepper-btn" onclick="stepIoCount('ui', 1)">+</button>
+                </div>
+              </div>
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10.5px;">BI (STATUS / FREEZE / SMOKE)</small>
+                <div class="stepper-ctrl">
+                  <button class="stepper-btn" onclick="stepIoCount('bi', -1)">−</button>
+                  <span id="ioBiVal" class="stepper-val">3</span>
+                  <button class="stepper-btn" onclick="stepIoCount('bi', 1)">+</button>
+                </div>
+              </div>
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10.5px;">BO (START-STOP / STAGES)</small>
+                <div class="stepper-ctrl">
+                  <button class="stepper-btn" onclick="stepIoCount('bo', -1)">−</button>
+                  <span id="ioBoVal" class="stepper-val">2</span>
+                  <button class="stepper-btn" onclick="stepIoCount('bo', 1)">+</button>
+                </div>
+              </div>
+              <div>
+                <small style="color:var(--text-muted);font-weight:700;display:block;font-size:10.5px;">AO (0-10V VFD / VALVES / DMPR)</small>
+                <div class="stepper-ctrl">
+                  <button class="stepper-btn" onclick="stepIoCount('ao', -1)">−</button>
+                  <span id="ioAoVal" class="stepper-val">2</span>
+                  <button class="stepper-btn" onclick="stepIoCount('ao', 1)">+</button>
+                </div>
+              </div>
+              <button class="btn btn-amber" onclick="pushStationIoToVaCalculator()">⚡ Push Hardware to TCP VA Sizer</button>
+            </div>
+
+            <div id="basIoRecommendOutput" class="status-callout" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- TAB 4: Live Rear Camera + Torch + Step-Peak PDR Walk & Video Laplacian Slicer -->
+        <div id="panel-video" class="tab-panel" style="display:none;">
+          <div class="checklist-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <strong style="color:var(--accent-teal);">🧭 In-App Live Camera + Step-Peak Dead Reckoning (Zero Stationary Drift!)</strong>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button id="livePdrBtn" class="btn" style="font-size:11.5px;padding:6px 10px;" onclick="toggleLivePdrWalk()">
+                  📷 Start Live Cam + Step PDR
+                </button>
+                <button id="torchToggleBtn" class="btn btn-secondary" style="display:none;font-size:11.5px;padding:6px 10px;" onclick="toggleCameraTorch()">
+                  🔦 Torch OFF
+                </button>
+                <label class="btn btn-secondary" style="font-size:11.5px;padding:6px 10px;">
+                  📹 Open Video File
+                  <input type="file" accept="video/*" style="display:none;" onchange="loadWalkthroughVideoFile(this)" />
+                </label>
+              </div>
+            </div>
+
+            <video id="walkVideoPlayer" controls playsinline muted style="display:none;width:100%;max-height:220px;margin-top:8px;border-radius:8px;background:#000;"></video>
+
+            <div id="pdrLiveHud" class="pdr-hud-strip">
+              <span>👣 Steps: <strong id="pdrStepCountEl">0</strong> | 🧭 Heading: <strong id="pdrHeadingEl">--°</strong> | 🔍 $\nabla^2 I$: <strong id="pdrSharpEl">--</strong></span>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" style="padding:4px 8px;min-height:28px;font-size:11px;" onclick="simulatePdrCorridorSteps(5)" title="Simulate 5 corridor steps on desktop/bench">+5 Steps</button>
+                <button class="btn btn-blue" style="padding:4px 8px;min-height:28px;font-size:11px;" onclick="setPdrAnchor('A')">🅰️ Anchor A (Here)</button>
+                <button class="btn btn-green" style="padding:4px 8px;min-height:28px;font-size:11px;" onclick="setPdrAnchor('B')">🅱️ Anchor B &amp; Rubber-Band</button>
+              </div>
+            </div>
+
+            <div id="videoGrabControls" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;align-items:center;">
+              <input id="videoSignInput" type="text" placeholder="Door Sign / Tag (e.g., RM 206 / VAV-206)" style="flex:1;min-width:150px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:7px;border-radius:6px;" />
+              <input id="videoNarrInput" type="text" placeholder="Observation..." style="flex:1;min-width:150px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:7px;border-radius:6px;" />
+              <button class="btn btn-amber" onclick="grabLiveVideoKeyframe()">⚡ Snap Sharp Crumb &amp; Pin</button>
+            </div>
+          </div>
+
+          <!-- Interactive Time-Linear / Step-Proportional Walk Path Interpolator -->
+          <div class="checklist-card">
+            <strong style="color:var(--accent-teal);">⏱️ Corridor Anchor Interpolator (Step-Proportional PDR / Video Time)</strong>
+            <div class="field-grid" style="margin-top:8px;">
+              <div class="input-group">
+                <label>Anchor A Time/Step</label>
+                <input id="interpTa" type="number" value="8" oninput="runLinearInterpolatorDemo()" />
+              </div>
+              <div class="input-group">
+                <label>Mid-Walk Capture</label>
+                <input id="interpTarget" type="number" value="52" oninput="runLinearInterpolatorDemo()" />
+              </div>
+              <div class="input-group">
+                <label>Anchor B Time/Step</label>
+                <input id="interpTb" type="number" value="96" oninput="runLinearInterpolatorDemo()" />
+              </div>
+            </div>
+            <div id="interpResultBox" class="amber-callout" style="margin-top:8px;"></div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Keyframe</th>
+                <th>Sharpness</th>
+                <th>Door / Plaque OCR</th>
+                <th>Aligned Narration</th>
+                <th>Topological Map Action</th>
+              </tr>
+            </thead>
+            <tbody id="videoKeyframesBody"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 5: Real WebAudio 150Hz High-Pass Mic Recorder, Consent Gate & RFI Trigger Scanner -->
+        <div id="panel-audio" class="tab-panel" style="display:none;">
+          <div class="checklist-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <button id="micToggleBtn" class="btn" onclick="toggleWalkTalkMic()">
+                🎙️ Start Walk-Talk Mic (150Hz Filter)
+              </button>
+              <span id="micStatusText" style="font-size:11.5px;color:var(--text-muted);">
+                🟢 Ready — 100% Local 150Hz Filtered Audio Store (.webm in IndexedDB)
+              </span>
+            </div>
+
+            <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;padding:7px 9px;background:var(--bg-main);border-radius:6px;border:1px solid var(--border-col);font-size:11.5px;">
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-weight:700;">
+                <input id="audioConsentCheck" type="checkbox" onchange="toggleVerbalConsent(this.checked)" />
+                ☑️ Verbal Site Consent Logged (POL-IT-AI-001)
+              </label>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text-muted);">
+                <input id="cloudSpeechCheck" type="checkbox" onchange="toggleCloudSpeechOptIn(this.checked)" />
+                ☁️ Opt-In Live Browser Speech Draft (Off = Strict Local Audio Only)
+              </label>
+            </div>
+
+            <div class="audio-meter-wrap" title="Live 150Hz High-Pass Filtered Input Level">
+              <div id="audioMeterBar" class="audio-meter-bar"></div>
+            </div>
+
+            <div style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;">
+              <input id="siteContactQuickInput" type="text" oninput="state.siteContact = this.value; persistWalkState();" placeholder="Site Escort / Contact Name(s)..." style="width:210px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:8px;border-radius:6px;font-size:12px;" />
+              <input id="quickVoiceNoteInput" type="text" placeholder="Type site-pro remark or record audio clip to pin &amp; auto-scan RFIs..." style="flex:1;min-width:190px;background:var(--bg-main);color:var(--text-main);border:1px solid var(--border-col);padding:8px;border-radius:6px;" />
+              <button class="btn btn-amber" onclick="bookmarkAudioMoment()">📌 Pin Note to Station</button>
+            </div>
+            <div style="margin-top:6px;font-size:10.5px;color:var(--text-muted);">
+              <strong>Auto-Scanned RFI Triggers:</strong> <code>RFI-23-001..011 (Symbio/Overlay, PICCV/Cv, Dampers, Threadolets/Reducers, VFD Hardwired, DPDT Freeze, Rnet ZS Pro, 120V Power, 2/3 DP, Temp Drywall Hard-Stop, A2L R-454B)</code>
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Clip / Time</th>
+                <th>Speaker &amp; Station</th>
+                <th>Transcript &amp; Offline Audio Playback</th>
+                <th>Auto-Triggered RFI / Insight</th>
+              </tr>
+            </thead>
+            <tbody id="audioLogBody"></tbody>
+          </table>
+        </div>
+
+        <!-- TAB 6: Deterministic Valve / Damper / TCP VA / Labor Calculators + Save to Station -->
+        <div id="panel-calculators" class="tab-panel" style="display:none;">
+          <div class="checklist-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <strong style="color:var(--accent-teal);">1️⃣ Hydronic Valve Cv, Authority (β &ge; 0.50), Fail-Safe &amp; Reducer Sizer (RFI-23-002 / 005 / 007)</strong>
+              <button class="btn btn-green" style="padding:4px 10px;min-height:30px;font-size:11.5px;" onclick="saveCalculatorsToActiveStation()">💾 Save Sizing to Station</button>
+            </div>
+            <div class="field-grid" style="margin-top:8px;">
+              <div class="input-group">
+                <label>Coil Service &amp; Fail-Safe Action</label>
+                <select id="calcValveApp" onchange="runFieldCalculators()">
+                  <option value="cooling">Cooling / Chilled Water (Non-Spring / Fail-In-Place)</option>
+                  <option value="heating" selected>Heating / Preheat Freeze-Safe (Fail-Open Spring-Return!)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Design Flow (GPM — Supports 0.5 VAV to 150+)</label>
+                <input id="calcGpm" type="number" step="0.5" value="42.0" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>Existing Pipe Line Size (in)</label>
+                <select id="calcPipeSize" onchange="runFieldCalculators()">
+                  <option value="0.5">1/2"</option>
+                  <option value="0.75">3/4"</option>
+                  <option value="1.0">1"</option>
+                  <option value="1.25">1-1/4"</option>
+                  <option value="1.5">1-1/2"</option>
+                  <option value="2.0" selected>2"</option>
+                  <option value="2.5">2-1/2"</option>
+                  <option value="3.0">3"</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Fluid Specific Gravity (Glycol %)</label>
+                <select id="calcFluidSg" onchange="runFieldCalculators()">
+                  <option value="1.000">100% Water (SG = 1.000)</option>
+                  <option value="1.026">25% Propylene Glycol (SG = 1.026)</option>
+                  <option value="1.032" selected>30% Propylene Glycol (SG = 1.032)</option>
+                  <option value="1.045">30% Ethylene Glycol (SG = 1.045)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Est. Coil ΔP (psi)</label>
+                <input id="calcCoilDp" type="number" step="0.5" value="4.0" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>Pressure-Independent Option</label>
+                <label style="display:flex;align-items:center;gap:6px;min-height:36px;cursor:pointer;font-size:12px;">
+                  <input id="calcUsePiccv" type="checkbox" onchange="runFieldCalculators()" />
+                  Specify Belimo PICCV (Unknown Coil ΔP)
+                </label>
+              </div>
+            </div>
+            <div id="valveCalcOutput" class="status-callout" style="margin-top:8px;"></div>
+          </div>
+
+          <div class="checklist-card">
+            <strong style="color:var(--accent-teal);">2️⃣ Automatic Control Damper Area &amp; Belimo Actuator Torque Sizer (RFI-23-004)</strong>
+            <div class="field-grid" style="margin-top:8px;">
+              <div class="input-group">
+                <label>Damper Width (in)</label>
+                <input id="calcDmpW" type="number" value="48" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>Damper Height (in)</label>
+                <input id="calcDmpH" type="number" value="30" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>Damper Service &amp; Return</label>
+                <select id="calcDmpApp" onchange="runFieldCalculators()">
+                  <option value="oa_ea_failsafe" selected>OA / EA Intake-Exhaust (Spring-Return Fail-Close)</option>
+                  <option value="ra_zone">Return / Mixing / Zone (Non-Spring Modulating)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Seal / Linkage Condition</label>
+                <select id="calcDmpTorqueFactor" onchange="runFieldCalculators()">
+                  <option value="5.0">Standard Parallel/Opposed (5 in-lb/ft²)</option>
+                  <option value="6.0" selected>Low-Leakage Airfoil Seal (6 in-lb/ft²)</option>
+                  <option value="8.0">Heavy / Older Retrofit Linkage (8 in-lb/ft²)</option>
+                </select>
+              </div>
+            </div>
+            <div id="damperCalcOutput" class="status-callout" style="margin-top:8px;"></div>
+          </div>
+
+          <div class="checklist-card">
+            <strong style="color:var(--accent-teal);">3️⃣ Unified TCP Panel 24VAC Class 2 Transformer 80% Derating Sizer (RFI-23-009)</strong>
+            <div class="field-grid" style="margin-top:8px;">
+              <div class="input-group">
+                <label>ALC OptiFlex Plant/AHU (24 VA)</label>
+                <input id="calcOptiCount" type="number" min="0" value="1" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>ALC ZN551 / ZN341v (12 VA)</label>
+                <input id="calcZnCount" type="number" min="0" value="0" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>ALC XPIO / FIO-812 Expander (14 VA)</label>
+                <input id="calcXpioCount" type="number" min="0" value="1" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>Belimo Spring-Return Actuators (7 VA)</label>
+                <input id="calcSrActCount" type="number" min="0" value="6" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>Non-Spring Actuators (3 VA)</label>
+                <input id="calcNsrActCount" type="number" min="0" value="2" oninput="runFieldCalculators()" />
+              </div>
+              <div class="input-group">
+                <label>ALC ZS Pro Rnet Sensors (1.5 VA)</label>
+                <input id="calcZsCount" type="number" min="0" value="2" oninput="runFieldCalculators()" />
+              </div>
+            </div>
+            <div id="vaCalcOutput" class="status-callout" style="margin-top:8px;"></div>
+          </div>
+
+          <div class="checklist-card">
+            <strong style="color:var(--accent-teal);">4️⃣ Physical Access, Ceiling, CMU Wall &amp; Shift Labor Multiplier ("Estimator Margin Saver")</strong>
+            <div class="field-grid" style="margin-top:8px;">
+              <div class="input-group">
+                <label>Ceiling / Plenum Access</label>
+                <select id="calcCeilFactor" onchange="runFieldCalculators()">
+                  <option value="1.0">2x4 Lay-in Tile / Mech Room (1.00x)</option>
+                  <option value="1.15" selected>Tight Pipe Congestion Above Tile (1.15x)</option>
+                  <option value="1.35">Hard Lid Drywall — Access Door Req'd (1.35x)</option>
+                  <option value="1.50">High Bay &gt;16 ft — Scissor Lift Req'd (1.50x)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Wall Surface (Zone Sensor Pathway)</label>
+                <select id="calcWallFactor" onchange="runFieldCalculators()">
+                  <option value="1.0">Drywall Hollow Stud / Existing EMT (1.00x)</option>
+                  <option value="1.40" selected>CMU Cinderblock — Surface Wiremold Req'd (1.40x)</option>
+                  <option value="1.60">Historic Brick / Marble / Tile (1.60x)</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Working Hours / ICRA Containment</label>
+                <select id="calcShiftFactor" onchange="runFieldCalculators()">
+                  <option value="1.0">Standard Daytime Hours 7am-3:30pm (1.00x)</option>
+                  <option value="1.30" selected>2nd Shift After School/Occupied Hours (1.30x)</option>
+                  <option value="1.65">Hospital ICRA Tenting &amp; HEPA Cart (1.65x)</option>
+                </select>
+              </div>
+            </div>
+            <div id="laborCalcOutput" class="amber-callout" style="margin-top:8px;"></div>
+          </div>
         </div>
       </div>
 
     </section>
   </main>
+
+  <!-- Global Floating Hold-to-Talk / Tap-to-Talk Mic Pill (Sits cleanly above RollupOS Hub Pill) -->
+  <button id="floatingPttPill" class="floating-ptt-pill"
+          onpointerdown="handlePttPointerDown(event)"
+          onpointerup="handlePttPointerUp(event)"
+          title="Hold to dictate or tap to toggle 150Hz filtered voice note for the active station">
+    <span id="pttPillLabel">🎙️ Hold / Tap Note</span>
+    <span class="ptt-mini-meter"><span id="pttMiniMeterFill" class="ptt-mini-meter-fill"></span></span>
+  </button>
 
   <!-- Photo Click-to-Verify Zoom Modal -->
   <div id="photoZoomModal" class="modal-backdrop" onclick="if(event.target===this) this.style.display='none'">
@@ -377,11 +700,11 @@
     </div>
   </div>
 
-  <!-- Walk Session Manager, API Vault & Android Export Modal -->
+  <!-- Walk Session Manager, .cscwalk.zip Import/Export, API Vault & Field Manual Modal -->
   <div id="sessionModal" class="modal-backdrop" onclick="if(event.target===this) closeSessionManagerModal()">
     <div class="modal-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <strong style="font-size:15px;color:var(--accent-teal);">⚙️ Site Walk Session Manager, Vault &amp; Export</strong>
+        <strong style="font-size:15px;color:var(--accent-teal);">⚙️ Site Walk Session Manager, M-Sheet Import &amp; Export</strong>
         <button class="btn btn-secondary" onclick="closeSessionManagerModal()">✖</button>
       </div>
 
@@ -394,6 +717,14 @@
           <label>CSC Job / Estimate Number</label>
           <input id="newWalkJobInput" type="text" placeholder="e.g., CSC-26-4200" />
         </div>
+        <div class="input-group">
+          <label>Site Contact / Facility Escort(s)</label>
+          <input id="newWalkContactInput" type="text" placeholder="e.g., Danny Miller (Facilities)" />
+        </div>
+        <div class="input-group">
+          <label>Site Address / Campus</label>
+          <input id="newWalkAddressInput" type="text" placeholder="e.g., 2600 SW Ward Rd, Lee's Summit, MO" />
+        </div>
       </div>
 
       <div class="input-group" style="margin-top:10px;">
@@ -401,23 +732,29 @@
         <input id="geminiApiKeyInput" type="password" placeholder="AIza... (Leave blank for 100% Offline Queue Mode)" />
       </div>
 
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
         <button class="btn" onclick="saveVaultAndProjectMeta()">💾 Save Settings</button>
         <button class="btn btn-amber" onclick="startBlankSiteWalk()">➕ Start Clean Blank Walk</button>
-        <button class="btn btn-secondary" onclick="resetToGoldenDemoWalk()">🧪 Load KC Golden Demo Walk</button>
+        <button class="btn btn-secondary" onclick="resetToGoldenDemoWalk()">🧪 Load KC Golden Demo</button>
+        <label class="btn btn-blue" style="cursor:pointer;">
+          📥 Import .cscwalk.zip / .json
+          <input type="file" accept=".zip,.json" style="display:none;" onchange="importWalkBundleFile(this)" />
+        </label>
       </div>
 
-      <hr style="border:none;border-top:1px solid var(--border-col);margin:14px 0;" />
+      <hr style="border:none;border-top:1px solid var(--border-col);margin:12px 0;" />
 
       <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        <button class="btn btn-blue" onclick="downloadSessionJson()">📤 Share / Export JSON Bundle</button>
+        <button class="btn btn-green" onclick="exportFullWalkZipBundle()">📦 Export Full .cscwalk.zip (Photos + Maps + Audio)</button>
+        <button class="btn btn-blue" onclick="downloadSessionJson()">📤 Export JSON Manifest</button>
         <button class="btn btn-secondary" onclick="exportScheduleCsv()">📊 Export Equipment CSV</button>
       </div>
 
+      <!-- Preserved RollupOS Field Manual Card (BUG-08 Fix) -->
       <div style="margin-top:12px;padding:10px 12px;background:linear-gradient(135deg,#0f172a,#134e4a);border:1px solid #0d9488;border-radius:9px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <div>
           <div style="font-size:12px;font-weight:800;color:#f8fafc;">📖 CSC Site Discovery — Field Manual</div>
-          <div style="font-size:10.5px;color:#99f6e4;">Quickstart, CLAHE Nameplate OCR &amp; Div 23 Checklists</div>
+          <div style="font-size:10.5px;color:#99f6e4;">Quick Walk (&lt;15s), 8x8 CLAHE Nameplate OCR, Step PDR &amp; Div 23 Checklists</div>
         </div>
         <div style="display:flex;gap:6px;">
           <button type="button" class="btn btn-blue" onclick="window.RollupBridge && RollupBridge.manuals ? RollupBridge.manuals.open('csc-site-discovery') : window.open('../../manuals/csc-site-discovery_User_Manual.pdf','_blank')">📖 Read Guide</button>
@@ -428,8 +765,8 @@
   </div>
 
   <!-- RollupOS Bridge (Auto-loads inside Android Rollup Hub; gracefully skipped standalone) -->
-  <script src="../../bridge/rollup-bridge.js?v=1.3"></script>
-  <script src="./js/discovery_storage_adapter.js?v=10"></script>
-  <script src="./js/app.js?v=10"></script>
+  <script src="../../bridge/rollup-bridge.js?v=1.4"></script>
+  <script src="./js/discovery_storage_adapter.js?v=20"></script>
+  <script src="./js/app.js?v=20"></script>
 </body>
 </html>

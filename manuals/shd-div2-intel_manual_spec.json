@@ -6,11 +6,11 @@
   "icon": "\ud83e\udd85",
   "accent": "#ff6b00",
   "category": "Gaming & Tactical Tools",
-  "version": "4.2.1",
-  "build_hash": "281d6d1c69",
+  "version": "4.2.0",
+  "build_hash": "bd8b573ae1",
   "visibility": "restricted",
-  "updated_at": "2026-10-24T22:15:40.485020",
-  "generated_at": "2026-10-24 22:16",
+  "updated_at": "2026-10-26T15:03:07.425531",
+  "generated_at": "2026-10-26 15:10",
   "tagline": "100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver & Expertise 413/500 Tracker",
   "quickstart": [
     {
@@ -207,14 +207,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "22d612c",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+        "sha": "21325e4",
+        "date": "2026-10-26",
+        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-10-26 11:02)"
       },
       {
-        "sha": "75878e4",
+        "sha": "62a47b2",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): add Cloudflare HTTPS tunnel & direct GitHub Pages sync for Rollup Hub App"
+      },
+      {
+        "sha": "5d2f2a2",
         "date": "2026-10-24",
-        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 22:30)"
+      },
+      {
+        "sha": "c34a730",
+        "date": "2026-10-24",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 20:45)"
+      },
+      {
+        "sha": "c34bb8d",
+        "date": "2026-10-24",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/EveningPush - 2026-10-24 16:45)"
       }
     ]
   }
