@@ -829,6 +829,24 @@
       padding: 16px;
       overflow-y: auto;
     }
+    /* Sticky Compact Conversation Header */
+    .traj-sticky-header {
+      position: sticky;
+      top: 58px;
+      z-index: 38;
+      margin: -14px -16px 12px -16px;
+      padding: 8px 12px;
+      background: rgba(9, 13, 22, 0.96);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+    .traj-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
   </style>
 </head>
 <body>
@@ -892,19 +910,20 @@
 
     <!-- TAB 2: TRAJECTORY (LIVE STREAM & STEER) -->
     <section id="tab-trajectory" class="tab-view">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;">
-        <div style="min-width:0;">
-          <div id="trajHostBadge" style="font-size:11px;color:var(--accent-cyan);font-weight:700;">SELECTED CONVERSATION</div>
-          <div id="trajTitle" style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Select a session from Pulse</div>
+      <div class="traj-sticky-header">
+        <div class="traj-header-top">
+          <button class="pill-btn" style="padding:5px 10px;font-weight:700;flex-shrink:0;" onclick="switchTab('pulse')" title="Back to Conversations">←</button>
+          <div style="min-width:0;flex:1;">
+            <div id="trajTitle" style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f8fafc;">Select a session from Pulse</div>
+            <div id="trajHostBadge" style="font-size:10.5px;color:var(--accent-cyan);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">SELECTED CONVERSATION</div>
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            <button class="pill-btn" style="padding:5px 9px;" onclick="syncActiveConversation(true)" title="Force Refresh Conversation">↻ Sync</button>
+            <button class="pill-btn" style="padding:5px 8px;" onclick="exportHandoffBundle()" title="Generate Cross-PC Handoff Bundle">📋</button>
+          </div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="pill-btn" onclick="syncActiveConversation(true)" title="Force Refresh Conversation">↻ Sync</button>
-          <button class="pill-btn" onclick="exportHandoffBundle()" title="Generate Cross-PC Handoff Bundle">📋 Handoff</button>
-          <button class="pill-btn" onclick="switchTab('pulse')">← Back</button>
-        </div>
+        <div id="subagentsBar" style="margin-top:6px;"></div>
       </div>
-
-      <div id="subagentsBar" style="margin-bottom:10px;"></div>
       <div id="stepsContainer"></div>
 
       <!-- One-Handed Quick Steer Dock -->
@@ -1039,7 +1058,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_CLOUD_TUNNEL_URL = 'https://retained-humanity-avoiding-controls.trycloudflare.com';
+    const DEFAULT_CLOUD_TUNNEL_URL = '';
     const WORK_PC_LAN_URL = 'http://10.0.0.91:8765';
     const HOME_PC_LAN_URL = 'http://192.168.86.47:8765';
     function resolveDefaultLanUrl() {
@@ -1050,7 +1069,7 @@
       if (DEFAULT_CLOUD_TUNNEL_URL && DEFAULT_CLOUD_TUNNEL_URL.startsWith('https://')) {
         return DEFAULT_CLOUD_TUNNEL_URL;
       }
-      return 'http://10.0.0.91:8765';
+      return 'http://192.168.86.47:8765';
     }
     const DEFAULT_ADMIN_LAN_URL = resolveDefaultLanUrl();
     const DEFAULT_ADMIN_TS_URL = '';
@@ -1241,12 +1260,30 @@
       setTimeout(() => { t.style.display = 'none'; }, 2400);
     }
 
+    function scrollToTopImmediate() {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+
+    function scrollToTrajectoryBottom(smooth = false) {
+      const targetY = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      window.scrollTo({ top: targetY, left: 0, behavior: smooth ? 'smooth' : 'auto' });
+      if (!smooth) {
+        document.documentElement.scrollTop = targetY;
+        document.body.scrollTop = targetY;
+      }
+    }
+
     function switchTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-' + tabName).classList.add('active');
       const btn = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
       if (btn) btn.classList.add('active');
+      if (tabName !== 'trajectory') {
+        scrollToTopImmediate();
+      }
       if (tabName === 'vault') loadVault();
       if (tabName === 'ops') {
         renderPeersList();
@@ -1368,6 +1405,14 @@
           }
         }
         if (valid.length > 0) {
+          valid.sort((a, b) => {
+            const wa = (a.data && a.data.workstation) || {};
+            const wb = (b.data && b.data.workstation) || {};
+            if (!!wa.is_actively_used !== !!wb.is_actively_used) {
+              return wa.is_actively_used ? -1 : 1;
+            }
+            return (wb.latest_agent_mtime || 0) - (wa.latest_agent_mtime || 0);
+          });
           isOfflineSnapshotMode = false;
           currentHostBase = valid[0].base || '';
           if (banner) banner.style.display = 'none';
@@ -1444,21 +1489,35 @@
       }
       fleetBar.innerHTML = chips.join('');
 
-      // Merge Sessions across nodes
-      let allSessions = [];
+      // Merge & Deduplicate Sessions across nodes by conversation_id (keep highest step_count / newest)
+      const sessionById = new Map();
       for (const n of nodes) {
         const hname = (n.data.workstation && n.data.workstation.hostname) || 'PC';
+        const hostActive = Boolean(n.data.workstation && n.data.workstation.is_actively_used);
         if (selectedHostFilter !== 'ALL' && selectedHostFilter !== hname) continue;
         for (const s of (n.data.sessions || [])) {
-          allSessions.push({ ...s, _host: hname, _base: n.base });
+          const cid = s.conversation_id;
+          if (!cid) continue;
+          const candidate = { ...s, _host: hname, _base: n.base, _hostActive: hostActive };
+          if (!sessionById.has(cid)) {
+            sessionById.set(cid, candidate);
+          } else {
+            const existing = sessionById.get(cid);
+            const candSteps = Number(candidate.step_count || 0);
+            const existSteps = Number(existing.step_count || 0);
+            if (
+              candSteps > existSteps ||
+              (candSteps === existSteps && (candidate.updated_at || 0) > (existing.updated_at || 0)) ||
+              (candSteps === existSteps && candidate._hostActive && !existing._hostActive)
+            ) {
+              sessionById.set(cid, candidate);
+            }
+          }
         }
       }
+      const allSessions = Array.from(sessionById.values());
 
       const sessEl = document.getElementById('sessionsContainer');
-      if (!currentConversationId && allSessions.length > 0) {
-        currentConversationId = allSessions[0].conversation_id;
-        currentHostBase = allSessions[0]._base || '';
-      }
 
       // Collect Projects catalog across nodes
       const projectMap = new Map();
@@ -1669,8 +1728,9 @@
     async function openConversation(convId, hostBase = '', hostName = 'PC') {
       const isSwitching = currentConversationId !== convId;
       currentConversationId = convId;
+      if (hostBase) currentHostBase = hostBase;
+      window._lastRenderedTrajEtag = null;
       if (isSwitching) {
-        window._lastRenderedTrajEtag = null;
         window._auxOverviewExpanded = false;
       }
       switchTab('trajectory');
@@ -1681,11 +1741,11 @@
       try {
         const data = await fetchConversationWithFallback(convId, hostBase || currentHostBase);
         setGravityStorage('traj_' + convId, data);
-        renderTrajectory(data, isSwitching);
+        renderTrajectory(data, true);
       } catch (e) {
         const cachedTraj = getGravityStorage('traj_' + convId, null);
         if (cachedTraj) {
-          renderTrajectory(cachedTraj, isSwitching);
+          renderTrajectory(cachedTraj, true);
           showToast('📡 Showing cached offline trajectory');
         } else {
           document.getElementById('stepsContainer').innerHTML = '<div style="color:var(--accent-rose);">Workstation offline & no cached trajectory for this session yet.</div>';
@@ -1940,13 +2000,6 @@
         if (st.type === 'USER_INPUT' && st.content) {
           flushPlumbingGroup();
           html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(st.content)}</div></div>`);
-        } else if (st.type === 'SYSTEM_MESSAGE' && st.content) {
-          const msgMatch = st.content.match(/content=([\s\S]*?)<\/SYSTEM_MESSAGE>/);
-          const cleanSys = msgMatch ? msgMatch[1].trim() : st.content;
-          if (!cleanSys.startsWith('Task id "') && !cleanSys.startsWith('[Notice]')) {
-            flushPlumbingGroup();
-            html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(cleanSys)}</div></div>`);
-          }
         } else {
           if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {
             pendingPlumbing.push(st);
@@ -1971,9 +2024,9 @@
       stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
 
       if (forceScroll || hadPreviousEtag) {
-        setTimeout(() => {
-          window.scrollTo({ top: document.body.scrollHeight, behavior: forceScroll ? 'auto' : 'smooth' });
-        }, 40);
+        scrollToTrajectoryBottom(!forceScroll);
+        requestAnimationFrame(() => scrollToTrajectoryBottom(!forceScroll));
+        setTimeout(() => scrollToTrajectoryBottom(!forceScroll), 60);
       }
     }
 
@@ -2155,6 +2208,10 @@
     }
 
     // Initial load & 3-second deterministic poll
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    scrollToTopImmediate();
     initRollupCartridgeBridge();
     refreshDynamicEndpoints().finally(() => fetchPulse());
     setInterval(async () => {

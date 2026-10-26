@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.3.2",
-  "build_hash": "3da1ac6475",
+  "version": "1.3.3",
+  "build_hash": "667e67b2ec",
   "visibility": "admin_only",
-  "updated_at": "2026-10-26T11:00:42.587497",
-  "generated_at": "2026-10-26 11:00",
+  "updated_at": "2026-10-26T16:37:56.490240",
+  "generated_at": "2026-10-26 16:37",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,15 +71,15 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-      "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+      "default": "http://192.168.86.47:8765",
+      "defaultForAdmin": "http://192.168.86.47:8765"
     },
     {
       "key": "tailscale_workstation_url",
       "label": "Secondary / Tailscale Workstation URL (Optional)",
       "type": "text",
-      "default": "http://10.0.0.91:8765",
-      "defaultForAdmin": "http://10.0.0.91:8765"
+      "default": "http://192.168.86.47:8765",
+      "defaultForAdmin": "http://192.168.86.47:8765"
     },
     {
       "key": "sidecar_token",
@@ -93,7 +93,10 @@
     "apps/gravity-agent-monitor/index.html",
     "apps/gravity-agent-monitor/endpoints.json"
   ],
-  "newly_added_buttons": [],
+  "newly_added_buttons": [
+    "\u2190",
+    "\ud83d\udccb"
+  ],
   "ai_release_note": null,
   "inspected": {
     "app_id": "gravity-agent-monitor",
@@ -132,16 +135,16 @@
         "action": "setHostFilter('ALL')"
       },
       {
+        "label": "\u2190",
+        "action": "switchTab('pulse')"
+      },
+      {
         "label": "\u21bb Sync",
         "action": "syncActiveConversation(true)"
       },
       {
-        "label": "\ud83d\udccb Handoff",
+        "label": "\ud83d\udccb",
         "action": "exportHandoffBundle()"
-      },
-      {
-        "label": "\u2190 Back",
-        "action": "switchTab('pulse')"
       },
       {
         "label": "\u2705 Approve & Proceed",
@@ -210,29 +213,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "b40c4bc",
-        "date": "2026-10-26",
-        "subject": "feat(gravity): update LAN IP to 10.0.0.91, enforce no-cache headers, dynamic LAN endpoint resolution"
-      },
-      {
-        "sha": "e46af48",
+        "sha": "6f077bd",
         "date": "2026-10-25",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-25 09:33)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-25 09:33)"
       },
       {
-        "sha": "5d2f2a2",
+        "sha": "9ac185f",
         "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 22:30)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
       },
       {
-        "sha": "d58fa57",
+        "sha": "f2d02aa",
         "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 21:30)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 21:20)"
       },
       {
-        "sha": "c34a730",
+        "sha": "c21e297",
         "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 20:45)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 20:18)"
+      },
+      {
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
       }
     ]
   }

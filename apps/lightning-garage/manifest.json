@@ -1,0 +1,11 @@
+{
+  "name": "Lightning Garage — FORScan & Module Companion",
+  "short_name": "Lightning Garage",
+  "version": "1.0.0",
+  "description": "Offline-First 2023 F-150 Lightning ER Lariat FORScan Mod Menu, Deterministic As-Built .abt/.ab Parser & Checksum Engine, VIN Decoder, and Session Planner",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#38bdf8",
+  "orientation": "any"
+}

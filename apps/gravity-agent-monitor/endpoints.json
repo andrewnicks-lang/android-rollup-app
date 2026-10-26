@@ -1,21 +1,17 @@
 {
-  "updated_at": "2026-10-26T11:00:42.368674",
-  "active_tunnel_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-  "primary_lan_url": "http://10.0.0.91:8765",
+  "updated_at": "2026-10-26T16:37:56.348996",
+  "active_tunnel_url": "",
+  "primary_lan_url": "http://192.168.86.47:8765",
   "work_lan_url": "http://10.0.0.91:8765",
   "home_lan_url": "http://192.168.86.47:8765",
   "nodes": [
     {
-      "name": "Workstation HTTPS Tunnel",
-      "url": "https://retained-humanity-avoiding-controls.trycloudflare.com"
-    },
-    {
-      "name": "Active Workstation (10.0.0.91)",
-      "url": "http://10.0.0.91:8765"
-    },
-    {
-      "name": "Home PC (LAN)",
+      "name": "Active Workstation (192.168.86.47)",
       "url": "http://192.168.86.47:8765"
+    },
+    {
+      "name": "Work PC (LAN)",
+      "url": "http://10.0.0.91:8765"
     }
   ]
 }
