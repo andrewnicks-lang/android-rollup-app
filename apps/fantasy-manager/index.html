@@ -779,10 +779,19 @@
   <div id="tab-news" class="tab-view" style="display:none;">
     <div class="filter-bar" id="lg-subtab-bar">
       <button class="filter-pill active" onclick="setLeagueSubTab('ALL', this)">🌐 All</button>
+      <button class="filter-pill" id="pwr-pill" onclick="setLeagueSubTab('POWER', this)">📊 Power</button>
       <button class="filter-pill" onclick="setLeagueSubTab('ACTIVITY', this)">⚡ Activity</button>
       <button class="filter-pill" onclick="setLeagueSubTab('INFO', this)">📋 League Info</button>
       <button class="filter-pill" onclick="setLeagueSubTab('STANDINGS', this)">🏆 Standings</button>
       <button class="filter-pill" onclick="setLeagueSubTab('WIRE', this)">📰 NFL Wire</button>
+    </div>
+
+    <div id="league-sec-power">
+      <div class="sec-hdr">
+        <span>📊 Power Rankings</span>
+        <span id="power-hdr-meta">Tap a team</span>
+      </div>
+      <div id="power-rank-container"></div>
     </div>
 
     <div id="league-sec-info">
@@ -857,6 +866,13 @@
 <div class="drawer-backdrop" id="dossier-backdrop" onclick="closeDossier(event)">
   <div class="drawer" id="dossier-drawer-el" onclick="event.stopPropagation()">
     <div id="dossier-body"></div>
+  </div>
+</div>
+
+<!-- v3.1.0 SCORE BREAKDOWN SHEET (player + team totals) -->
+<div class="drawer-backdrop" id="score-backdrop" style="z-index:10130;" onclick="if(event.target.id==='score-backdrop')closeDrawerModal('score-backdrop')">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div id="score-body"></div>
   </div>
 </div>
 
@@ -988,6 +1004,118 @@ function parseGameRemainingFraction(scoreClockLine, state) {
   return 0.45;
 }
 
+
+// ---- v3.1.0: Tap-to-explain score breakdown (player + team totals) ----
+function sbPts(n) {
+  const v = Number(n || 0);
+  return (v > 0 ? '+' : '') + v.toFixed(2);
+}
+
+function sbRow(label, sub, pts) {
+  const neg = Number(pts) < 0;
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px solid #1e293b;">'
+    + '<div><div style="font-size:12.5px;font-weight:800;color:#f8fafc;">' + escHtml(label) + '</div>'
+    + '<div style="font-size:10.5px;color:#94a3b8;margin-top:1px;">' + escHtml(sub || '') + '</div></div>'
+    + '<div style="font-size:14px;font-weight:900;color:' + (neg ? '#f87171' : '#4ade80') + ';font-variant-numeric:tabular-nums;">' + sbPts(pts) + '</div></div>';
+}
+
+function sbOpenSheet(html) {
+  const body = document.getElementById('score-body');
+  if (!body) return;
+  body.innerHTML = '<div class="drawer-handle" style="margin-top:12px;"></div>' + html;
+  openDrawerModal('score-backdrop');
+}
+
+function openScoreBreakdown(pKey, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const p = PLAYER_REGISTRY.get(pKey);
+  if (!p) return;
+  const lm = resolvePlayerLiveMeta(p);
+  const lines = Array.isArray(lm.breakdown) ? lm.breakdown : [];
+  const sum = lines.reduce(function (a, l) { return a + Number(l.pts || 0); }, 0);
+  const started = lm.state === 'in' || lm.state === 'post';
+  const shown = (lm.actualPts !== null && lm.actualPts !== undefined) ? Number(lm.actualPts) : sum;
+  const gap = Math.round((shown - sum) * 100) / 100;
+  const badge = lm.state === 'in'
+    ? '<span style="color:#f87171;font-weight:900;">LIVE ' + escHtml(lm.scoreClockLine || '') + '</span>'
+    : (lm.state === 'post' ? '<span style="color:#cbd5e1;font-weight:900;">FINAL</span>' : '<span style="color:#7dd3fc;font-weight:900;">NOT STARTED</span>');
+  let rows = lines.map(function (l) { return sbRow(l.label, l.text, l.pts); }).join('');
+  if (gap > 0.05) {
+    rows += sbRow('Other scoring', 'ESPN official total includes scoring not itemized here (2-pt conversions, bonuses)', gap);
+  }
+  if (!rows) {
+    rows = '<div style="padding:14px 4px;font-size:12px;color:#94a3b8;">'
+      + (started ? 'No itemized stats available yet for this player.' : 'Game has not started - no points to break down yet.') + '</div>';
+  }
+  const proj = (lm.state === 'in')
+    ? '<div style="margin-top:8px;font-size:11px;color:#93c5fd;font-weight:700;">Projected final: ' + Number(lm.dynamicProj || 0).toFixed(1) + ' pts</div>'
+    : (!started ? '<div style="margin-top:8px;font-size:11px;color:#93c5fd;font-weight:700;">Projection: ' + Number(lm.dynamicProj || 0).toFixed(1) + ' pts</div>' : '');
+  const html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;">'
+    + '<div><div style="font-size:16px;font-weight:900;color:#ffffff;">' + escHtml(p.name || '') + '</div>'
+    + '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' + escHtml(p.nfl_team || '') + ' ' + escHtml(p.pos || '') + ' - ' + badge + '</div>'
+    + (lm.statLine ? '<div style="font-size:11px;color:#38bdf8;font-weight:700;margin-top:3px;">' + escHtml(lm.statLine) + '</div>' : '')
+    + '</div><div style="text-align:right;"><div style="font-size:26px;font-weight:900;color:' + (lm.state === 'in' ? '#4ade80' : '#ffffff') + ';line-height:1;">' + shown.toFixed(1) + '</div>'
+    + '<div style="font-size:9.5px;color:#64748b;font-weight:800;text-transform:uppercase;margin-top:2px;">fantasy pts</div></div></div>'
+    + rows
+    + '<div style="display:flex;justify-content:space-between;padding:10px 2px 2px 2px;font-size:12px;font-weight:900;color:#f8fafc;"><span>Total</span><span>' + shown.toFixed(2) + '</span></div>'
+    + proj
+    + '<button onclick="closeDrawerModal(&#39;score-backdrop&#39;)" style="width:100%;margin-top:14px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;">Close</button>';
+  sbOpenSheet(html);
+}
+
+function openTeamScoreBreakdown(side, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const S = window.__MU_SIDES && window.__MU_SIDES[side];
+  if (!S) return;
+  const starters = (S.tot && S.tot.starters) || [];
+  const rows = starters.filter(Boolean).map(function (p, i) {
+    const lm = resolvePlayerLiveMeta(p);
+    const pts = (lm.actualPts !== null && lm.actualPts !== undefined) ? Number(lm.actualPts) : 0;
+    const key = 'sb_' + side + '_' + i;
+    PLAYER_REGISTRY.set(key, p);
+    return { p: p, lm: lm, pts: pts, key: key };
+  }).sort(function (a, b) { return b.pts - a.pts; });
+  const total = rows.reduce(function (a, r) { return a + r.pts; }, 0);
+  const maxPts = Math.max(1, Math.max.apply(null, rows.map(function (r) { return r.pts; }).concat([1])));
+  const lowest = rows.length ? Math.min.apply(null, rows.map(function (r) { return r.pts; })) : 0;
+  const body = rows.map(function (r) {
+    const w = Math.max(2, Math.round((Math.max(r.pts, 0) / maxPts) * 100));
+    const live = r.lm.state === 'in' ? '<span style="color:#f87171;font-size:9px;font-weight:900;"> LIVE</span>' : (r.lm.state === 'pre' ? '<span style="color:#64748b;font-size:9px;font-weight:900;"> PENDING</span>' : '');
+    return '<div onclick="openScoreBreakdown(&#39;' + r.key + '&#39;)" style="padding:7px 2px;border-bottom:1px solid #1e293b;cursor:pointer;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+      + '<div style="font-size:12.5px;font-weight:800;color:#f8fafc;">' + escHtml(r.p.name || '') + live
+      + ' <span style="font-size:10px;color:#94a3b8;font-weight:700;">' + escHtml(r.p.nfl_team || '') + ' ' + escHtml(r.p.pos || '') + '</span></div>'
+      + '<div style="font-size:14px;font-weight:900;color:#ffffff;font-variant-numeric:tabular-nums;">' + r.pts.toFixed(1) + '</div></div>'
+      + '<div style="height:5px;background:#1e293b;border-radius:99px;margin-top:5px;overflow:hidden;"><div style="height:100%;width:' + w + '%;background:linear-gradient(90deg,#38bdf8,#4ade80);"></div></div>'
+      + '</div>';
+  }).join('');
+  const bench = (S.roster || []).filter(function (p) { return p.slot === 'BENCH'; }).map(function (p) {
+    const lm = resolvePlayerLiveMeta(p);
+    return { p: p, pts: (lm.actualPts !== null && lm.actualPts !== undefined) ? Number(lm.actualPts) : 0, played: lm.state === 'in' || lm.state === 'post' };
+  }).filter(function (b) { return b.played && b.pts > lowest + 0.05; });
+  const benchHtml = bench.length
+    ? '<div style="margin-top:12px;padding:9px 11px;background:#451a03;border:1px solid #b45309;border-radius:10px;font-size:11.5px;color:#fde68a;"><strong>Bench outscored a starter:</strong> '
+      + bench.map(function (b) { return escHtml(b.p.name) + ' (' + b.pts.toFixed(1) + ')'; }).join(', ') + '</div>'
+    : '';
+  const html = '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;">'
+    + '<div><div style="font-size:10px;color:#38bdf8;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">Where the points came from</div>'
+    + '<div style="font-size:16px;font-weight:900;color:#ffffff;margin-top:2px;">' + escHtml(S.name || 'Team') + '</div></div>'
+    + '<div style="font-size:28px;font-weight:900;color:#4ade80;line-height:1;">' + total.toFixed(1) + '</div></div>'
+    + (body || '<div style="padding:14px 4px;font-size:12px;color:#94a3b8;">No starters scored yet.</div>')
+    + benchHtml
+    + '<div style="margin-top:8px;font-size:10.5px;color:#64748b;">Tap any player for the line-by-line breakdown.</div>'
+    + '<button onclick="closeDrawerModal(&#39;score-backdrop&#39;)" style="width:100%;margin-top:12px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;">Close</button>';
+  sbOpenSheet(html);
+}
+
+function slateQuery(force) {
+  const q = [];
+  if (force) q.push('force=true');
+  const lg = (typeof LEAGUE_BUNDLE !== 'undefined' && LEAGUE_BUNDLE && LEAGUE_BUNDLE.league) ? LEAGUE_BUNDLE.league : null;
+  if (lg && typeof lg.ppr_mult === 'number') q.push('ppr=' + lg.ppr_mult);
+  return q.length ? '?' + q.join('&') : '';
+}
+
 function resolvePlayerLiveMeta(p) {
   if (!p) return { state: 'pre', eventId: '', scoreClockLine: '', statLine: '', actualPts: null, dynamicProj: 0, remFrac: 1.0 };
   const b = calcBlend(p);
@@ -1006,6 +1134,8 @@ function resolvePlayerLiveMeta(p) {
   let eventId = (pLive && pLive.event_id) || (teamLive && teamLive.event_id) || p.event_id || '';
   let scoreClockLine = (pLive && pLive.score_clock_line) || (teamLive && teamLive.score_clock_line) || p.score_clock_line || '';
   let statLine = (pLive && pLive.stat_line) || p.stat_line || '';
+  let breakdown = (pLive && Array.isArray(pLive.breakdown)) ? pLive.breakdown : null;
+  if (p.pos === 'DST' && teamLive && Array.isArray(teamLive.dst_breakdown)) breakdown = teamLive.dst_breakdown;
   if (p.pos === 'DST' && !statLine && teamLive && teamLive.dst_stat_line) {
     statLine = teamLive.dst_stat_line;
   }
@@ -1016,8 +1146,7 @@ function resolvePlayerLiveMeta(p) {
     : 1.0;
   if (state === 'in' || state === 'post') {
     if (pLive && typeof pLive.live_ppr_pts === 'number') {
-      const recCnt = Number(pLive.rec || 0);
-      actualPts = Math.round((pLive.live_ppr_pts - (1.0 - pprMult) * recCnt) * 100) / 100;
+      actualPts = pLive.live_ppr_pts;
     }
     if (p.pos === 'DST' && actualPts === null && teamLive && typeof teamLive.dst_live_ppr_pts === 'number') {
       actualPts = teamLive.dst_live_ppr_pts;
@@ -1040,7 +1169,7 @@ function resolvePlayerLiveMeta(p) {
     }
   }
 
-  return { state, eventId, scoreClockLine, statLine, actualPts, dynamicProj, remFrac };
+  return { state, eventId, scoreClockLine, statLine, actualPts, dynamicProj, remFrac, breakdown };
 }
 
 // Per-user storage helpers via RollupBridge
@@ -2019,6 +2148,122 @@ function setLeagueSubTab(sub, btnEl) {
   if (sAct) sAct.style.display = (showAll || sub === 'ACTIVITY') ? 'block' : 'none';
   if (sStd) sStd.style.display = (showAll || sub === 'STANDINGS') ? 'block' : 'none';
   if (sWire) sWire.style.display = (showAll || sub === 'WIRE') ? 'block' : 'none';
+  const sPow = document.getElementById('league-sec-power');
+  if (sPow) sPow.style.display = (showAll || sub === 'POWER') ? 'block' : 'none';
+  renderPowerRankings();
+}
+
+
+// ---- v3.1.0: Team Power Rankings (click a team to see exactly how the rank was built) ----
+function powerBundle() {
+  const b = LEAGUE_BUNDLE;
+  const pr = b && b.power_rankings;
+  return (pr && pr.status === 'OK' && Array.isArray(pr.teams) && pr.teams.length) ? pr : null;
+}
+
+function pwrTrend(t) {
+  if (t.trend === null || t.trend === undefined) return '<span style="color:#64748b;">-</span>';
+  if (t.trend > 0) return '<span style="color:#4ade80;">&#9650;' + t.trend + '</span>';
+  if (t.trend < 0) return '<span style="color:#f87171;">&#9660;' + Math.abs(t.trend) + '</span>';
+  return '<span style="color:#64748b;">&#9644;</span>';
+}
+
+function pwrBars(t) {
+  return '<span style="display:inline-flex;align-items:flex-end;gap:2px;height:16px;">' + (t.components || []).map(function (c) {
+    const h = Math.max(3, Math.min(16, Math.round(9 + Number(c.z || 0) * 4)));
+    return '<span title="' + escHtml(c.label) + '" style="width:5px;height:' + h + 'px;border-radius:2px;background:' + (Number(c.z) >= 0 ? '#38bdf8' : '#475569') + ';"></span>';
+  }).join('') + '</span>';
+}
+
+function renderPowerRankings() {
+  const box = document.getElementById('power-rank-container');
+  if (!box) return;
+  const meta = document.getElementById('power-hdr-meta');
+  const pr = powerBundle();
+  if (!pr) {
+    if (meta) meta.textContent = 'Syncing';
+    box.innerHTML = '<div style="margin:6px 12px;padding:12px;background:#111827;border:1px solid #1f2937;border-radius:10px;font-size:12px;color:#94a3b8;">Power rankings appear after the next league sync.</div>';
+    return;
+  }
+  const full = CURRENT_LEAGUE_SUBTAB === 'POWER';
+  const myId = Number(ACTIVE_TEAM_ID || 4);
+  if (meta) meta.textContent = 'Week ' + pr.week + (pr.data_basis === 'standings_only' ? ' - standings basis' : ' - weekly history');
+  const rows = pr.teams.slice(0, full ? pr.teams.length : 5).map(function (t) {
+    const mine = Number(t.team_id) === myId;
+    return '<div onclick="openPowerTeamDetail(' + Number(t.team_id) + ')" style="margin:5px 12px;padding:9px 11px;background:' + (mine ? '#172554' : '#111827') + ';border:1px solid ' + (mine ? '#38bdf8' : '#1f2937') + ';border-radius:11px;cursor:pointer;display:flex;align-items:center;gap:10px;">'
+      + '<div style="min-width:26px;text-align:center;"><div style="font-size:17px;font-weight:900;color:#ffffff;line-height:1;">' + t.rank + '</div><div style="font-size:9.5px;font-weight:800;margin-top:2px;">' + pwrTrend(t) + '</div></div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:12.5px;font-weight:800;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(t.team_name) + (mine ? ' <span style="font-size:9px;color:#7dd3fc;">YOU</span>' : '') + '</div>'
+      + '<div style="font-size:10px;color:#94a3b8;margin-top:2px;">' + escHtml(t.record_str || '') + ' &bull; All-Play ' + escHtml(t.all_play_record || 'n/a') + '</div></div>'
+      + '<div style="text-align:right;"><div style="font-size:15px;font-weight:900;color:#4ade80;font-variant-numeric:tabular-nums;">' + Number(t.score).toFixed(1) + '</div><div style="margin-top:3px;">' + pwrBars(t) + '</div></div>'
+      + '</div>';
+  }).join('');
+  const footer = full
+    ? '<div style="margin:8px 12px 2px 12px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;color:#64748b;">Tap a team to see the math.</span><button onclick="openPowerMethodology()" style="background:#1e293b;color:#7dd3fc;border:1px solid #334155;border-radius:8px;padding:5px 9px;font-size:10.5px;font-weight:800;">How it works</button></div>'
+    : '<div style="margin:6px 12px;"><button onclick="setLeagueSubTab(&#39;POWER&#39;, document.getElementById(&#39;pwr-pill&#39;))" style="width:100%;background:#0c4a6e;color:#bae6fd;border:1px solid #0284c7;border-radius:9px;padding:8px;font-size:11.5px;font-weight:800;">See all ' + pr.teams.length + ' teams &amp; methodology</button></div>';
+  box.innerHTML = rows + footer;
+}
+
+function pwrSigned(n, d) {
+  const v = Number(n || 0);
+  return (v > 0 ? '+' : '') + v.toFixed(d === undefined ? 1 : d);
+}
+
+function openPowerMethodology() {
+  const pr = powerBundle();
+  if (!pr) return;
+  const wu = pr.weights_used || {};
+  const labels = { results: 'Results (Record + All-Play)', roster: 'ROS Roster Strength', form: 'Recent Form (Last 3)', health: 'Health & Depth', sos: 'Remaining Schedule', scoring: 'Scoring Power (PF/G)' };
+  const rows = Object.keys(labels).map(function (k) {
+    return '<div style="display:flex;justify-content:space-between;padding:7px 2px;border-bottom:1px solid #1e293b;font-size:12px;"><span style="color:#e2e8f0;font-weight:700;">' + labels[k] + '</span><span style="color:#38bdf8;font-weight:900;">' + Math.round(Number(wu[k] || 0) * 100) + '%</span></div>';
+  }).join('');
+  const html = '<div style="font-size:16px;font-weight:900;color:#ffffff;margin-bottom:4px;">How Power Rankings Work</div>'
+    + '<div style="font-size:11.5px;color:#94a3b8;line-height:1.45;margin-bottom:8px;">' + escHtml(pr.methodology || '') + '</div>'
+    + rows
+    + '<div style="margin-top:8px;font-size:11px;color:#94a3b8;line-height:1.4;">' + escHtml(pr.score_formula || '') + '</div>'
+    + '<div style="margin-top:6px;font-size:11px;color:#64748b;">Data basis: ' + escHtml(pr.data_basis || '') + ' &bull; ' + Number(pr.completed_weeks || 0) + ' completed weeks.</div>'
+    + '<button onclick="closeDrawerModal(&#39;score-backdrop&#39;)" style="width:100%;margin-top:14px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;">Close</button>';
+  sbOpenSheet(html);
+}
+
+function openPowerTeamDetail(teamId) {
+  const pr = powerBundle();
+  if (!pr) return;
+  const t = pr.teams.find(function (x) { return Number(x.team_id) === Number(teamId); });
+  if (!t) return;
+  const maxAbs = Math.max(1, Math.max.apply(null, (t.components || []).map(function (c) { return Math.abs(Number(c.contribution || 0)); })));
+  const comps = (t.components || []).map(function (c) {
+    const pos = Number(c.contribution) >= 0;
+    const w = Math.max(2, Math.round((Math.abs(Number(c.contribution)) / maxAbs) * 100));
+    return '<div style="padding:8px 2px;border-bottom:1px solid #1e293b;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:12.5px;font-weight:800;color:#f8fafc;">' + escHtml(c.label) + '</span>'
+      + '<span style="font-size:13px;font-weight:900;color:' + (pos ? '#4ade80' : '#f87171') + ';">' + pwrSigned(c.contribution, 1) + '</span></div>'
+      + '<div style="font-size:10.5px;color:#94a3b8;margin-top:1px;">' + escHtml(c.display) + ' &bull; z ' + pwrSigned(c.z, 2) + ' &bull; weight ' + Math.round(Number(c.weight) * 100) + '%</div>'
+      + '<div style="height:5px;background:#1e293b;border-radius:99px;margin-top:5px;overflow:hidden;"><div style="height:100%;width:' + w + '%;background:' + (pos ? 'linear-gradient(90deg,#38bdf8,#4ade80)' : '#f87171') + ';"></div></div>'
+      + '</div>';
+  }).join('');
+  const lineup = (t.lineup || []).map(function (x) {
+    const bad = x.status && ['HEALTHY', 'ACTIVE'].indexOf(String(x.status).toUpperCase()) === -1;
+    return '<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:#cbd5e1;"><span><span style="color:#64748b;font-weight:800;display:inline-block;min-width:54px;">' + escHtml(x.slot) + '</span>' + escHtml(x.name || '') + (bad ? ' <span style="color:#f87171;font-weight:800;">' + escHtml(x.status) + '</span>' : '') + '</span><span style="font-weight:800;">' + Number(x.ros_ppg || 0).toFixed(1) + '</span></div>';
+  }).join('');
+  const remaining = (t.remaining || []).map(function (r) {
+    const z = Number(r.opp_roster_z || 0);
+    return '<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;color:#cbd5e1;"><span>Wk ' + r.week + ' vs ' + escHtml(r.opp_name) + '</span><span style="font-weight:800;color:' + (z > 0.4 ? '#f87171' : (z < -0.4 ? '#4ade80' : '#94a3b8')) + ';">' + (z > 0.4 ? 'tough' : (z < -0.4 ? 'easy' : 'even')) + ' (' + pwrSigned(z, 2) + ')</span></div>';
+  }).join('');
+  const weekly = (t.weekly_scores || []).map(function (w) { return 'W' + w.week + ' ' + Number(w.pts).toFixed(0); }).join(' &bull; ');
+  const html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+    + '<div><div style="font-size:10px;color:#38bdf8;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">Power Rank #' + t.rank + ' &bull; ' + pwrTrend(t) + '</div>'
+    + '<div style="font-size:17px;font-weight:900;color:#ffffff;margin-top:2px;">' + escHtml(t.team_name) + '</div>'
+    + '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' + escHtml(t.record_str || '') + ' &bull; All-Play ' + escHtml(t.all_play_record || 'n/a') + ' &bull; Luck ' + pwrSigned(t.luck_index, 1) + ' wins</div></div>'
+    + '<div style="text-align:right;"><div style="font-size:30px;font-weight:900;color:#4ade80;line-height:1;">' + Number(t.score).toFixed(1) + '</div><div style="font-size:9.5px;color:#64748b;font-weight:800;text-transform:uppercase;margin-top:2px;">power score</div></div></div>'
+    + '<div style="margin:10px 0 4px 0;padding:8px 10px;background:#0b1220;border:1px solid #1e293b;border-radius:9px;font-size:11.5px;color:#cbd5e1;line-height:1.4;">' + escHtml(t.why || '') + '</div>'
+    + '<div style="font-size:10px;color:#38bdf8;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;">How the score was built (50 + contributions)</div>'
+    + comps
+    + '<div style="display:flex;justify-content:space-between;padding:8px 2px;font-size:12.5px;font-weight:900;color:#f8fafc;"><span>Power Score</span><span>50 ' + (t.components || []).map(function (c) { return pwrSigned(c.contribution, 1); }).join(' ') + ' = ' + Number(t.score).toFixed(1) + '</span></div>'
+    + '<div style="font-size:10px;color:#38bdf8;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;">Best lineup (rest-of-season PPG)</div>' + lineup
+    + (remaining ? '<div style="font-size:10px;color:#38bdf8;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;">Remaining schedule</div>' + remaining : '')
+    + (weekly ? '<div style="font-size:10.5px;color:#94a3b8;margin-top:10px;">Weekly scores: ' + weekly + '</div>' : '')
+    + '<button onclick="closeDrawerModal(&#39;score-backdrop&#39;)" style="width:100%;margin-top:14px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px;font-size:12.5px;font-weight:800;">Close</button>';
+  sbOpenSheet(html);
 }
 
 function openActivityPlayer(pid, name, pos, nflTeam) {
@@ -2066,6 +2311,7 @@ function openActivityPlayer(pid, name, pos, nflTeam) {
 }
 
 function renderNewsAndLeagueTab() {
+  renderPowerRankings();
   const li = LEAGUE_BUNDLE.league_info || {};
   const lgFallback = LEAGUE_BUNDLE.league || {};
   const lgName = li.name || lgFallback.name || 'Weekend Warriors';
@@ -2684,7 +2930,7 @@ function renderMatchupPlayerSide(p, isRight) {
         <div class="mu-pgame">${escHtml(p.nfl_team)} ${escHtml(p.pos)} • ${escHtml(gameTxt)}</div>
         ${statHtml}
       </div>
-      <div class="mu-pscore">
+      <div class="mu-pscore" onclick="openScoreBreakdown('${pKey}', event)" style="cursor:pointer;">
         <div class="mu-actual" style="color:${scoreColor};">${scoreTxt}</div>
         <div class="mu-proj">${projTxt}</div>
       </div>
@@ -2704,6 +2950,10 @@ function renderMatchupTab() {
 
   const myTot = summarizeLineupLiveTotals(myRoster);
   const oppTot = summarizeLineupLiveTotals(oppRoster);
+  window.__MU_SIDES = {
+    me: { name: 'Your Team', tot: myTot, roster: myRoster },
+    opp: { name: oppName, tot: oppTot, roster: oppRoster }
+  };
   const myWp = computeWinProbPct(myTot.dynProjSum, oppTot.dynProjSum, myTot.remFracSum ?? myTot.unplayedCount, oppTot.remFracSum ?? oppTot.unplayedCount);
   const oppWp = 100 - myWp;
 
@@ -2716,14 +2966,14 @@ function renderMatchupTab() {
         <div class="mu-side">
           <div class="mu-tname">${escHtml(teamData.team_name)}</div>
           <div class="mu-trec">${escHtml(teamData.record_str || '')}</div>
-          <div class="mu-big-pts" style="color:${myTot.actualSum >= oppTot.actualSum ? '#4ade80' : '#ffffff'};">${myTot.actualSum.toFixed(1)}</div>
+          <div class="mu-big-pts" onclick="openTeamScoreBreakdown('me', event)" style="cursor:pointer;color:${myTot.actualSum >= oppTot.actualSum ? '#4ade80' : '#ffffff'};">${myTot.actualSum.toFixed(1)}</div>
           <div class="mu-proj-pts">Proj ${myTot.dynProjSum.toFixed(1)}</div>
         </div>
         <div style="padding-top:16px;font-size:10px;font-weight:900;color:#64748b;">VS</div>
         <div class="mu-side right">
           <div class="mu-tname">${escHtml(oppName)}</div>
           <div class="mu-trec">${escHtml(oppRec)}</div>
-          <div class="mu-big-pts" style="color:${oppTot.actualSum > myTot.actualSum ? '#4ade80' : '#ffffff'};">${oppTot.actualSum.toFixed(1)}</div>
+          <div class="mu-big-pts" onclick="openTeamScoreBreakdown('opp', event)" style="cursor:pointer;color:${oppTot.actualSum > myTot.actualSum ? '#4ade80' : '#ffffff'};">${oppTot.actualSum.toFixed(1)}</div>
           <div class="mu-proj-pts">Proj ${oppTot.dynProjSum.toFixed(1)}</div>
         </div>
       </div>
@@ -3037,7 +3287,7 @@ async function openNflGameCenter(eventId) {
 async function refreshLiveTelemetry(force = false) {
   try {
     const [sbResp, bundleResp] = await Promise.allSettled([
-      fetch(`${CLOUD_API_BASE}/api/nfl-scoreboard-live${force ? '?force=true' : ''}`),
+      fetch(`${CLOUD_API_BASE}/api/nfl-scoreboard-live${slateQuery(force)}`),
       fetch(`${CLOUD_API_BASE}/api/league-bundle`)
     ]);
     if (sbResp.status === 'fulfilled' && sbResp.value.ok) {
