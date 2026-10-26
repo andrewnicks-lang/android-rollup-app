@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T16:45:08.449729",
+    "updated_at": "2026-10-26T16:54:34.743554",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -110,7 +110,7 @@
     "apk_version": "1.1.0",
     "build_hash": "2b3112af07",
     "stamped_version": "1.0.6",
-    "ota_etag": "bacfe437e2"
+    "ota_etag": "26957aab13"
   },
   "apps": [
     {
@@ -208,12 +208,12 @@
     {
       "id": "csc-site-discovery",
       "title": "CSC Site Discovery",
-      "subtitle": "Quick Walk (<15s), 8x8 CLAHE OCR, Step-PDR, Hold-to-Talk Mic & .cscwalk.zip",
+      "subtitle": "Snap & Go v3.0: Photo-First Capture, Traffic-Light Tagging & Auto Rough Map",
       "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v2.0: <15s Quick Walk Single-Card Mode, Clone +1 Tag Incrementer, Global Hold-to-Talk 150Hz Mic Pill, 8x8 Local Tile CLAHE + Raw Color Toggle, Binary EXIF GPS/Compass, ASHRAE Ch. 38 + EPA A2L Serial/Model Decoder, BAS Thermistor/I-O Overlay, Pinch-Zoom Map + In-App Camera Step-Peak PDR Walk, Fail-Open Valve/Damper/VA Sizers, and .cscwalk.zip Packager.",
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "2.0.0",
+      "version": "3.0.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -238,13 +238,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "c9015163e7",
-      "stamped_version": "2.0.0",
-      "updated_at": "2026-10-26T15:03:07.425531",
+      "build_hash": "3e6a4ddf8e",
+      "stamped_version": "3.0.0",
+      "updated_at": "2026-10-26T16:54:33.502164",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "c9015163e7",
-      "manual_updated_at": "2026-10-26T15:19:37.012683"
+      "manual_source_hash": "3e6a4ddf8e",
+      "manual_updated_at": "2026-10-26T16:54:34.595305"
     },
     {
       "id": "field-snap",

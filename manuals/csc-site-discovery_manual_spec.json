@@ -1,16 +1,16 @@
 {
   "app_id": "csc-site-discovery",
   "title": "CSC Site Discovery",
-  "subtitle": "Quick Walk (<15s), 8x8 CLAHE OCR, Step-PDR, Hold-to-Talk Mic & .cscwalk.zip",
+  "subtitle": "Snap & Go v3.0: Photo-First Capture, Traffic-Light Tagging & Auto Rough Map",
   "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v2.0: <15s Quick Walk Single-Card Mode, Clone +1 Tag Incrementer, Global Hold-to-Talk 150Hz Mic Pill, 8x8 Local Tile CLAHE + Raw Color Toggle, Binary EXIF GPS/Compass, ASHRAE Ch. 38 + EPA A2L Serial/Model Decoder, BAS Thermistor/I-O Overlay, Pinch-Zoom Map + In-App Camera Step-Peak PDR Walk, Fail-Open Valve/Damper/VA Sizers, and .cscwalk.zip Packager.",
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "2.0.0",
-  "build_hash": "c9015163e7",
+  "version": "3.0.0",
+  "build_hash": "3e6a4ddf8e",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T15:03:07.425531",
-  "generated_at": "2026-10-26 15:19",
+  "updated_at": "2026-10-26T16:54:33.502164",
+  "generated_at": "2026-10-26 16:54",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -92,7 +92,23 @@
     "apps/csc-site-discovery/js/discovery_storage_adapter.js",
     "apps/csc-site-discovery/js/app.js"
   ],
-  "newly_added_buttons": [],
+  "newly_added_buttons": [
+    "\ud83d\udccb Units (6)",
+    "\ud83d\uddfa\ufe0f Map",
+    "\u2600\ufe0f",
+    "\u2699\ufe0f",
+    "Recalibrate GPS",
+    "All Units",
+    "\ud83d\udd34 Caution / Replace",
+    "\ud83d\udfe2 Good",
+    "\ud83d\udccb Clone Last +1",
+    "\ud83d\udcf7 Snap Wall Map",
+    "\ud83d\uddbc\ufe0f Load Plan",
+    "\ud83d\uddd1\ufe0f",
+    "\u2795 Area/Floor",
+    "\ud83d\udccd Move Pin",
+    "\ud83d\udcf8 + SNAP NEW UNIT"
+  ],
   "ai_release_note": null,
   "inspected": {
     "app_id": "csc-site-discovery",
@@ -104,53 +120,63 @@
       "manifest.json"
     ],
     "tabs": [
-      "checklist",
-      "nameplate",
-      "bas_io",
-      "video",
-      "audio",
-      "calculators"
+      "mapMainView"
     ],
     "headings": [
-      "\ud83e\udded CSC Site Discovery Companion v2.0",
-      "\ud83d\uddfa\ufe0f Spatial Building Mapper (Pin + PDR Crumb + GNSS)",
-      "\u26a1 Stations (6)"
+      "Captured Photo",
+      "\u2699\ufe0f Job Info & Export Package"
     ],
     "buttons": [
       {
-        "label": "\u26a1 Quick Walk",
-        "action": "setUiMode('quick')"
+        "label": "\ud83d\udccb Units (6)",
+        "action": "switchMainView('feed')"
       },
       {
-        "label": "\ud83d\udd2c Deep Inspector",
-        "action": "setUiMode('deep')"
+        "label": "\ud83d\uddfa\ufe0f Map",
+        "action": "switchMainView('map')"
       },
       {
-        "label": "\ud83d\udea8 RFI-23-011 HARD-STOP",
-        "action": "toggleRfi23011HardStop()"
-      },
-      {
-        "label": "\ud83d\udce1 GPS/Compass",
-        "action": "toggleLiveSensors()"
-      },
-      {
-        "label": "\u2b06\ufe0f+1",
-        "action": "simulateStairClimb(1)"
-      },
-      {
-        "label": "\u2b07\ufe0f-1",
-        "action": "simulateStairClimb(-1)"
-      },
-      {
-        "label": "\u2600\ufe0f/\ud83c\udf19",
+        "label": "\u2600\ufe0f",
         "action": "toggleSunlightMode()"
       },
       {
-        "label": "\u2699\ufe0f Walk / Export",
+        "label": "\u2699\ufe0f",
         "action": "openSessionManagerModal()"
       },
       {
-        "label": "\u2795 Floor",
+        "label": "Recalibrate GPS",
+        "action": "toggleLiveSensors()"
+      },
+      {
+        "label": "All Units",
+        "action": "setFeedFilter('all')"
+      },
+      {
+        "label": "\ud83d\udd34 Caution / Replace",
+        "action": "setFeedFilter('issues')"
+      },
+      {
+        "label": "\ud83d\udfe2 Good",
+        "action": "setFeedFilter('good')"
+      },
+      {
+        "label": "\ud83d\udccb Clone Last +1",
+        "action": "cloneActiveStation()"
+      },
+      {
+        "label": "\ud83d\udcf7 Snap Wall Map",
+        "action": "captureFloorEvacuationMap(true)"
+      },
+      {
+        "label": "\ud83d\uddbc\ufe0f Load Plan",
+        "action": "captureFloorEvacuationMap(false)"
+      },
+      {
+        "label": "\ud83d\uddd1\ufe0f",
+        "action": "clearCustomFloorMap()"
+      },
+      {
+        "label": "\u2795 Area/Floor",
         "action": "addCustomFloor()"
       },
       {
@@ -166,49 +192,35 @@
         "action": "resetMapZoom()"
       },
       {
-        "label": "\ud83d\udccd Pin",
+        "label": "\ud83d\udccd Move Pin",
         "action": "toggleMapInteractionMode()"
       },
       {
-        "label": "\ud83d\udcf7 Snap Evac Map",
-        "action": "captureFloorEvacuationMap(true)"
-      },
-      {
-        "label": "\ud83d\uddbc\ufe0f Load Plan / PNG",
-        "action": "captureFloorEvacuationMap(false)"
-      },
-      {
-        "label": "\ud83d\uddd1\ufe0f Clear",
-        "action": "clearCustomFloorMap()"
-      },
-      {
-        "label": "\ud83d\udccb Clone +1",
-        "action": "cloneActiveStation()"
-      },
-      {
-        "label": "\ud83d\udce6 .cscwalk.zip",
-        "action": "exportFullWalkZipBundle()"
+        "label": "\ud83d\udcf8 + SNAP NEW UNIT",
+        "action": "startSnapNewUnitWizard()"
       }
     ],
     "modals": [
+      "tagAndGoModal",
       "photoZoomModal",
       "zoomModalTitle",
       "zoomModalImg",
-      "sessionModal"
+      "sessionModal",
+      "rfi11ModalCheck"
     ],
     "inputs": [
-      "e.g., VAV-204 or RTU-7",
-      "e.g., Corridor 204 / West Roof",
-      "Trane...",
+      "Or tap here to type a quick note / room (optional)...",
+      "e.g. RTU-04 or VAV-204",
+      "Auto-filled from GPS/Voice",
+      "Trane, Carrier, AAON...",
       "Model #",
       "Serial #",
-      "DX-9100 / Symbio",
-      "e.g., SPST freeze stat only; CMU wall needs Wiremold; +2 unscheduled VAVs...",
-      "e.g., +2 unscheduled VAVs in Chem Prep; CMU walls need Wiremold...",
-      "Try: DX-9100, Symbio 700, ACH580, ZN551...",
-      "e.g., TCP-204 / Panel LP-2A Ckt #14",
-      "e.g., AHU-2 & HWS-1 Loop",
-      "e.g., Trunk 2 | MAC 14 | 76.8k | EOL=OFF"
+      "Symbio, DX-9100, Pneumatic...",
+      "e.g. Lee's Summit West HS",
+      "e.g. CSC-26-4182",
+      "e.g. Danny Miller (Chief Eng)",
+      "Lee's Summit, MO",
+      "AIzaSy... (Saved in RollupOS Vault; leave blank for offline queue)"
     ],
     "storage_keys": [],
     "vault_secrets": [],
@@ -222,24 +234,24 @@
     ],
     "recent_commits": [
       {
-        "sha": "621ca1d",
+        "sha": "fe98244",
         "date": "2026-10-26",
-        "subject": "Auto-sync (NICKSANDREW/Heartbeat15m - 2026-10-26 15:15)"
+        "subject": "RollupOS v1.1.0 + CSC Site Discovery v2.0.0 (2026-10-26 15:13)"
       },
       {
-        "sha": "5d2f2a2",
+        "sha": "9ac185f",
         "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 22:30)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
       },
       {
-        "sha": "c34a730",
+        "sha": "22d612c",
         "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 20:45)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
       },
       {
-        "sha": "c34bb8d",
+        "sha": "0c21c6e",
         "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/EveningPush - 2026-10-24 16:45)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 16:38)"
       }
     ]
   }

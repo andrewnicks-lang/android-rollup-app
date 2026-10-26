@@ -850,6 +850,58 @@ function extractRfiTriggersJS(text) {
   return hits;
 }
 
+
+
+// ============================================================================
+// v3.0 "FIELD-FIRST SNAP & GO" — ZERO-TYPING CAPTURE, AUTO-GPS/STEP/VOICE
+// ROUGH LOCATION ENGINE & CLEAN 2-VIEW MOBILE UX
+// ============================================================================
+
+const QUICK_ISSUE_CATALOG = [
+  {
+    id: "DAMPER_ACTUATOR",
+    label: "⚠️ Bad Damper / Actuator",
+    rfi: "RFI-23-004: Damper linkage/actuator issue (Div 23 33 00 / Belimo retrofit)",
+    chkMap: { RTU_AHU: ["CHK-AHU-04", "Binding / Rusted Linkage (Div 23 Repair)"], VAV_TERMINAL: ["CHK-VAV-01", "Pneumatic Actuator (Convert to ALC ZN341v)"] }
+  },
+  {
+    id: "NO_POWER_ELECTRICAL",
+    label: "🔌 No Power / Breaker Off",
+    rfi: "RFI-23-009: Missing 120VAC/24VAC power or overloaded transformer (Div 26)",
+    chkMap: { VAV_TERMINAL: ["CHK-VAV-02", "Missing 24VAC Control Power"], BAS_TCP_PANEL: ["CHK-TCP-01", "Missing 120VAC Power (Div 26 By Others — RFI-23-009)"] }
+  },
+  {
+    id: "BAD_BOARD_NO_BACNET",
+    label: "🎛️ Bad Board / No BACnet",
+    rfi: "RFI-23-001: Missing OEM BACnet card or failed legacy controller board",
+    chkMap: { RTU_AHU: ["CHK-AHU-01", "Yes — Missing BACnet Card/License"], CHILLER_BOILER_PLANT: ["CHK-PLT-01", "Legacy LonWorks / Proprietary (Needs Gateway)"] }
+  },
+  {
+    id: "VALVE_COIL_LEAKING",
+    label: "💧 Valve / Coil Leaking",
+    rfi: "RFI-23-005: Leaking valve stem/body — Div 23 21 13 inline cut-in req'd",
+    chkMap: { HYDRONIC_VALVE_PUMP: ["CHK-HYD-01", "Existing Pneumatic Valve — Leaking Stem Packing"] }
+  },
+  {
+    id: "FREEZE_SAFETY_MISSING",
+    label: "❄️ Freeze / Safety Issue",
+    rfi: "RFI-23-007: Enforce DPDT manual-reset freeze stat & hardwired VFD safety loop",
+    chkMap: { RTU_AHU: ["CHK-AHU-02", "SPST (Single-Pole) Only — Needs Upgrade"], VFD_STARTER: ["CHK-VFD-02", "Factory Jumper Only — Needs Safety Interlock"] }
+  },
+  {
+    id: "HARD_ACCESS_LIFT",
+    label: "🚧 Hard Access / Lift / CMU",
+    rfi: "RFI-23-008: Hard-lid access door / >16ft lift / CMU Wiremold raceway (1.40x labor)",
+    chkMap: { RTU_AHU: ["CHK-AHU-05", "Hard Lid Drywall (Needs Access Door)"], ZONE_SENSOR: ["CHK-ZNS-02", "CMU / Brick — Surface Wiremold Raceway Req'd (1.40x)"] }
+  }
+];
+
+let currentMainView = "feed"; // "feed" or "map"
+let currentFeedFilter = "all"; // "all", "issues", "good"
+let walkStepCounter = 0;
+let stepCounterAtLastSnap = 0;
+let allStationThumbs = {}; // { stationId: dataUrl }
+
 function getActiveStation() {
   return state.stations.find((s) => s.id === state.activeStationId) || state.stations[0];
 }
@@ -870,120 +922,88 @@ function computeStationStatus(st) {
     }
   }
 
+  const quickIssues = Array.isArray(st.quickIssues) ? st.quickIssues : [];
+  redCount += quickIssues.length;
+
   const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
   const mdl = decodeModelDeterministic(st.mfg, st.model);
-  const qtyDiff = (Number(st.observedQty) || 0) - (Number(st.scheduledQty) || 0);
 
-  if (redCount > 0 || mdl.a2lFlag) return { cls: "status-red", color: "#ef4444", verifiedCount, total: arch.items.length, redCount };
-  if (amberCount > 0 || dec.eol || qtyDiff !== 0 || (st.ocrConf && st.ocrConf < 0.85)) {
-    return { cls: "status-amber", color: "#f59e0b", verifiedCount, total: arch.items.length, redCount };
+  let cond = st.condition || "";
+  if (!cond) {
+    if (redCount > 0 || mdl.a2lFlag) cond = "replace";
+    else if (amberCount > 0 || dec.eol) cond = "caution";
+    else cond = "good";
   }
-  if (verifiedCount > 0) return { cls: "status-green", color: "#10b981", verifiedCount, total: arch.items.length, redCount };
-  return { cls: "status-unvisited", color: "#64748b", verifiedCount: 0, total: arch.items.length, redCount: 0 };
+
+  if (cond === "replace") {
+    return { cond: "replace", label: "🔴 REPLACE", cls: "status-red", color: "#ef4444", verifiedCount, total: arch.items.length, redCount };
+  }
+  if (cond === "caution") {
+    return { cond: "caution", label: "🟡 CAUTION", cls: "status-amber", color: "#f59e0b", verifiedCount, total: arch.items.length, redCount };
+  }
+  return { cond: "good", label: "🟢 GOOD", cls: "status-green", color: "#10b981", verifiedCount, total: arch.items.length, redCount };
 }
 
 function showBannerToast(htmlMsg, isWarn = false) {
   const toast = document.getElementById("barometerToast");
   if (!toast) return;
-  toast.className = isWarn ? "amber-callout" : "status-callout";
+  toast.className = isWarn ? "toast-banner warn" : "toast-banner";
   toast.style.display = "block";
   toast.innerHTML = htmlMsg;
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(() => {
     toast.style.display = "none";
-  }, 5500);
+  }, 5000);
 }
 
-// ============================================================================
-// PHASE 1: QUICK WALK (<15s) MODE SWITCHER & CLONE +1 STATION DUPLICATOR
-// ============================================================================
+function toggleLotoDetailBanner() {
+  const box = document.getElementById("lotoExpandedBox");
+  if (!box) return;
+  const open = box.style.display === "none";
+  box.style.display = open ? "block" : "none";
+  const hint = document.getElementById("lotoExpandHint");
+  if (hint) hint.textContent = open ? "✕ Hide" : "ⓘ Tap";
+}
+
+function switchMainView(viewName) {
+  currentMainView = viewName === "map" ? "map" : "feed";
+  const feedEl = document.getElementById("feedMainView");
+  const mapEl = document.getElementById("mapMainView");
+  const fBtn = document.getElementById("viewFeedBtn");
+  const mBtn = document.getElementById("viewMapBtn");
+  if (feedEl) feedEl.style.display = currentMainView === "feed" ? "flex" : "none";
+  if (mapEl) mapEl.style.display = currentMainView === "map" ? "block" : "none";
+  if (fBtn) fBtn.classList.toggle("active", currentMainView === "feed");
+  if (mBtn) mBtn.classList.toggle("active", currentMainView === "map");
+  if (currentMainView === "map") {
+    renderFloorTabs();
+    renderInteractiveMap();
+    renderStationStrip();
+  } else {
+    renderUnitFeed();
+  }
+}
+
 function setUiMode(mode) {
   state.uiMode = mode === "deep" ? "deep" : "quick";
   persistWalkState();
-  const qwView = document.getElementById("quickWalkView");
-  const deepView = document.getElementById("deepInspectorView");
-  document.getElementById("modeQuickBtn").classList.toggle("active", state.uiMode === "quick");
-  document.getElementById("modeDeepBtn").classList.toggle("active", state.uiMode === "deep");
-  qwView.style.display = state.uiMode === "quick" ? "block" : "none";
-  deepView.style.display = state.uiMode === "deep" ? "block" : "none";
-  renderActiveTabContent();
-}
-
-function _autoIncrementEquipmentTag(tagStr) {
-  const raw = (tagStr || "EQ-01").trim();
-  // Match prefix + trailing digits before any parenthetical note, e.g. "VAV-204 (Science)" -> "VAV-205 (Science)"
-  const m = raw.match(/^(.*?)(\d+)(\s*\(.*\))?$/);
-  if (m) {
-    const prefix = m[1];
-    const numStr = m[2];
-    const suffix = m[3] || "";
-    const nextNum = String(parseInt(numStr, 10) + 1).padStart(numStr.length, "0");
-    return `${prefix}${nextNum}${suffix}`;
-  }
-  return `${raw}-2`;
-}
-
-function cloneActiveStation() {
-  const src = getActiveStation();
-  const newNum = state.stations.length + 1;
-  const newId = `STN-${String(newNum).padStart(2, "0")}`;
-  const nextTag = _autoIncrementEquipmentTag(src.tag);
-
-  // Copy baseline clean checks while clearing station-specific serial/photos
-  const arch = ARCHETYPES.find((a) => a.id === src.archetype) || ARCHETYPES[0];
-  const clonedChecks = {};
-  for (const item of arch.items) {
-    const prev = src.checks && src.checks[item.id];
-    // Carry over non-defect architectural choices (e.g., HW Reheat, Rnet) while leaving defects clean/ready
-    if (prev && !(item.redFlags || []).includes(prev)) {
-      clonedChecks[item.id] = prev;
-    }
-  }
-
-  const cloned = {
-    id: newId,
-    tag: nextTag,
-    archetype: src.archetype,
-    floorId: src.floorId,
-    room: src.room,
-    xPct: Number(Math.min(95, (src.xPct || 50) + 3.5).toFixed(1)),
-    yPct: Number(Math.min(92, (src.yPct || 50) + 2.5).toFixed(1)),
-    gpsLat: currentGps ? currentGps.lat : null,
-    gpsLon: currentGps ? currentGps.lon : null,
-    gpsAcc: currentGps ? currentGps.acc : null,
-    compassDeg: currentCompassDeg !== null ? currentCompassDeg : null,
-    anchorType: liveSensorsActive && currentGps ? "OUTDOOR_GNSS_AND_COMPASS" : "CLONED_MAP_PIN",
-    mfg: src.mfg || "",
-    model: src.model || "",
-    serial: "",
-    elec: src.elec || "",
-    legacyCtrl: src.legacyCtrl || "",
-    alcTarget: src.alcTarget || arch.default_alc,
-    thermistorCurve: src.thermistorCurve || "10k_TYPE_II",
-    ioTally: JSON.parse(JSON.stringify(src.ioTally || { ui: 2, bi: 1, bo: 1, ao: 1 })),
-    parentPanel: src.parentPanel || "",
-    servedBy: src.servedBy || "",
-    mstpMac: "",
-    ocrConf: 1.0,
-    ambiguousNote: "",
-    scheduledQty: 1,
-    observedQty: 1,
-    tierDelta: "",
-    burstMeta: {},
-    checks: clonedChecks
-  };
-
-  state.stations.push(cloned);
-  state.activeStationId = newId;
-  cachedSlotPhotos = { 1: null, 2: null, 3: null };
-  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
-  persistWalkState();
   renderAll(true);
-  showBannerToast(`📋 <strong>Cloned &rarr; ${escapeHtml(nextTag)} (${newId}):</strong> Mfg, Model, ALC strategy &amp; sensor curve carried forward — snap plate or drag pin!`);
+}
+
+function setFeedFilter(flt) {
+  currentFeedFilter = flt;
+  ["All", "Issue", "Good"].forEach((k) => {
+    const btn = document.getElementById(`flt${k}Btn`);
+    if (btn) btn.classList.remove("active");
+  });
+  if (flt === "issues" && document.getElementById("fltIssueBtn")) document.getElementById("fltIssueBtn").classList.add("active");
+  else if (flt === "good" && document.getElementById("fltGoodBtn")) document.getElementById("fltGoodBtn").classList.add("active");
+  else if (document.getElementById("fltAllBtn")) document.getElementById("fltAllBtn").classList.add("active");
+  renderUnitFeed();
 }
 
 // ============================================================================
-// 1. REAL ANDROID GNSS GEOLOCATION & MAGNETOMETER COMPASS SENSORS
+// AUTOMATIC BACKGROUND GPS + COMPASS + STEP-COUNTER + VOICE LOCATION ESTIMATOR
 // ============================================================================
 function degToCardinal(deg) {
   if (deg === null || deg === undefined || isNaN(deg)) return "";
@@ -1001,19 +1021,33 @@ function _handleOrientation(ev) {
   if (heading !== null) {
     currentCompassDeg = heading;
     updateSensorBadgeUI();
-    const hEl = document.getElementById("pdrHeadingEl");
-    if (hEl) hEl.textContent = `${heading}° ${degToCardinal(heading)}`;
   }
 }
 
-function toggleLiveSensors() {
-  const btn = document.getElementById("sensorLockBtn");
-  liveSensorsActive = !liveSensorsActive;
+function _handleBackgroundStepMotion(ev) {
+  const acc = ev.accelerationIncludingGravity;
+  if (!acc) return;
+  const mag = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
+  const now = Date.now();
+  if (mag > 11.6 && now - lastStepPeakMs > 340) {
+    lastStepPeakMs = now;
+    walkStepCounter++;
+    const hdg = currentCompassDeg !== null ? currentCompassDeg : 90;
+    pdrSteps.push({ stepIdx: walkStepCounter, headingDeg: hdg, tMs: now });
+    state.pdrSteps = pdrSteps.slice(-400);
+    const stepBadge = document.getElementById("stepBreadcrumbBadge");
+    if (stepBadge) {
+      const deltaSteps = Math.max(0, walkStepCounter - stepCounterAtLastSnap);
+      stepBadge.textContent = `👣 +${deltaSteps} steps (~${Math.round(deltaSteps * 2.5)} ft)`;
+    }
+  }
+}
 
-  if (liveSensorsActive) {
-    btn.className = "btn btn-amber";
-    btn.innerHTML = "📡 Live ON";
-    if ("geolocation" in navigator) {
+function startAutoBackgroundSensors() {
+  if (liveSensorsActive) return;
+  liveSensorsActive = true;
+  if ("geolocation" in navigator) {
+    try {
       geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           currentGps = {
@@ -1024,45 +1058,599 @@ function toggleLiveSensors() {
           };
           updateSensorBadgeUI();
         },
-        (err) => {
-          showBannerToast(`⚠️ Android GPS Notice: ${escapeHtml(err.message)} (Indoor Floor-Pin Fallback Active)`, true);
+        () => {
+          updateSensorBadgeUI();
         },
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
       );
-    }
-    window.addEventListener("deviceorientationabsolute", _handleOrientation, true);
-    window.addEventListener("deviceorientation", _handleOrientation, true);
-    updateSensorBadgeUI();
-    showBannerToast("📡 <strong>Live Android GNSS + Compass Active:</strong> Rooftop pins &amp; Step-PDR automatically stamp GPS &amp; bearing!");
-  } else {
-    btn.className = "btn btn-secondary";
-    btn.innerHTML = "📡 GPS/Compass";
-    if (geoWatchId !== null && "geolocation" in navigator) {
-      navigator.geolocation.clearWatch(geoWatchId);
-      geoWatchId = null;
-    }
-    if (!livePdrActive) {
-      window.removeEventListener("deviceorientationabsolute", _handleOrientation, true);
-      window.removeEventListener("deviceorientation", _handleOrientation, true);
-    }
-    updateSensorBadgeUI();
+    } catch (e) {}
+  }
+  window.addEventListener("deviceorientationabsolute", _handleOrientation, true);
+  window.addEventListener("deviceorientation", _handleOrientation, true);
+  window.addEventListener("devicemotion", _handleBackgroundStepMotion, true);
+  updateSensorBadgeUI();
+}
+
+function toggleLiveSensors() {
+  if (!liveSensorsActive) {
+    startAutoBackgroundSensors();
+  } else if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        currentGps = {
+          lat: Number(pos.coords.latitude.toFixed(5)),
+          lon: Number(pos.coords.longitude.toFixed(5)),
+          acc: Number((pos.coords.accuracy || 0).toFixed(1)),
+          alt: pos.coords.altitude ? Number((pos.coords.altitude * 3.28084).toFixed(1)) : null
+        };
+        updateSensorBadgeUI();
+        showBannerToast(`📡 <strong>GPS Recalibrated:</strong> ${currentGps.lat}, ${currentGps.lon} (±${Math.round(currentGps.acc * 3.28)} ft)`);
+      },
+      () => {
+        showBannerToast("📡 <strong>Indoor Step + Compass Dead-Reckoning Active:</strong> Using step distance &amp; voice cues for indoor rough locations.");
+      },
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
   }
 }
 
 function updateSensorBadgeUI() {
   const el = document.getElementById("liveSensorReadout");
   if (!el) return;
-  if (!liveSensorsActive) {
-    el.textContent = "Indoor Pin Mode";
+  const gpsStr = currentGps
+    ? `📍 GPS ±${Math.round((currentGps.acc || 4) * 3.28)}ft`
+    : "🧭 Indoor Step/Voice Mode";
+  const compStr = currentCompassDeg !== null
+    ? ` • Heading ${currentCompassDeg}° ${degToCardinal(currentCompassDeg)}`
+    : "";
+  el.textContent = `📡 Auto-Location: ${gpsStr}${compStr}`;
+}
+
+function parseLocationFromVoiceJS(text) {
+  const raw = (text || "").trim();
+  const up = raw.toUpperCase();
+  if (!up) return null;
+
+  let floorId = null;
+  let floorLabel = null;
+  if (/\b(ROOF|ROOFTOP|PENTHOUSE)\b/.test(up)) {
+    floorId = "FLR-ROOF";
+    floorLabel = "Roof";
+  } else if (/\b(BASEMENT|BSMT|LOWER LEVEL|PLANT|BOILER ROOM|CHILLER)\b/.test(up)) {
+    floorId = "FLR-BSMT";
+    floorLabel = "Basement";
+  } else if (/\b(2ND FLOOR|SECOND FLOOR|FLOOR 2|FLR 2|LEVEL 2)\b/.test(up)) {
+    floorId = "FLR-02";
+    floorLabel = "Floor 2";
+  } else if (/\b(1ST FLOOR|FIRST FLOOR|FLOOR 1|FLR 1|MAIN FLOOR|GROUND|LOBBY|GYM)\b/.test(up)) {
+    floorId = "FLR-01";
+    floorLabel = "Floor 1";
+  }
+
+  let roomMatch = raw.match(/\b(?:room|rm|lab|suite|mech|corridor|hall|door)\s*#?\s*([A-Za-z0-9-]+)\b/i);
+  let roomTag = roomMatch ? `${roomMatch[0].trim()}` : "";
+  if (!floorId && roomMatch) {
+    const rNum = roomMatch[1];
+    if (/^2\d\d/.test(rNum)) { floorId = "FLR-02"; floorLabel = "Floor 2"; }
+    else if (/^1\d\d/.test(rNum)) { floorId = "FLR-01"; floorLabel = "Floor 1"; }
+    else if (/^B/i.test(rNum)) { floorId = "FLR-BSMT"; floorLabel = "Basement"; }
+  }
+
+  let xBias = null;
+  let yBias = null;
+  let sectorParts = [];
+  if (/\bWEST\b/.test(up)) { xBias = 24.0; sectorParts.push("West Wing"); }
+  else if (/\bEAST\b/.test(up)) { xBias = 76.0; sectorParts.push("East Wing"); }
+  else if (/\b(CENTER|CENTRAL|MIDDLE|LOBBY)\b/.test(up)) { xBias = 50.0; sectorParts.push("Central"); }
+
+  if (/\bNORTH\b/.test(up)) { yBias = 24.0; sectorParts.push("North"); }
+  else if (/\bSOUTH\b/.test(up)) { yBias = 76.0; sectorParts.push("South"); }
+
+  const summaryParts = [];
+  if (floorLabel) summaryParts.push(floorLabel);
+  if (sectorParts.length) summaryParts.push(sectorParts.join(" "));
+  if (roomTag) summaryParts.push(roomTag);
+
+  if (!floorId && !summaryParts.length && xBias === null && yBias === null) return null;
+
+  return {
+    floorId,
+    locationLabel: summaryParts.join(" • "),
+    xBias,
+    yBias
+  };
+}
+
+function estimateRoughLocationForUnit(st, prevSt = null) {
+  const deltaSteps = Math.max(0, walkStepCounter - stepCounterAtLastSnap);
+  const estFeet = Math.round(deltaSteps * 2.5);
+  const hdg = st.compassDeg !== null && st.compassDeg !== undefined
+    ? st.compassDeg
+    : (currentCompassDeg !== null ? currentCompassDeg : 90);
+  const card = degToCardinal(hdg);
+
+  st.stepsFromPrev = deltaSteps;
+  st.distFtFromPrev = estFeet;
+  st.compassDeg = hdg;
+  stepCounterAtLastSnap = walkStepCounter;
+
+  if (st.gpsLat && st.gpsLon) {
+    const ref = (prevSt && prevSt.gpsLat && prevSt.gpsLon) ? prevSt : state.stations.find((x) => x.id !== st.id && x.gpsLat && x.gpsLon);
+    if (ref) {
+      const dLatM = (st.gpsLat - ref.gpsLat) * 111139;
+      const dLonM = (st.gpsLon - ref.gpsLon) * 111139 * Math.cos((st.gpsLat * Math.PI) / 180);
+      st.xPct = Number(Math.max(8, Math.min(92, (ref.xPct || 50) + (dLonM / 1.5))).toFixed(1));
+      st.yPct = Number(Math.max(10, Math.min(90, (ref.yPct || 50) - (dLatM / 1.5))).toFixed(1));
+    }
+    const accFt = st.gpsAcc ? `±${Math.round(st.gpsAcc * 3.28)}ft` : "GPS Locked";
+    st.autoLocationBreadcrumb = `📍 GPS (${accFt}, ${hdg}° ${card})`;
+    if (!st.room || st.room.startsWith("Auto-")) {
+      st.room = st.autoLocationBreadcrumb;
+    }
     return;
   }
-  const gpsPart = currentGps ? `${currentGps.lat}, ${currentGps.lon} (±${currentGps.acc}m)` : "Acquiring GNSS...";
-  const compPart = currentCompassDeg !== null ? ` | 🧭 ${currentCompassDeg}° ${degToCardinal(currentCompassDeg)}` : "";
-  el.textContent = gpsPart + compPart;
+
+  if (prevSt) {
+    const stepMove = deltaSteps > 0 ? Math.min(35, Math.max(5, deltaSteps * 0.65)) : 8.5;
+    const rad = ((hdg - 90) * Math.PI) / 180;
+    st.xPct = Number(Math.max(8, Math.min(92, (prevSt.xPct || 45) + stepMove * Math.cos(rad))).toFixed(1));
+    st.yPct = Number(Math.max(12, Math.min(88, (prevSt.yPct || 48) + stepMove * Math.sin(rad))).toFixed(1));
+    const prevName = (prevSt.tag || prevSt.id).split("(")[0].trim();
+    st.autoLocationBreadcrumb = deltaSteps > 0
+      ? `🧭 ~${estFeet} ft ${card} of ${prevName} (${deltaSteps} steps)`
+      : `🧭 Near ${prevName} (Heading ${hdg}° ${card})`;
+  } else {
+    st.xPct = 50.0;
+    st.yPct = 50.0;
+    st.autoLocationBreadcrumb = `🧭 Indoor Entry Point (Heading ${hdg}° ${card})`;
+  }
+
+  if (!st.room || st.room.startsWith("Auto-")) {
+    st.room = st.autoLocationBreadcrumb;
+  }
 }
 
 // ============================================================================
-// 2. PINCH-ZOOM / PAN / DRAG-PIN SPATIAL MAPPER + CUSTOM FLOOR IMAGE LOADER
+// PHOTO-ONLY FIRST -> "TAG & GO" 1-SCREEN CAPTURE FLOW
+// ============================================================================
+async function startSnapNewUnitWizard() {
+  const prevSt = state.stations[state.stations.length - 1] || getActiveStation();
+  const newNum = state.stations.length + 1;
+  const padNum = String(newNum).padStart(2, "0");
+  const newId = `STN-${padNum}`;
+  const defaultArch = state.activeFloorId === "FLR-ROOF" ? "RTU_AHU" : (prevSt ? prevSt.archetype : "RTU_AHU");
+  const archObj = ARCHETYPES.find((a) => a.id === defaultArch) || ARCHETYPES[0];
+
+  const newStation = {
+    id: newId,
+    tag: `Unit #${newNum}`,
+    archetype: defaultArch,
+    condition: "good",
+    quickIssues: [],
+    floorId: state.activeFloorId,
+    room: "Auto-locating...",
+    xPct: 50.0,
+    yPct: 50.0,
+    gpsLat: currentGps ? currentGps.lat : null,
+    gpsLon: currentGps ? currentGps.lon : null,
+    gpsAcc: currentGps ? currentGps.acc : null,
+    compassDeg: currentCompassDeg !== null ? currentCompassDeg : 90,
+    anchorType: currentGps ? "AUTO_GNSS_AND_STEP" : "AUTO_STEP_COMPASS",
+    mfg: "",
+    model: "",
+    serial: "",
+    elec: "",
+    legacyCtrl: "",
+    alcTarget: archObj.default_alc,
+    thermistorCurve: "10k_TYPE_II",
+    ioTally: { ui: 4, bi: 2, bo: 2, ao: 2 },
+    parentPanel: "",
+    servedBy: "",
+    mstpMac: "",
+    ocrConf: 1.0,
+    ambiguousNote: "",
+    scheduledQty: 1,
+    observedQty: 1,
+    tierDelta: "",
+    burstMeta: {},
+    checks: {}
+  };
+
+  estimateRoughLocationForUnit(newStation, prevSt);
+  state.stations.push(newStation);
+  state.activeStationId = newId;
+  cachedSlotPhotos = { 1: null, 2: null, 3: null };
+  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
+  persistWalkState();
+  renderAll(true);
+
+  openTagAndGoForStation(newId);
+  await captureStationBurstSlot(2, true);
+}
+
+async function openTagAndGoForStation(stationId) {
+  const st = state.stations.find((s) => s.id === stationId);
+  if (!st) return;
+  state.activeStationId = stationId;
+  state.activeFloorId = st.floorId;
+  persistWalkState();
+  await loadActiveStationBurstPhotos();
+  renderTagAndGoSheet(st);
+  const modal = document.getElementById("tagAndGoModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function closeTagAndGoSheet() {
+  const modal = document.getElementById("tagAndGoModal");
+  if (modal) modal.style.display = "none";
+  persistWalkState();
+  renderAll(true);
+}
+
+async function saveAndSnapNextUnit() {
+  closeTagAndGoSheet();
+  await startSnapNewUnitWizard();
+}
+
+function setUnitCondition(condVal) {
+  const st = getActiveStation();
+  st.condition = condVal;
+  persistWalkState();
+  renderTagAndGoSheet(st);
+  renderUnitFeed();
+  renderInteractiveMap();
+}
+
+function toggleQuickIssueTile(issueId) {
+  const st = getActiveStation();
+  if (!Array.isArray(st.quickIssues)) st.quickIssues = [];
+  const issueObj = QUICK_ISSUE_CATALOG.find((x) => x.id === issueId);
+  if (!issueObj) return;
+
+  const idx = st.quickIssues.indexOf(issueId);
+  if (idx >= 0) {
+    st.quickIssues.splice(idx, 1);
+  } else {
+    st.quickIssues.push(issueId);
+    if (!st.condition || st.condition === "good") {
+      st.condition = "caution";
+    }
+    if (!st.checks) st.checks = {};
+    const mapped = issueObj.chkMap[st.archetype];
+    if (mapped) {
+      st.checks[mapped[0]] = mapped[1];
+    }
+  }
+
+  const rfiNotes = st.quickIssues
+    .map((id) => QUICK_ISSUE_CATALOG.find((x) => x.id === id)?.rfi)
+    .filter(Boolean);
+  const manualNote = (st.userNote || "").trim();
+  st.tierDelta = [manualNote, ...rfiNotes].filter(Boolean).join(" | ");
+
+  persistWalkState();
+  renderTagAndGoSheet(st);
+  renderUnitFeed();
+  renderInteractiveMap();
+}
+
+function onTagGoNoteInput(val) {
+  const st = getActiveStation();
+  st.userNote = val;
+  const loc = parseLocationFromVoiceJS(val);
+  if (loc) {
+    if (loc.floorId) {
+      st.floorId = loc.floorId;
+      state.activeFloorId = loc.floorId;
+    }
+    if (loc.locationLabel) {
+      st.room = `${loc.locationLabel} (${st.autoLocationBreadcrumb || 'Voice Located'})`;
+    }
+    if (loc.xBias !== null) st.xPct = loc.xBias;
+    if (loc.yBias !== null) st.yPct = loc.yBias;
+  }
+  const rfiNotes = (st.quickIssues || [])
+    .map((id) => QUICK_ISSUE_CATALOG.find((x) => x.id === id)?.rfi)
+    .filter(Boolean);
+  st.tierDelta = [val.trim(), ...rfiNotes].filter(Boolean).join(" | ");
+  persistWalkState();
+  const subEl = document.getElementById("tgAutoLocationSub");
+  if (subEl) subEl.textContent = `📍 ${st.room || st.autoLocationBreadcrumb || st.floorId}`;
+}
+
+function renderTagAndGoSheet(st) {
+  if (!st) st = getActiveStation();
+  const unitIdx = state.stations.findIndex((x) => x.id === st.id) + 1;
+  const badgeEl = document.getElementById("tgUnitBadge");
+  if (badgeEl) badgeEl.textContent = `Unit #${unitIdx}`;
+
+  const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
+  const mdl = decodeModelDeterministic(st.mfg, st.model);
+
+  const autoTitleParts = [];
+  if (st.tag && !st.tag.startsWith("Unit #")) autoTitleParts.push(st.tag);
+  if (st.mfg) autoTitleParts.push(st.mfg);
+  if (mdl.capacity) autoTitleParts.push(mdl.capacity.split("(")[0].trim());
+  const titleEl = document.getElementById("tgAutoTitle");
+  if (titleEl) {
+    titleEl.textContent = autoTitleParts.length > 0 ? autoTitleParts.join(" • ") : (st.tag || `Unit #${unitIdx}`);
+  }
+
+  const locEl = document.getElementById("tgAutoLocationSub");
+  if (locEl) {
+    locEl.textContent = `📍 ${st.room || st.autoLocationBreadcrumb || st.floorId}`;
+  }
+
+  const decodeBanner = document.getElementById("tgAutoDecodeBanner");
+  if (decodeBanner) {
+    const specs = [];
+    if (st.mfg || st.model) specs.push(`<strong>${escapeHtml(st.mfg || '')} ${escapeHtml(st.model || '')}</strong>`);
+    if (dec.year) specs.push(`📅 <strong>${dec.year}</strong> (${dec.age} yr${dec.eol ? ' ⚠️ Past ASHRAE Life' : ''})`);
+    if (mdl.capacity) specs.push(`⚙️ ${escapeHtml(mdl.capacity)}`);
+    if (mdl.a2lFlag) specs.push(`🚨 <strong>A2L Refrigerant</strong>`);
+    decodeBanner.innerHTML = specs.length > 0
+      ? `✅ Auto-Decoded: ${specs.join(" &nbsp;•&nbsp; ")}`
+      : `✨ Snap nameplate photo below — Make, Model, Year &amp; Tonnage decode in the background.`;
+  }
+
+  const photoGrid = document.getElementById("tgPhotoGrid");
+  if (photoGrid) {
+    const npUrl = cachedSlotPhotos[2];
+    const wideUrl = cachedSlotPhotos[1];
+    const npMeta = (st.burstMeta && st.burstMeta[2]) || null;
+    const isClahe = Boolean(npMeta && npMeta.claheEnhanced);
+
+    photoGrid.innerHTML = `
+      <div class="tg-photo-box ${npUrl ? 'has-photo' : ''}">
+        <strong style="font-size:11.5px;">1️⃣ Equipment Nameplate</strong>
+        ${npUrl
+          ? `<img src="${npUrl}" onclick="openPhotoZoomModal(2)" alt="Nameplate Photo" />`
+          : `<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px 4px;">No Nameplate Photo Yet</div>`
+        }
+        <div style="display:flex;gap:5px;width:100%;">
+          <button class="btn" style="flex:1;padding:6px 8px;min-height:34px;font-size:12px;" onclick="captureStationBurstSlot(2, true)">
+            📸 ${npUrl ? 'Retake' : 'Snap Plate'}
+          </button>
+          ${npUrl ? `<button class="btn ${isClahe ? 'btn-secondary' : 'btn-amber'}" style="padding:6px 8px;min-height:34px;font-size:11.5px;" onclick="toggleClaheOnSlot(2)" title="Enhance weathered metal plate">${isClahe ? '🎨 Color' : '🔦 Enhance'}</button>` : ''}
+        </div>
+      </div>
+
+      <div class="tg-photo-box ${wideUrl ? 'has-photo' : ''}">
+        <strong style="font-size:11.5px;">2️⃣ Wide / Controller (Optional)</strong>
+        ${wideUrl
+          ? `<img src="${wideUrl}" onclick="openPhotoZoomModal(1)" alt="Wide Shot" />`
+          : `<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px 4px;">Optional Wide or Board Shot</div>`
+        }
+        <button class="btn btn-secondary" style="width:100%;padding:6px 8px;min-height:34px;font-size:12px;" onclick="captureStationBurstSlot(1, false)">
+          📷 ${wideUrl ? 'Retake Wide Shot' : '+ Add Wide Shot'}
+        </button>
+      </div>
+    `;
+  }
+
+  const stStatus = computeStationStatus(st);
+  ["Good", "Caution", "Replace"].forEach((k) => {
+    const b = document.getElementById(`condBtn${k}`);
+    if (b) b.classList.toggle("active", stStatus.cond === k.toLowerCase());
+  });
+
+  const issueGrid = document.getElementById("tgQuickIssueGrid");
+  if (issueGrid) {
+    const activeIssues = Array.isArray(st.quickIssues) ? st.quickIssues : [];
+    issueGrid.innerHTML = QUICK_ISSUE_CATALOG.map((iss) => {
+      const isAct = activeIssues.includes(iss.id);
+      return `
+        <button class="issue-tile-btn ${isAct ? 'active' : ''}" onclick="toggleQuickIssueTile('${iss.id}')">
+          <span>${isAct ? '✅' : '⬜'}</span>
+          <span>${escapeHtml(iss.label)}</span>
+        </button>
+      `;
+    }).join("");
+  }
+
+  const noteInp = document.getElementById("tgQuickNoteInput");
+  if (noteInp && document.activeElement !== noteInp) {
+    noteInp.value = st.userNote || st.tierDelta || "";
+  }
+
+  const archSel = document.getElementById("qwArchetypeSelect");
+  if (archSel) {
+    archSel.innerHTML = ARCHETYPES.map((a) => `
+      <option value="${a.id}" ${a.id === st.archetype ? 'selected' : ''}>${escapeHtml(a.label)}</option>
+    `).join("");
+  }
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el) el.value = v || "";
+  };
+  setVal("qwTagInput", st.tag);
+  setVal("qwRoomInput", st.room);
+  setVal("qwMfgInput", st.mfg);
+  setVal("qwModelInput", st.model);
+  setVal("qwSerialInput", st.serial);
+  setVal("qwLegacyInput", st.legacyCtrl);
+}
+
+// ============================================================================
+// CLEAN VISUAL UNIT FEED RENDERER (VIEW 1)
+// ============================================================================
+async function preloadAllStationThumbnails() {
+  allStationThumbs = {};
+  for (const st of state.stations) {
+    const p2 = await window.CSCDiscoveryAdapter.loadMediaBlob(`photo::${state.sessionId}::${st.id}::slot2`);
+    const p1 = p2 ? null : await window.CSCDiscoveryAdapter.loadMediaBlob(`photo::${state.sessionId}::${st.id}::slot1`);
+    if (p2 || p1) allStationThumbs[st.id] = p2 || p1;
+  }
+}
+
+function renderUnitFeed() {
+  const countEl = document.getElementById("stationSummaryCount");
+  if (countEl) countEl.textContent = String(state.stations.length);
+
+  const listEl = document.getElementById("unitFeedList");
+  if (!listEl) return;
+
+  const filtered = state.stations.filter((st) => {
+    const stStatus = computeStationStatus(st);
+    if (currentFeedFilter === "issues") return stStatus.cond !== "good";
+    if (currentFeedFilter === "good") return stStatus.cond === "good";
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = `
+      <div style="text-align:center;padding:28px 16px;background:var(--bg-card);border-radius:12px;border:1px dashed var(--border-col);color:var(--text-muted);">
+        No units match this filter yet. Tap <strong>📸 + SNAP NEW UNIT</strong> below to capture equipment!
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map((st) => {
+    const unitIdx = state.stations.findIndex((x) => x.id === st.id) + 1;
+    const stStatus = computeStationStatus(st);
+    const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
+    const mdl = decodeModelDeterministic(st.mfg, st.model);
+    const thumb = allStationThumbs[st.id] || (st.id === state.activeStationId ? (cachedSlotPhotos[2] || cachedSlotPhotos[1]) : null);
+
+    const specParts = [];
+    if (st.mfg) specParts.push(st.mfg);
+    if (st.model) specParts.push(st.model);
+    if (dec.year) specParts.push(`${dec.year} (${dec.age} yr${dec.eol ? ' • EOL' : ''})`);
+    if (mdl.capacity) specParts.push(mdl.capacity.split("(")[0].trim());
+    const specLine = specParts.length > 0 ? specParts.join(" • ") : "Tap to snap nameplate or view details";
+
+    const issuePills = [];
+    for (const issId of (st.quickIssues || [])) {
+      const obj = QUICK_ISSUE_CATALOG.find((x) => x.id === issId);
+      if (obj) issuePills.push(`<span class="mini-issue-tag">${escapeHtml(obj.label)}</span>`);
+    }
+    if (mdl.a2lFlag) {
+      issuePills.push(`<span class="mini-issue-tag">🚨 A2L Refrigerant</span>`);
+    }
+    if (!issuePills.length && st.tierDelta) {
+      issuePills.push(`<span class="mini-issue-tag">📝 ${escapeHtml(st.tierDelta.slice(0, 58))}</span>`);
+    }
+
+    const displayTitle = st.tag && !st.tag.startsWith("Unit #")
+      ? `Unit #${unitIdx} • ${st.tag}`
+      : `Unit #${unitIdx}${st.mfg ? ' • ' + st.mfg : ''}`;
+
+    return `
+      <div class="unit-feed-card cond-${stStatus.cond}" onclick="openTagAndGoForStation('${st.id}')">
+        <div class="unit-thumb-box">
+          ${thumb
+            ? `<img src="${thumb}" alt="Unit Thumbnail" />`
+            : `<span style="font-size:22px;">📷</span><small style="font-size:9.5px;color:var(--text-muted);">Snap</small>`
+          }
+        </div>
+        <div class="unit-card-body">
+          <div class="unit-card-top">
+            <div class="unit-card-title">${escapeHtml(displayTitle)}</div>
+            <span class="cond-badge ${stStatus.cond}">${stStatus.label}</span>
+          </div>
+          <div class="unit-card-spec">${escapeHtml(specLine)}</div>
+          <div class="unit-card-loc">📍 ${escapeHtml(st.room || st.autoLocationBreadcrumb || st.floorId)}</div>
+          ${issuePills.length ? `<div class="unit-issue-row">${issuePills.join("")}</div>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderRecentAudioFeed() {
+  const countEl = document.getElementById("audioCountBadge");
+  if (countEl) countEl.textContent = String((state.audioSegments || []).length);
+  const consentEl = document.getElementById("audioConsentCheck");
+  if (consentEl) consentEl.checked = Boolean(state.verbalConsentLogged);
+
+  const listEl = document.getElementById("recentAudioFeedList");
+  if (!listEl) return;
+  const segs = (state.audioSegments || []).slice(0, 4);
+  if (segs.length === 0) {
+    listEl.innerHTML = `<div style="font-size:11.5px;color:var(--text-muted);">Hold <strong>🎙️ Hold to Talk</strong> anytime to record a voice note &amp; auto-tag location.</div>`;
+    return;
+  }
+  listEl.innerHTML = segs.map((seg) => `
+    <div class="audio-item-row">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+        <strong>${escapeHtml(seg.stationId)} • ${escapeHtml(seg.speaker || 'Field Tech')}</strong>
+        <span>${escapeHtml(seg.time)}</span>
+      </div>
+      <div style="margin-top:2px;">"${escapeHtml(seg.text)}"</div>
+      ${seg.insight ? `<div style="margin-top:2px;font-size:11px;color:var(--accent-teal);font-weight:700;">↳ ${escapeHtml(seg.insight)}</div>` : ""}
+    </div>
+  `).join("");
+}
+
+
+function _autoIncrementEquipmentTag(tagStr) {
+  const raw = (tagStr || "Unit #1").trim();
+  const m = raw.match(/^(.*?)(\d+)(\s*\(.*\))?$/);
+  if (m) {
+    const prefix = m[1];
+    const numStr = m[2];
+    const suffix = m[3] || "";
+    const nextNum = String(parseInt(numStr, 10) + 1).padStart(numStr.length, "0");
+    return `${prefix}${nextNum}${suffix}`;
+  }
+  return `${raw}-2`;
+}
+
+function cloneActiveStation() {
+  const src = getActiveStation();
+  const newNum = state.stations.length + 1;
+  const newId = `STN-${String(newNum).padStart(2, "0")}`;
+  const nextTag = _autoIncrementEquipmentTag(src.tag);
+  const arch = ARCHETYPES.find((a) => a.id === src.archetype) || ARCHETYPES[0];
+
+  const cloned = {
+    id: newId,
+    tag: nextTag,
+    archetype: src.archetype,
+    condition: "good",
+    quickIssues: [],
+    floorId: src.floorId,
+    room: src.room,
+    xPct: Number(Math.min(95, (src.xPct || 50) + 4.0).toFixed(1)),
+    yPct: Number(Math.min(92, (src.yPct || 50) + 3.0).toFixed(1)),
+    gpsLat: currentGps ? currentGps.lat : null,
+    gpsLon: currentGps ? currentGps.lon : null,
+    gpsAcc: currentGps ? currentGps.acc : null,
+    compassDeg: currentCompassDeg !== null ? currentCompassDeg : src.compassDeg,
+    anchorType: "CLONED_UNIT",
+    mfg: src.mfg || "",
+    model: src.model || "",
+    serial: "",
+    elec: src.elec || "",
+    legacyCtrl: src.legacyCtrl || "",
+    alcTarget: src.alcTarget || arch.default_alc,
+    thermistorCurve: src.thermistorCurve || "10k_TYPE_II",
+    ioTally: JSON.parse(JSON.stringify(src.ioTally || { ui: 2, bi: 1, bo: 1, ao: 1 })),
+    parentPanel: src.parentPanel || "",
+    servedBy: src.servedBy || "",
+    mstpMac: "",
+    ocrConf: 1.0,
+    ambiguousNote: "",
+    scheduledQty: 1,
+    observedQty: 1,
+    tierDelta: "",
+    burstMeta: {},
+    checks: {}
+  };
+
+  estimateRoughLocationForUnit(cloned, src);
+  state.stations.push(cloned);
+  state.activeStationId = newId;
+  cachedSlotPhotos = { 1: null, 2: null, 3: null };
+  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
+  persistWalkState();
+  renderAll(true);
+  showBannerToast(`📋 <strong>Cloned &rarr; ${escapeHtml(nextTag)}:</strong> Ready for next nameplate photo!`);
+}
+
+// ============================================================================
+// ROUGH MAP (AUTO GPS/STEP/VOICE PLACEMENT + OPTIONAL PIN DRAG)
 // ============================================================================
 async function refreshFloorMapBackground() {
   const flr = state.floors.find((f) => f.id === state.activeFloorId);
@@ -1087,14 +1675,14 @@ async function captureFloorEvacuationMap(useRearCamera = true) {
   const flr = state.floors.find((f) => f.id === state.activeFloorId);
   if (flr) {
     flr.hasCustomMap = true;
-    flr.source = `${useRearCamera ? 'Snapped Evac Map' : 'Imported Floor Plan'} (${img.width}x${img.height})`;
+    flr.source = `${useRearCamera ? 'Snapped Wall Map' : 'Imported Plan'} (${img.width}x${img.height})`;
   }
   cachedFloorMapDataUrl = img.dataUrl;
   resetMapZoom();
   persistWalkState();
   renderFloorTabs();
   renderInteractiveMap();
-  showBannerToast("🗺️ <strong>Floor Map Loaded (Aspect Ratio Preserved):</strong> Pinch/zoom or tap anywhere to pin stations!");
+  showBannerToast("🗺️ <strong>Floor Map Loaded:</strong> Drag any unit pin to fine-tune its location!");
 }
 
 async function clearCustomFloorMap() {
@@ -1104,7 +1692,7 @@ async function clearCustomFloorMap() {
   if (flr) {
     flr.hasCustomMap = false;
     delete flr.custom_map_data_url;
-    flr.source = "Schematic Vector Floor Grid";
+    flr.source = "Auto-Estimated GPS/Step/Voice Grid";
   }
   cachedFloorMapDataUrl = null;
   resetMapZoom();
@@ -1114,7 +1702,7 @@ async function clearCustomFloorMap() {
 }
 
 function addCustomFloor() {
-  const name = prompt("New Floor / Roof / Area Name (e.g., Floor 3 Lab Wing or Penthouse):", `Floor ${state.floors.length}`);
+  const name = prompt("New Area / Floor Name (e.g., Penthouse or 3rd Floor):", `Floor ${state.floors.length}`);
   if (!name) return;
   const idx = state.floors.length + 1;
   const id = `FLR-C${idx}`;
@@ -1123,8 +1711,8 @@ function addCustomFloor() {
     id,
     name: name.trim(),
     elev: topElev,
-    hpa: Number((989.35 - (topElev / 14.0) * 0.49).toFixed(2)),
-    source: "Custom Added Floor — Tap Snap/Load Map",
+    hpa: 988.0,
+    source: "Auto-Estimated Grid",
     hasCustomMap: false
   });
   selectFloor(id);
@@ -1140,29 +1728,27 @@ function zoomMap(factor, centerSvgX = null, centerSvgY = null) {
   const cx = centerSvgX !== null ? centerSvgX : mapViewBox.x + mapViewBox.w / 2;
   const cy = centerSvgY !== null ? centerSvgY : mapViewBox.y + mapViewBox.h / 2;
   const newW = Math.max(220, Math.min(1000, mapViewBox.w / factor));
-  const newH = newW * 0.38;
+  const newH = newW * 0.42;
   let newX = cx - ((cx - mapViewBox.x) / mapViewBox.w) * newW;
   let newY = cy - ((cy - mapViewBox.y) / mapViewBox.h) * newH;
   newX = Math.max(0, Math.min(1000 - newW, newX));
-  newY = Math.max(0, Math.min(380 - newH, newY));
+  newY = Math.max(0, Math.min(420 - newH, newY));
   mapViewBox = { x: newX, y: newY, w: newW, h: newH };
   _applyMapViewBox();
 }
 
 function resetMapZoom() {
-  mapViewBox = { x: 0, y: 0, w: 1000, h: 380 };
+  mapViewBox = { x: 0, y: 0, w: 1000, h: 420 };
   _applyMapViewBox();
 }
 
 function toggleMapInteractionMode() {
   mapInteractionMode = mapInteractionMode === "pin" ? "pan" : "pin";
   const btn = document.getElementById("mapModeToggleBtn");
-  const svg = document.getElementById("floorMapSvg");
   if (btn) {
     btn.classList.toggle("active", mapInteractionMode === "pan");
-    btn.innerHTML = mapInteractionMode === "pan" ? "✋ Pan" : "📍 Pin";
+    btn.innerHTML = mapInteractionMode === "pan" ? "✋ Pan" : "📍 Move Pin";
   }
-  if (svg) svg.classList.toggle("pan-mode", mapInteractionMode === "pan");
 }
 
 function _clientToSvgCoords(clientX, clientY) {
@@ -1170,8 +1756,8 @@ function _clientToSvgCoords(clientX, clientY) {
   const rect = svg.getBoundingClientRect();
   const svgX = mapViewBox.x + ((clientX - rect.left) / Math.max(1, rect.width)) * mapViewBox.w;
   const svgY = mapViewBox.y + ((clientY - rect.top) / Math.max(1, rect.height)) * mapViewBox.h;
-  const xPct = Math.max(1.5, Math.min(97.5, (svgX - 20) / 9.6));
-  const yPct = Math.max(2.5, Math.min(96.0, (svgY - 15) / 3.4));
+  const xPct = Math.max(2.0, Math.min(97.0, (svgX - 20) / 9.6));
+  const yPct = Math.max(3.0, Math.min(95.0, (svgY - 15) / 3.8));
   return { svgX, svgY, xPct, yPct };
 }
 
@@ -1199,11 +1785,12 @@ function _bindSvgGestures() {
     }
 
     const pt = _clientToSvgCoords(ev.clientX, ev.clientY);
-    const activeSt = getActiveStation();
-    if (activeSt && activeSt.floorId === state.activeFloorId) {
-      const sx = activeSt.xPct * 9.6 + 20;
-      const sy = activeSt.yPct * 3.4 + 15;
-      if (Math.hypot(pt.svgX - sx, pt.svgY - sy) <= 22) {
+    const flrStations = state.stations.filter((s) => s.floorId === state.activeFloorId);
+    for (const st of flrStations) {
+      const sx = st.xPct * 9.6 + 20;
+      const sy = st.yPct * 3.8 + 15;
+      if (Math.hypot(pt.svgX - sx, pt.svgY - sy) <= 24) {
+        state.activeStationId = st.id;
         isDraggingActivePin = true;
         suppressNextMapClick = true;
         svg.setPointerCapture(ev.pointerId);
@@ -1248,7 +1835,7 @@ function _bindSvgGestures() {
         const scaleX = mapViewBox.w / Math.max(1, rect.width);
         const scaleY = mapViewBox.h / Math.max(1, rect.height);
         mapViewBox.x = Math.max(0, Math.min(1000 - mapViewBox.w, panStartClient.vbX - dx * scaleX));
-        mapViewBox.y = Math.max(0, Math.min(380 - mapViewBox.h, panStartClient.vbY - dy * scaleY));
+        mapViewBox.y = Math.max(0, Math.min(420 - mapViewBox.h, panStartClient.vbY - dy * scaleY));
         _applyMapViewBox();
       }
     }
@@ -1259,6 +1846,7 @@ function _bindSvgGestures() {
     if (isDraggingActivePin) {
       isDraggingActivePin = false;
       persistWalkState();
+      renderStationStrip();
     }
     isPanningMap = false;
   };
@@ -1275,25 +1863,33 @@ function _bindSvgGestures() {
   });
 }
 
+function handleMapClick(evt) {
+  const pt = _clientToSvgCoords(evt.clientX, evt.clientY);
+  const st = getActiveStation();
+  if (st) {
+    st.floorId = state.activeFloorId;
+    st.xPct = Number(pt.xPct.toFixed(1));
+    st.yPct = Number(pt.yPct.toFixed(1));
+    persistWalkState();
+    renderInteractiveMap();
+    renderStationStrip();
+    showBannerToast(`📍 Moved <strong>${escapeHtml(st.tag || st.id)}</strong> pin to (${st.xPct}%, ${st.yPct}%)`);
+  }
+}
+
 function renderHeaderMeta() {
-  const u = window.CSCDiscoveryAdapter.getActiveUser();
-  document.getElementById("jobHeaderSub").textContent =
-    `Job: ${state.jobNumber} — ${state.projectName} | ${u.name} (${u.container.replace(/_/g, " ")})`;
+  const titleEl = document.getElementById("jobHeaderTitle");
+  const subEl = document.getElementById("jobHeaderSub");
+  if (titleEl) titleEl.textContent = state.projectName || "Field Discovery Walk";
+  if (subEl) subEl.textContent = `${state.jobNumber || 'CSC-WALK'} • ${state.stations.length} Units • Tap for Export/Job`;
 
   const govEl = document.getElementById("governanceSubBadge");
   if (govEl) {
-    const audioMode = state.cloudSpeechOptIn ? "Cloud Draft Opt-In" : "100% Local Audio (.webm)";
-    const consentTag = state.verbalConsentLogged ? "Consent Logged ✅" : "Consent Unchecked";
-    govEl.textContent = `🛡️ POL-IT-AI-001: ${audioMode} | ${consentTag}`;
+    const consentTag = state.verbalConsentLogged ? "Consent OK ✅" : "Consent Unchecked";
+    govEl.textContent = `🛡️ POL-IT-AI-001: 100% Local Audio Store | ${consentTag}`;
   }
-
-  const rfi11Btn = document.getElementById("rfi11ToggleBtn");
-  if (rfi11Btn) {
-    rfi11Btn.className = state.rfi23011TempConditioningFlag ? "btn btn-danger" : "btn btn-secondary";
-    rfi11Btn.innerHTML = state.rfi23011TempConditioningFlag
-      ? "🚨 RFI-23-011 HARD-STOP"
-      : "🛡️ Flag Temp HVAC (RFI-23-011)";
-  }
+  const rfiCheck = document.getElementById("rfi11ModalCheck");
+  if (rfiCheck) rfiCheck.checked = Boolean(state.rfi23011TempConditioningFlag);
 }
 
 function toggleRfi23011HardStop() {
@@ -1301,127 +1897,95 @@ function toggleRfi23011HardStop() {
   persistWalkState();
   renderHeaderMeta();
   if (state.rfi23011TempConditioningFlag) {
-    showBannerToast(
-      "🚨 <strong>CRITICAL RFI-23-011 (1B-6A) HARD-STOP LOGGED:</strong> Do NOT energize AHUs/RTUs during drywall sanding or finishes without signed Pre-Commissioning HVAC Operation RFI-23-011!",
-      true
-    );
+    showBannerToast("🚨 <strong>RFI-23-011 Temp HVAC Protection Flagged</strong> for desktop report!", true);
   }
 }
 
 function renderFloorTabs() {
   const container = document.getElementById("floorTabs");
-  container.innerHTML = state.floors.map((f) => `
-    <button class="tab-btn ${f.id === state.activeFloorId ? 'active' : ''}" onclick="selectFloor('${f.id}')">
-      ${f.hasCustomMap ? '🖼️ ' : ''}${escapeHtml(f.name)} <small>(${f.elev >= 0 ? '+' : ''}${f.elev}ft)</small>
-    </button>
-  `).join("");
+  if (!container) return;
+  container.innerHTML = state.floors.map((f) => {
+    const cnt = state.stations.filter((s) => s.floorId === f.id).length;
+    return `
+      <button class="tab-btn ${f.id === state.activeFloorId ? 'active' : ''}" onclick="selectFloor('${f.id}')">
+        ${escapeHtml(f.name)} (${cnt})
+      </button>
+    `;
+  }).join("");
 }
 
 function selectFloor(floorId) {
   state.activeFloorId = floorId;
-  const flr = state.floors.find((f) => f.id === floorId);
-  if (flr) {
-    state.barometricHpa = flr.hpa;
-    state.elevationFt = flr.elev;
-  }
   const firstOnFloor = state.stations.find((s) => s.floorId === floorId);
   if (firstOnFloor) state.activeStationId = firstOnFloor.id;
   resetMapZoom();
   persistWalkState();
   refreshFloorMapBackground();
-  loadActiveStationBurstPhotos();
-  renderAll(true);
-}
-
-function simulateStairClimb(deltaFloors) {
-  const idx = state.floors.findIndex((f) => f.id === state.activeFloorId);
-  const nextIdx = Math.max(0, Math.min(state.floors.length - 1, idx + deltaFloors));
-  const nextFlr = state.floors[nextIdx];
-  selectFloor(nextFlr.id);
-  showBannerToast(
-    `🧭 <strong>Barometric Altimeter Step:</strong> Pressure <code>${nextFlr.hpa.toFixed(2)} hPa</code> (${nextFlr.elev >= 0 ? '+' : ''}${nextFlr.elev} ft) &rarr; Switched map to <strong>${escapeHtml(nextFlr.name)}</strong>!`,
-    true
-  );
+  renderFloorTabs();
+  renderInteractiveMap();
+  renderStationStrip();
 }
 
 function renderInteractiveMap() {
+  const svg = document.getElementById("floorMapSvg");
+  if (!svg) return;
   _bindSvgGestures();
   const flr = state.floors.find((f) => f.id === state.activeFloorId) || state.floors[0];
-  document.getElementById("mapSourceLabel").textContent = `${flr.name} | ${flr.source} | Tap to drop Pin or drag active Pin`;
-  document.getElementById("baroReadout").textContent = `${state.barometricHpa.toFixed(2)} hPa (${state.elevationFt >= 0 ? '+' : ''}${state.elevationFt} ft)`;
-  document.getElementById("clearMapBtn").style.display = cachedFloorMapDataUrl ? "inline-flex" : "none";
+  const srcLbl = document.getElementById("mapSourceLabel");
+  if (srcLbl) srcLbl.textContent = `${flr.name} • Auto-estimated from GPS, step distance & voice zones (Drag any pin to adjust)`;
+  const clrBtn = document.getElementById("clearMapBtn");
+  if (clrBtn) clrBtn.style.display = cachedFloorMapDataUrl ? "inline-flex" : "none";
 
   const flrStations = state.stations.filter((s) => s.floorId === flr.id);
-  const flrKeyframes = (state.videoKeyframes || []).filter((k) => (k.floorId || "FLR-02") === flr.id);
-  const svg = document.getElementById("floorMapSvg");
+  let overlayHtml = `<rect x="10" y="10" width="980" height="400" rx="10" fill="#0f172a" stroke="#334155" stroke-width="2"/>`;
 
-  let overlayHtml = `<rect x="10" y="10" width="980" height="360" rx="8" fill="#0f172a" stroke="#475569" stroke-width="2"/>`;
-
-  // BUG-11 FIX: preserveAspectRatio="xMidYMid meet" prevents stretching/cropping perimeter rooms!
   if (cachedFloorMapDataUrl) {
     overlayHtml += `
-      <image href="${cachedFloorMapDataUrl}" x="14" y="14" width="972" height="352" preserveAspectRatio="xMidYMid meet" opacity="0.92"/>
-      <rect x="10" y="10" width="980" height="360" rx="8" fill="rgba(2,6,23,0.10)" stroke="#0d9488" stroke-width="2"/>
+      <image href="${cachedFloorMapDataUrl}" x="14" y="14" width="972" height="392" preserveAspectRatio="xMidYMid meet" opacity="0.92"/>
     `;
   } else {
     overlayHtml += `
-      <line x1="250" y1="10" x2="250" y2="370" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
-      <line x1="620" y1="10" x2="620" y2="370" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
-      <rect x="100" y="100" width="800" height="55" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
-      <text x="28" y="36" fill="#94a3b8" font-size="13" font-weight="bold">WEST WING / STAIR B</text>
-      <text x="340" y="36" fill="#94a3b8" font-size="13" font-weight="bold">CENTRAL CORRIDOR &amp; LABS / ZONES</text>
-      <text x="645" y="36" fill="#94a3b8" font-size="13" font-weight="bold">EAST MECHANICAL / PLANT ROOM</text>
-      <text x="375" y="132" fill="#64748b" font-size="12" font-weight="bold">MAIN CIRCULATION CORRIDOR / CEILING PLENUM TRUNK</text>
+      <line x1="330" y1="10" x2="330" y2="410" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+      <line x1="670" y1="10" x2="670" y2="410" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+      <line x1="10" y1="210" x2="990" y2="210" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+      <text x="490" y="32" text-anchor="middle" fill="#64748b" font-size="12" font-weight="bold">⬆️ NORTH</text>
+      <text x="490" y="398" text-anchor="middle" fill="#64748b" font-size="12" font-weight="bold">⬇️ SOUTH</text>
+      <text x="30" y="204" fill="#64748b" font-size="12" font-weight="bold">⬅️ WEST WING</text>
+      <text x="865" y="204" fill="#64748b" font-size="12" font-weight="bold">EAST WING ➡️</text>
     `;
   }
 
-  // Per-floor Step-PDR / Video Breadcrumb Trail (BUG-11 Fix: Works on ANY floor!)
-  if (state.showVideoCrumb && flrKeyframes.length >= 1) {
-    if (flrKeyframes.length >= 2) {
-      const pts = flrKeyframes.map((k) => `${Math.round(k.xPct * 9.6 + 20)},${Math.round(k.yPct * 3.4 + 15)}`).join(" ");
-      overlayHtml += `<polyline points="${pts}" fill="none" stroke="#14b8a6" stroke-width="3.5" stroke-dasharray="9,5"/>`;
-    }
-    flrKeyframes.forEach((k) => {
-      const kx = Math.round(k.xPct * 9.6 + 20);
-      const ky = Math.round(k.yPct * 3.4 + 15);
-      overlayHtml += `
-        <g onclick="event.stopPropagation(); setUiMode('deep'); switchTab('video');" style="cursor:pointer;">
-          <circle cx="${kx}" cy="${ky}" r="6.5" fill="#0d9488" stroke="#ffffff" stroke-width="2"/>
-          <text x="${kx - 28}" y="${ky - 11}" fill="#2dd4bf" font-size="10.5" font-weight="bold">🎥 ${escapeHtml(k.timeFmt)} ${escapeHtml((k.signOcr || '').slice(0, 14))}</text>
-        </g>
-      `;
-    });
+  if (state.showVideoCrumb && flrStations.length >= 2) {
+    const pts = flrStations.map((s) => `${Math.round(s.xPct * 9.6 + 20)},${Math.round(s.yPct * 3.8 + 15)}`).join(" ");
+    overlayHtml += `<polyline points="${pts}" fill="none" stroke="#14b8a6" stroke-width="3" stroke-dasharray="8,5" opacity="0.85"/>`;
   }
 
   flrStations.forEach((st) => {
     const sx = Math.round(st.xPct * 9.6 + 20);
-    const sy = Math.round(st.yPct * 3.4 + 15);
+    const sy = Math.round(st.yPct * 3.8 + 15);
     const isSel = st.id === state.activeStationId;
     const stStatus = computeStationStatus(st);
-    const hasCompass = typeof st.compassDeg === "number" || (st.anchorType || "").includes("COMPASS");
+    const unitNum = state.stations.findIndex((x) => x.id === st.id) + 1;
 
-    if (hasCompass) {
-      const deg = typeof st.compassDeg === "number" ? st.compassDeg : 270;
-      const rad = ((deg - 90) * Math.PI) / 180;
-      const len = 76;
-      const spread = 0.36;
+    if (typeof st.compassDeg === "number") {
+      const rad = ((st.compassDeg - 90) * Math.PI) / 180;
+      const len = 58;
+      const spread = 0.34;
       const x1 = Math.round(sx + len * Math.cos(rad - spread));
       const y1 = Math.round(sy + len * Math.sin(rad - spread));
       const x2 = Math.round(sx + len * Math.cos(rad + spread));
       const y2 = Math.round(sy + len * Math.sin(rad + spread));
-      overlayHtml += `<polygon points="${sx},${sy} ${x1},${y1} ${x2},${y2}" fill="rgba(56,189,248,0.22)" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>`;
+      overlayHtml += `<polygon points="${sx},${sy} ${x1},${y1} ${x2},${y2}" fill="rgba(56,189,248,0.18)" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="3,3"/>`;
     }
 
-    const fillCol = stStatus.color;
-    const ringCol = isSel ? "#2dd4bf" : "#ffffff";
-    const shortTag = (st.tag || "EQ").split("(")[0].trim();
+    const shortTag = (st.tag || `Unit #${unitNum}`).split("(")[0].trim();
     overlayHtml += `
-      <g onclick="event.stopPropagation(); selectStation('${st.id}');" style="cursor:pointer;">
-        ${isSel ? `<circle cx="${sx}" cy="${sy}" r="20" fill="none" stroke="#2dd4bf" stroke-width="2.5" stroke-dasharray="4,3"/>` : ''}
-        <circle cx="${sx}" cy="${sy}" r="${isSel ? 14 : 11.5}" fill="${fillCol}" stroke="${ringCol}" stroke-width="${isSel ? 3 : 2}"/>
-        <text x="${sx}" y="${sy + 3.5}" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="bold">${escapeHtml(st.id.replace("STN-0", "#").replace("STN-", "#"))}</text>
-        <rect x="${sx + 16}" y="${sy - 12}" width="${Math.max(98, shortTag.length * 7.2 + 16)}" height="23" rx="5" fill="rgba(2,6,23,0.9)" stroke="${fillCol}" stroke-width="1.5"/>
-        <text x="${sx + 22}" y="${sy + 3.5}" fill="#f8fafc" font-size="11" font-weight="bold">${escapeHtml(shortTag)}</text>
+      <g onclick="event.stopPropagation(); openTagAndGoForStation('${st.id}');" style="cursor:pointer;">
+        ${isSel ? `<circle cx="${sx}" cy="${sy}" r="21" fill="none" stroke="#2dd4bf" stroke-width="2.5" stroke-dasharray="4,3"/>` : ''}
+        <circle cx="${sx}" cy="${sy}" r="${isSel ? 15 : 12.5}" fill="${stStatus.color}" stroke="#ffffff" stroke-width="2.5"/>
+        <text x="${sx}" y="${sy + 4}" text-anchor="middle" fill="#ffffff" font-size="10.5" font-weight="bold">#${unitNum}</text>
+        <rect x="${sx + 17}" y="${sy - 12}" width="${Math.max(88, shortTag.length * 7.2 + 16)}" height="23" rx="6" fill="rgba(2,6,23,0.9)" stroke="${stStatus.color}" stroke-width="1.5"/>
+        <text x="${sx + 24}" y="${sy + 3.5}" fill="#f8fafc" font-size="11" font-weight="bold">${escapeHtml(shortTag)}</text>
       </g>
     `;
   });
@@ -1430,84 +1994,16 @@ function renderInteractiveMap() {
   _applyMapViewBox();
 }
 
-function handleMapClick(evt) {
-  const pt = _clientToSvgCoords(evt.clientX, evt.clientY);
-  const newNum = state.stations.length + 1;
-  const padNum = String(newNum).padStart(2, "0");
-  const newId = `STN-${padNum}`;
-  const useGps = liveSensorsActive && (currentGps || currentCompassDeg !== null);
-  const defaultArch = state.activeFloorId === "FLR-ROOF" ? "RTU_AHU" : "VAV_TERMINAL";
-  const archObj = ARCHETYPES.find((a) => a.id === defaultArch) || ARCHETYPES[0];
-
-  const roomDesc = useGps
-    ? `Pinned (${currentGps ? currentGps.lat + ', ' + currentGps.lon : 'Map'}${currentCompassDeg !== null ? ' | ' + currentCompassDeg + '° ' + degToCardinal(currentCompassDeg) : ''})`
-    : `${state.activeFloorId} (${pt.xPct.toFixed(1)}%, ${pt.yPct.toFixed(1)}%)`;
-
-  const newStation = {
-    id: newId,
-    tag: `${defaultArch === 'RTU_AHU' ? 'RTU' : 'VAV'}-${padNum}`,
-    archetype: defaultArch,
-    floorId: state.activeFloorId,
-    room: roomDesc,
-    xPct: Number(pt.xPct.toFixed(1)),
-    yPct: Number(pt.yPct.toFixed(1)),
-    gpsLat: currentGps ? currentGps.lat : null,
-    gpsLon: currentGps ? currentGps.lon : null,
-    gpsAcc: currentGps ? currentGps.acc : null,
-    compassDeg: currentCompassDeg !== null ? currentCompassDeg : null,
-    anchorType: useGps ? "OUTDOOR_GNSS_AND_COMPASS" : "MANUAL_MAP_PIN",
-    mfg: "",
-    model: "",
-    serial: "",
-    elec: "",
-    legacyCtrl: "",
-    alcTarget: archObj.default_alc,
-    thermistorCurve: "10k_TYPE_II",
-    ioTally: { ui: 2, bi: 1, bo: 1, ao: 1 },
-    parentPanel: "",
-    servedBy: "",
-    mstpMac: "",
-    ocrConf: 1.0,
-    ambiguousNote: "",
-    scheduledQty: 1,
-    observedQty: 1,
-    tierDelta: "",
-    burstMeta: {},
-    checks: {} // BUG-04 FIX: Unchecked until inspected!
-  };
-  state.stations.push(newStation);
-  state.activeStationId = newId;
-  cachedSlotPhotos = { 1: null, 2: null, 3: null };
-  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
-  persistWalkState();
-  renderAll(true);
-}
-
-function deleteActiveStation() {
-  if (state.stations.length <= 1) {
-    alert("At least one station must remain in the walk session.");
-    return;
-  }
-  const st = getActiveStation();
-  state.stations = state.stations.filter((x) => x.id !== st.id);
-  state.activeStationId = state.stations[0].id;
-  persistWalkState();
-  loadActiveStationBurstPhotos();
-  renderAll(true);
-}
-
 function renderStationStrip() {
-  const countEl = document.getElementById("stationSummaryCount");
-  if (countEl) countEl.textContent = String(state.stations.length);
   const strip = document.getElementById("stationStrip");
-  strip.innerHTML = state.stations.map((st) => {
-    const qtyDiff = (Number(st.observedQty) || 0) - (Number(st.scheduledQty) || 0);
-    const deltaDot = qtyDiff !== 0 ? `<span style="color:#f59e0b;font-weight:800;"> (Δ${qtyDiff > 0 ? '+' : ''}${qtyDiff})</span>` : "";
+  if (!strip) return;
+  strip.innerHTML = state.stations.map((st, idx) => {
     const stStatus = computeStationStatus(st);
+    const shortTag = (st.tag || `Unit #${idx + 1}`).split("(")[0].trim();
     return `
-      <div class="station-pill ${stStatus.cls} ${st.id === state.activeStationId ? 'active' : ''}" onclick="selectStation('${st.id}')">
-        <strong>${escapeHtml(st.id)}: ${escapeHtml((st.tag || '').split("(")[0].trim())}${deltaDot}</strong>
-        <small>${escapeHtml(st.floorId)} | ${stStatus.verifiedCount}/${stStatus.total} chk</small>
+      <div class="station-pill ${stStatus.cls} ${st.id === state.activeStationId ? 'active' : ''}"
+           onclick="selectStation('${st.id}')">
+        <strong>#${idx + 1}: ${escapeHtml(shortTag)}</strong>
       </div>
     `;
   }).join("");
@@ -1516,309 +2012,67 @@ function renderStationStrip() {
 function selectStation(stationId) {
   const st = state.stations.find((s) => s.id === stationId);
   if (!st) return;
-  const floorChanged = state.activeFloorId !== st.floorId;
   state.activeStationId = stationId;
   state.activeFloorId = st.floorId;
   persistWalkState();
-  if (floorChanged) refreshFloorMapBackground();
-  loadActiveStationBurstPhotos();
-  renderAll(true);
-}
-
-// ============================================================================
-// 2B. ⚡ QUICK WALK (<15s) UNIFIED SINGLE-CARD INSPECTOR
-// ============================================================================
-function renderQuickWalkCard(st) {
-  const arch = ARCHETYPES.find((a) => a.id === st.archetype) || ARCHETYPES[0];
-  document.getElementById("qwStationIdBadge").textContent = st.id;
-  document.getElementById("qwArchetypeSelect").innerHTML = ARCHETYPES.map((a) => `
-    <option value="${a.id}" ${a.id === st.archetype ? 'selected' : ''}>${escapeHtml(a.label)}</option>
-  `).join("");
-
-  document.getElementById("qwTagInput").value = st.tag || "";
-  document.getElementById("qwRoomInput").value = st.room || "";
-  document.getElementById("qwMfgInput").value = st.mfg || "";
-  document.getElementById("qwModelInput").value = st.model || "";
-  document.getElementById("qwSerialInput").value = st.serial || "";
-  document.getElementById("qwLegacyInput").value = st.legacyCtrl || "";
-  document.getElementById("qwSchedVal").textContent = String(st.scheduledQty ?? 1);
-  document.getElementById("qwObsVal").textContent = String(st.observedQty ?? 1);
-  document.getElementById("qwCurveSelect").value = st.thermistorCurve || "10k_TYPE_II";
-  document.getElementById("qwDeltaInput").value = st.tierDelta || "";
-
-  // Compact 3-Slot Horizontal Photo Strip
-  const slotNames = { 1: "1️⃣ Wide", 2: "2️⃣ Plate", 3: "3️⃣ Board" };
-  document.getElementById("qwPhotoStrip").innerHTML = [1, 2, 3].map((slot) => {
-    const url = cachedSlotPhotos[slot];
-    const meta = (st.burstMeta && st.burstMeta[slot]) || null;
-    const isClahe = Boolean(meta && meta.claheEnhanced);
-    return `
-      <div class="quick-photo-slot" style="${slot === 2 ? 'border-color:var(--accent-teal);' : ''}">
-        <strong style="font-size:10.5px;">${slotNames[slot]}</strong>
-        ${url
-          ? `<img src="${url}" class="quick-photo-thumb" onclick="openPhotoZoomModal(${slot})" />`
-          : `<div style="height:56px;display:flex;align-items:center;justify-content:center;background:var(--bg-main);border-radius:4px;font-size:10px;color:var(--text-muted);">Empty</div>`
-        }
-        <div style="display:flex;gap:3px;justify-content:center;">
-          <button class="btn ${slot === 2 ? '' : 'btn-secondary'}" style="padding:3px 6px;min-height:26px;font-size:10.5px;" onclick="captureStationBurstSlot(${slot})">📸</button>
-          ${url ? `<button class="btn ${isClahe ? 'btn-secondary' : 'btn-amber'}" style="padding:3px 6px;min-height:26px;font-size:10.5px;" onclick="toggleClaheOnSlot(${slot})" title="Toggle 8x8 CLAHE vs Raw Color">${isClahe ? '🎨' : '🔦'}</button>` : ''}
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  // Instant 1-Line Deterministic Vintage / Model / A2L / Delta Summary
-  const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
-  const mdl = decodeModelDeterministic(st.mfg, st.model);
-  const qtyDiff = (Number(st.observedQty) || 0) - (Number(st.scheduledQty) || 0);
-  const badgeEl = document.getElementById("qwInstantAuditBadge");
-  const alerts = [];
-  if (dec.year) alerts.push(`📅 <strong>${dec.year}</strong> (${dec.age}y / ${dec.lifeLimit}y ASHRAE${dec.eol ? ' ⚠️ EOL' : ''})`);
-  if (mdl.capacity) alerts.push(`⚙️ ${escapeHtml(mdl.capacity)}`);
-  if (mdl.a2lFlag) alerts.push(`🚨 <strong>A2L (R-454B/R-32)</strong>`);
-  if (qtyDiff !== 0) alerts.push(`📊 <strong>Qty Δ${qtyDiff > 0 ? '+' : ''}${qtyDiff}</strong>`);
-  alerts.push(`🎯 ${escapeHtml(st.alcTarget || arch.default_alc)}`);
-
-  badgeEl.className = (mdl.a2lFlag || dec.eol || qtyDiff !== 0) ? "amber-callout" : "status-callout";
-  badgeEl.innerHTML = alerts.join(" &nbsp;|&nbsp; ");
-
-  // 1-Tap Red-Flag Exception Chips
-  const flagsEl = document.getElementById("qwFlagsContainer");
-  flagsEl.innerHTML = arch.items.map((item, idx) => {
-    const curVal = st.checks && st.checks[item.id];
-    const rfVal = (item.redFlags && item.redFlags[0]) || item.opts[1];
-    const isFlagged = Boolean(curVal && (item.redFlags || []).includes(curVal));
-    const isClean = Boolean(curVal && !isFlagged);
-    return `
-      <button class="quick-flag-chip ${isFlagged ? 'flagged' : (isClean ? 'verified-pass' : '')}"
-              onclick="toggleQuickRedFlagChip(${idx})"
-              title="${escapeHtml(item.q)}">
-        ${isFlagged ? '🚨' : (isClean ? '✅' : '⚪')} ${escapeHtml(item.shortLabel || item.id)}
-      </button>
-    `;
-  }).join("");
-
-  const stStatus = computeStationStatus(st);
-  document.getElementById("qwVerificationCounter").textContent =
-    `Checklist: ${stStatus.verifiedCount}/${stStatus.total} Verified (${stStatus.redCount} Red-Flags)`;
-}
-
-function syncQuickWalkInputs() {
-  const st = getActiveStation();
-  st.tag = document.getElementById("qwTagInput").value;
-  st.room = document.getElementById("qwRoomInput").value;
-  st.mfg = document.getElementById("qwMfgInput").value;
-  st.model = document.getElementById("qwModelInput").value;
-  st.serial = document.getElementById("qwSerialInput").value;
-  st.tierDelta = document.getElementById("qwDeltaInput").value;
-  persistWalkState();
+  refreshFloorMapBackground();
+  renderFloorTabs();
   renderInteractiveMap();
   renderStationStrip();
-  // Refresh just the instant audit badge without losing input focus
-  const arch = ARCHETYPES.find((a) => a.id === st.archetype) || ARCHETYPES[0];
-  const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
-  const mdl = decodeModelDeterministic(st.mfg, st.model);
-  const qtyDiff = (Number(st.observedQty) || 0) - (Number(st.scheduledQty) || 0);
-  const badgeEl = document.getElementById("qwInstantAuditBadge");
-  const alerts = [];
-  if (dec.year) alerts.push(`📅 <strong>${dec.year}</strong> (${dec.age}y / ${dec.lifeLimit}y ASHRAE${dec.eol ? ' ⚠️ EOL' : ''})`);
-  if (mdl.capacity) alerts.push(`⚙️ ${escapeHtml(mdl.capacity)}`);
-  if (mdl.a2lFlag) alerts.push(`🚨 <strong>A2L (R-454B/R-32)</strong>`);
-  if (qtyDiff !== 0) alerts.push(`📊 <strong>Qty Δ${qtyDiff > 0 ? '+' : ''}${qtyDiff}</strong>`);
-  alerts.push(`🎯 ${escapeHtml(st.alcTarget || arch.default_alc)}`);
-  badgeEl.className = (mdl.a2lFlag || dec.eol || qtyDiff !== 0) ? "amber-callout" : "status-callout";
-  badgeEl.innerHTML = alerts.join(" &nbsp;|&nbsp; ");
+}
+
+function deleteActiveStation() {
+  if (state.stations.length <= 1) {
+    alert("At least one unit must remain in the walk.");
+    return;
+  }
+  const st = getActiveStation();
+  state.stations = state.stations.filter((x) => x.id !== st.id);
+  state.activeStationId = state.stations[0].id;
+  persistWalkState();
+  renderAll(false);
+}
+
+// ============================================================================
+// MANUAL OVERRIDE HELPERS & HEADLESS COMPATIBILITY FUNCTIONS
+// ============================================================================
+function syncQuickWalkInputs() {
+  const st = getActiveStation();
+  const getVal = (id, fallback) => {
+    const el = document.getElementById(id);
+    return el ? el.value : fallback;
+  };
+  st.tag = getVal("qwTagInput", st.tag);
+  st.room = getVal("qwRoomInput", st.room);
+  st.mfg = getVal("qwMfgInput", st.mfg);
+  st.model = getVal("qwModelInput", st.model);
+  st.serial = getVal("qwSerialInput", st.serial);
+  persistWalkState();
+  renderTagAndGoSheet(st);
+  renderUnitFeed();
+  renderInteractiveMap();
 }
 
 function syncQuickWalkLegacy() {
   const st = getActiveStation();
-  st.legacyCtrl = document.getElementById("qwLegacyInput").value;
+  const el = document.getElementById("qwLegacyInput");
+  if (el) st.legacyCtrl = el.value;
   const matched = matchLegacyControllerObjJS(st.legacyCtrl);
   if (matched) {
     st.alcTarget = matched.target;
     st.thermistorCurve = matched.curve;
-    document.getElementById("qwCurveSelect").value = matched.curve;
   }
   syncQuickWalkInputs();
-}
-
-function stepStationQty(field, delta) {
-  const st = getActiveStation();
-  st[field] = Math.max(0, (Number(st[field]) || 0) + delta);
-  persistWalkState();
-  renderInteractiveMap();
-  renderStationStrip();
-  renderActiveTabContent();
-}
-
-function updateQuickCurve(curveVal) {
-  const st = getActiveStation();
-  st.thermistorCurve = curveVal;
-  persistWalkState();
-}
-
-function toggleQuickRedFlagChip(itemIdx) {
-  const st = getActiveStation();
-  const arch = ARCHETYPES.find((a) => a.id === st.archetype) || ARCHETYPES[0];
-  const item = arch.items[itemIdx];
-  if (!item) return;
-  if (!st.checks) st.checks = {};
-  const cur = st.checks[item.id];
-  const rfVal = (item.redFlags && item.redFlags[0]) || item.opts[1];
-  if (cur && (item.redFlags || []).includes(cur)) {
-    st.checks[item.id] = item.opts[0]; // Toggle back to Clean Pass
-  } else {
-    st.checks[item.id] = rfVal; // Flag Red-Flag Defect in 1 Tap
-  }
-  persistWalkState();
-  renderInteractiveMap();
-  renderStationStrip();
-  renderQuickWalkCard(st);
-}
-
-function markAllChecksClean() {
-  const st = getActiveStation();
-  const arch = ARCHETYPES.find((a) => a.id === st.archetype) || ARCHETYPES[0];
-  if (!st.checks) st.checks = {};
-  for (const item of arch.items) {
-    if (!st.checks[item.id]) {
-      st.checks[item.id] = item.opts[0];
-    }
-  }
-  persistWalkState();
-  renderInteractiveMap();
-  renderStationStrip();
-  renderActiveTabContent();
-  showBannerToast(`✅ <strong>Verified Remaining Items Clean on ${escapeHtml(st.id)}!</strong> Existing flagged defects preserved.`);
-}
-
-// ============================================================================
-// 2C. DEEP INSPECTOR ROUTER & STATION IDENTITY BAR
-// ============================================================================
-function switchTab(tabName) {
-  state.activeTab = tabName;
-  persistWalkState();
-  document.querySelectorAll(".inspector-tab-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.tab === tabName);
-  });
-  document.querySelectorAll(".tab-panel").forEach((panel) => {
-    panel.style.display = panel.id === `panel-${tabName}` ? "block" : "none";
-  });
-  renderActiveTabContent();
-}
-
-function updateStationIdentityFields() {
-  const st = getActiveStation();
-  st.tag = document.getElementById("stTagInput").value;
-  st.room = document.getElementById("stRoomInput").value;
-  st.scheduledQty = parseInt(document.getElementById("stSchedQty").value, 10) || 0;
-  st.observedQty = parseInt(document.getElementById("stObsQty").value, 10) || 0;
-  st.tierDelta = document.getElementById("stDeltaNote").value;
-  persistWalkState();
-  renderInteractiveMap();
-  renderStationStrip();
-  renderScopeDeltaStatus(st);
-}
-
-function renderScopeDeltaStatus(st) {
-  const diff = (Number(st.observedQty) || 0) - (Number(st.scheduledQty) || 0);
-  const badge = document.getElementById("scopeDeltaBadge");
-  if (!badge) return;
-  if (diff > 0) {
-    badge.className = "amber-callout";
-    badge.innerHTML = `⚠️ <strong>TIER-0 vs TIER-2 COUNT DELTA (+${diff} UNSCHEDULED):</strong> Field found <code>${st.observedQty}</code> vs Contract Schedule <code>${st.scheduledQty}</code> &rarr; Flag for <strong>Bid Clarification (Skill 1.1) / Change Order (Skill 3.3)</strong>!`;
-  } else if (diff < 0) {
-    badge.className = "amber-callout";
-    badge.innerHTML = `⚠️ <strong>COUNT DELTA (${diff} FEWER THAN SCHEDULE):</strong> Field found <code>${st.observedQty}</code> vs Scheduled <code>${st.scheduledQty}</code> &rarr; Issue <strong>RFI (Skill 3.1)</strong> to confirm deduct/relocated equipment.`;
-  } else {
-    badge.className = "status-callout";
-    badge.innerHTML = `✅ <strong>Equipment Count Aligned (${st.observedQty} Found = ${st.scheduledQty} Scheduled)</strong> | ${escapeHtml(st.tierDelta || 'No scope discrepancy noted.')}`;
-  }
-}
-
-function renderActiveTabContent() {
-  const st = getActiveStation();
-  if (state.uiMode === "quick") {
-    renderQuickWalkCard(st);
-    return;
-  }
-
-  document.getElementById("stTagInput").value = st.tag || "";
-  document.getElementById("stRoomInput").value = st.room || "";
-  document.getElementById("stSchedQty").value = st.scheduledQty !== undefined ? st.scheduledQty : 1;
-  document.getElementById("stObsQty").value = st.observedQty !== undefined ? st.observedQty : 1;
-  document.getElementById("stDeltaNote").value = st.tierDelta || "";
-  renderScopeDeltaStatus(st);
-
-  if (state.activeTab === "checklist") renderChecklistTab(st);
-  if (state.activeTab === "nameplate") renderNameplateTab(st);
-  if (state.activeTab === "bas_io") renderBasIoTab(st);
-  if (state.activeTab === "video") renderVideoTab();
-  if (state.activeTab === "audio") renderAudioTab(st);
-  if (state.activeTab === "calculators") renderCalculatorsTab();
-}
-
-// ============================================================================
-// 3. TAB 1: CONTEXT-AWARE CHECKLISTS (BUG-03 & BUG-04 FIXED!)
-// ============================================================================
-function renderChecklistTab(st) {
-  const archSelect = document.getElementById("archetypeSelect");
-  archSelect.innerHTML = ARCHETYPES.map((a) => `
-    <option value="${a.id}" ${a.id === st.archetype ? 'selected' : ''}>${escapeHtml(a.label)}</option>
-  `).join("");
-
-  const arch = ARCHETYPES.find((a) => a.id === st.archetype) || ARCHETYPES[0];
-  const stStatus = computeStationStatus(st);
-  document.getElementById("defaultAlcBadge").innerHTML =
-    `<span>${escapeHtml(arch.default_alc)}</span> <strong style="color:var(--accent-teal);">(${stStatus.verifiedCount}/${stStatus.total} Checked)</strong>`;
-
-  // BUG-03 FIX: Integer option index passed to onclick -> safe with ANY quotes (`1/2"`, `3/4"`)!
-  // BUG-04 FIX: Uninspected items stay null (`UNCHECKED`) instead of spoofing `opts[0]`.
-  const listEl = document.getElementById("checklistContainer");
-  listEl.innerHTML = arch.items.map((item) => {
-    const chosen = (st.checks && st.checks[item.id]) || null;
-    const isRedFlag = Boolean(chosen && (item.redFlags || []).includes(chosen));
-    const isAmberFlag = Boolean(chosen && (item.amberFlags || []).includes(chosen));
-    return `
-      <div class="checklist-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-          <strong style="font-size:12px;color:var(--accent-teal);">${escapeHtml(item.cat)}</strong>
-          <span style="font-size:10.5px;color:${chosen ? 'var(--text-muted)' : 'var(--accent-amber)'};font-weight:700;">
-            ${escapeHtml(item.id)} ${chosen ? '✓' : '• UNCHECKED'}
-          </span>
-        </div>
-        <div style="margin-top:4px;font-weight:600;font-size:13px;">${escapeHtml(item.q)}</div>
-        <div class="chip-group">
-          ${item.opts.map((opt, optIdx) => {
-            const sel = opt === chosen;
-            const rf = (item.redFlags || []).includes(opt);
-            const af = (item.amberFlags || []).includes(opt);
-            const flagClass = sel ? (rf ? 'red-flag' : (af ? 'amber-flag' : '')) : '';
-            return `<button class="option-chip ${sel ? 'selected' : ''} ${flagClass}"
-                      onclick="setChecklistOptionIndex('${item.id}', ${optIdx})">
-                      ${rf ? '🚨 ' : (af ? '⚠️ ' : '')}${escapeHtml(opt)}
-                    </button>`;
-          }).join("")}
-        </div>
-        <div class="reminder-box">
-          <strong>${isRedFlag ? '🚨 ACTIVE CSC RED-FLAG TRIGGERED:' : (isAmberFlag ? '⚠️ SCOPE / RETROFIT ADVISORY:' : '💡 CSC Standard Reminder:')}</strong> ${escapeHtml(item.reminder)}
-        </div>
-      </div>
-    `;
-  }).join("");
 }
 
 function changeStationArchetype(newArchId) {
   const st = getActiveStation();
   st.archetype = newArchId;
   const arch = ARCHETYPES.find((a) => a.id === newArchId);
-  if (arch) {
-    st.alcTarget = arch.default_alc;
-  }
+  if (arch) st.alcTarget = arch.default_alc;
   persistWalkState();
-  renderInteractiveMap();
-  renderStationStrip();
-  renderActiveTabContent();
+  renderTagAndGoSheet(st);
+  renderUnitFeed();
 }
 
 function setChecklistOptionIndex(itemId, optIdx) {
@@ -1829,13 +2083,30 @@ function setChecklistOptionIndex(itemId, optIdx) {
   if (!st.checks) st.checks = {};
   st.checks[itemId] = item.opts[optIdx];
   persistWalkState();
+  renderUnitFeed();
   renderInteractiveMap();
-  renderStationStrip();
-  renderChecklistTab(st);
+}
+
+function _recommendAlcFromIoJS(st) {
+  const io = (st && st.ioTally) || { ui: 0, bi: 0, bo: 0, ao: 0 };
+  const totalIn = (io.ui || 0) + (io.bi || 0);
+  if (st && st.archetype === "VAV_TERMINAL" && totalIn <= 5 && (io.bo || 0) <= 3 && (io.ao || 0) <= 2) {
+    return { model: "ALC ZN341v Integrated VAV Controller", opti: 0, zn: 1, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
+  }
+  if (totalIn <= 5 && (io.bo || 0) <= 5 && (io.ao || 0) <= 3) {
+    return { model: "ALC ZN551 Equipment Controller", opti: 0, zn: 1, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
+  }
+  if (totalIn <= 12 && (io.bo || 0) <= 8 && (io.ao || 0) <= 4) {
+    return { model: "ALC OptiFlex OF1628 Plant/AHU Controller", opti: 1, zn: 0, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
+  }
+  const extraIn = Math.max(0, totalIn - 12);
+  const extraOut = Math.max(0, (io.bo || 0) - 8) + Math.max(0, (io.ao || 0) - 4);
+  const xpio = Math.max(1, Math.ceil(Math.max(extraIn / 8, extraOut / 8)));
+  return { model: `ALC OptiFlex OF1628 + (${xpio}) FIO-812 / XPIO Expander(s)`, opti: 1, zn: 0, xpio, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
 }
 
 // ============================================================================
-// 4. TAB 2: 3-SLOT BURST CAMERA + NON-DESTRUCTIVE 8x8 CLAHE + EXIF + BOARD REF
+// CAMERA CAPTURE, 8x8 CLAHE, BINARY EXIF & AUTO-OCR
 // ============================================================================
 async function loadActiveStationBurstPhotos() {
   const st = getActiveStation();
@@ -1847,8 +2118,9 @@ async function loadActiveStationBurstPhotos() {
     cachedSlotPhotos[slot] = await window.CSCDiscoveryAdapter.loadMediaBlob(key);
     cachedRawSlotPhotos[slot] = await window.CSCDiscoveryAdapter.loadMediaBlob(rawKey);
   }
-  if (state.uiMode === "quick") renderQuickWalkCard(st);
-  else if (state.activeTab === "nameplate") renderBurstSlotsUI(st);
+  if (cachedSlotPhotos[2] || cachedSlotPhotos[1]) {
+    allStationThumbs[st.id] = cachedSlotPhotos[2] || cachedSlotPhotos[1];
+  }
 }
 
 function _buildSortedFilename(st, slot) {
@@ -1857,10 +2129,13 @@ function _buildSortedFilename(st, slot) {
   return `${state.jobNumber}_${st.floorId}_${cleanTag}_${slotLabels[slot]}.jpg`;
 }
 
-async function captureStationBurstSlot(slot) {
+async function captureStationBurstSlot(slot, autoRunOcr = true) {
   const st = getActiveStation();
   const img = await window.CSCDiscoveryAdapter.captureImage({ maxDim: 1500, quality: 0.87 });
-  if (!img || !img.dataUrl) return;
+  if (!img || !img.dataUrl) {
+    renderTagAndGoSheet(st);
+    return;
+  }
 
   const key = `photo::${state.sessionId}::${st.id}::slot${slot}`;
   const rawKey = `photo_raw::${state.sessionId}::${st.id}::slot${slot}`;
@@ -1868,14 +2143,15 @@ async function captureStationBurstSlot(slot) {
   await window.CSCDiscoveryAdapter.saveMediaBlob(rawKey, img.dataUrl);
   cachedSlotPhotos[slot] = img.dataUrl;
   cachedRawSlotPhotos[slot] = img.dataUrl;
+  allStationThumbs[st.id] = cachedSlotPhotos[2] || cachedSlotPhotos[1];
 
-  // BUG-09 FIX: Stamp real JPEG EXIF GPSLatitude/GPSLongitude & GPSImgDirection onto station!
   if (img.exif) {
-    if (img.exif.gpsLat !== null && img.exif.gpsLon !== null && !st.gpsLat) {
+    if (img.exif.gpsLat !== null && img.exif.gpsLon !== null) {
       st.gpsLat = img.exif.gpsLat;
       st.gpsLon = img.exif.gpsLon;
+      estimateRoughLocationForUnit(st);
     }
-    if (img.exif.compassDeg !== null && st.compassDeg === null) {
+    if (img.exif.compassDeg !== null) {
       st.compassDeg = img.exif.compassDeg;
     }
   }
@@ -1888,13 +2164,17 @@ async function captureStationBurstSlot(slot) {
     sizeKB: img.sizeKB,
     exifGps: img.exif && img.exif.gpsLat ? `${img.exif.gpsLat}, ${img.exif.gpsLon}` : null
   };
+
   persistWalkState();
+  renderTagAndGoSheet(st);
+  renderUnitFeed();
   renderInteractiveMap();
-  if (state.uiMode === "quick") renderQuickWalkCard(st);
-  else renderBurstSlotsUI(st);
+
+  if (slot === 2 && autoRunOcr) {
+    runLiveVisionOcrOnSlot2(true);
+  }
 }
 
-// BUG-09 FIX: Non-destructive toggle between 8x8 Local Tile CLAHE and Raw Color!
 async function toggleClaheOnSlot(slot) {
   const st = getActiveStation();
   const curUrl = cachedSlotPhotos[slot];
@@ -1905,11 +2185,10 @@ async function toggleClaheOnSlot(slot) {
   const rawKey = `photo_raw::${state.sessionId}::${st.id}::slot${slot}`;
 
   if (meta.claheEnhanced && cachedRawSlotPhotos[slot]) {
-    // Restore original color image (preserves wire/jumper colors!)
     cachedSlotPhotos[slot] = cachedRawSlotPhotos[slot];
     meta.claheEnhanced = false;
     await window.CSCDiscoveryAdapter.saveMediaBlob(key, cachedSlotPhotos[slot]);
-    showBannerToast("🎨 <strong>Restored Original Raw Color Photo!</strong> (Wire &amp; terminal block colors preserved.)");
+    showBannerToast("🎨 Restored original color photo.");
   } else {
     const rawBase = cachedRawSlotPhotos[slot] || curUrl;
     if (!cachedRawSlotPhotos[slot]) {
@@ -1920,54 +2199,44 @@ async function toggleClaheOnSlot(slot) {
     cachedSlotPhotos[slot] = enhanced;
     meta.claheEnhanced = true;
     await window.CSCDiscoveryAdapter.saveMediaBlob(key, enhanced);
-    showBannerToast("🔦 <strong>8x8 Local Tile CLAHE Applied!</strong> Tap <code>🎨 Raw Color</code> anytime to revert.");
+    showBannerToast("🔦 Enhanced weathered metal plate contrast (8x8 CLAHE).");
   }
-
+  allStationThumbs[st.id] = cachedSlotPhotos[2] || cachedSlotPhotos[1];
   persistWalkState();
-  if (state.uiMode === "quick") renderQuickWalkCard(st);
-  else renderBurstSlotsUI(st);
+  renderTagAndGoSheet(st);
+  renderUnitFeed();
 }
 
 function openPhotoZoomModal(slot) {
   const src = cachedSlotPhotos[slot];
   if (!src) return;
   const st = getActiveStation();
-  const meta = (st.burstMeta && st.burstMeta[slot]) || {};
   const modal = document.getElementById("photoZoomModal");
-  document.getElementById("zoomModalTitle").textContent =
-    `${st.id} (${st.tag}) — ${meta.filename || 'Captured Field Photo'}${meta.claheEnhanced ? ' [8x8 CLAHE]' : ' [Raw Color]'}`;
+  document.getElementById("zoomModalTitle").textContent = `${st.tag || st.id} — Field Photo`;
   document.getElementById("zoomModalImg").src = src;
   modal.style.display = "flex";
 }
 
-async function runLiveVisionOcrOnSlot2() {
+async function runLiveVisionOcrOnSlot2(silentIfNoKey = false) {
   const st = getActiveStation();
-  const imgDataUrl = cachedSlotPhotos[2] || cachedSlotPhotos[3] || cachedSlotPhotos[1];
-  if (!imgDataUrl) {
-    alert("Snap or select a photo in Slot 2 (Unit Nameplate) or Slot 3 (Board/VFD) first!");
-    return;
-  }
+  const imgDataUrl = cachedSlotPhotos[2] || cachedSlotPhotos[1];
+  if (!imgDataUrl) return;
 
   const apiKey = window.CSCDiscoveryAdapter.getSecretKey("gemini_api_key");
   if (!apiKey) {
-    showBannerToast(
-      "📦 <strong>Offline Queue Saved:</strong> Photo is stored locally in IndexedDB &amp; included in <code>.cscwalk.zip</code>! (Optional: Add a Gemini API Key in <code>⚙️ Walk / Export</code> for live rooftop Vision OCR.)",
-      true
-    );
+    if (!silentIfNoKey) {
+      showBannerToast("📦 Photo saved to offline bundle! (Add Gemini API Key in ⚙️ Menu for live rooftop OCR.)");
+    }
     return;
   }
 
-  const btn = document.getElementById("liveOcrBtn");
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "⏳ Reading Plate via Gemini Vision...";
-  }
+  const banner = document.getElementById("tgAutoDecodeBanner");
+  if (banner) banner.innerHTML = "⏳ <strong>Reading Nameplate in Background...</strong> (You can keep tagging &amp; hit Save anytime)";
 
   try {
     const base64Data = imgDataUrl.split(",")[1];
     const prompt = `Extract HVAC or BAS equipment nameplate fields from this image as strict JSON with keys:
-      {"manufacturer": string, "model_number": string, "serial_number": string, "electrical": string, "legacy_controller": string, "confidence": number, "ambiguous_note": string}.
-      If any character is weathered or stamped ambiguously, lower confidence (<0.85) and note it in ambiguous_note.`;
+      {"equipment_type": "RTU_AHU"|"VFD_STARTER"|"HYDRONIC_VALVE_PUMP"|"CHILLER_BOILER_PLANT"|"VAV_TERMINAL"|"BAS_TCP_PANEL", "manufacturer": string, "model_number": string, "serial_number": string, "electrical": string, "legacy_controller": string, "confidence": number, "ambiguous_note": string}.`;
 
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
@@ -1989,6 +2258,9 @@ async function runLiveVisionOcrOnSlot2() {
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const parsed = JSON.parse(rawText);
 
+    if (parsed.equipment_type && ARCHETYPES.some((a) => a.id === parsed.equipment_type)) {
+      st.archetype = parsed.equipment_type;
+    }
     if (parsed.manufacturer) st.mfg = parsed.manufacturer;
     if (parsed.model_number) st.model = parsed.model_number;
     if (parsed.serial_number) st.serial = parsed.serial_number;
@@ -2001,511 +2273,23 @@ async function runLiveVisionOcrOnSlot2() {
         st.thermistorCurve = autoAlc.curve;
       }
     }
-    st.ocrConf = typeof parsed.confidence === "number" ? parsed.confidence : 0.9;
+    if (st.tag && st.tag.startsWith("Unit #") && (st.mfg || st.model)) {
+      const unitIdx = state.stations.findIndex((x) => x.id === st.id) + 1;
+      st.tag = `Unit #${unitIdx} (${[st.mfg, st.model].filter(Boolean).join(" ")})`;
+    }
+    st.ocrConf = typeof parsed.confidence === "number" ? parsed.confidence : 0.92;
     st.ambiguousNote = parsed.ambiguous_note || "";
     persistWalkState();
+    renderTagAndGoSheet(st);
+    renderUnitFeed();
     renderInteractiveMap();
-    renderStationStrip();
-    renderActiveTabContent();
-    showBannerToast("✅ <strong>Live Vision Nameplate OCR Complete!</strong> Serial vintage, A2L check &amp; ALC cross-ref updated.");
   } catch (err) {
-    showBannerToast(`⚠️ Live OCR unreachable (${escapeHtml(err.message)}) — Photo safely queued in local IndexedDB!`, true);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "🤖 Auto-Read Plate (Live Vision / Offline Queue)";
-    }
-  }
-}
-
-function renderBurstSlotsUI(st) {
-  const titles = {
-    1: { title: "1️⃣ Wide Context", sub: "Access & piping" },
-    2: { title: "2️⃣ Unit Nameplate", sub: "Data Plate" },
-    3: { title: "3️⃣ Board / VFD", sub: "MAC / Jumpers" }
-  };
-  const container = document.getElementById("burstSlotsContainer");
-  if (!container) return;
-
-  container.innerHTML = [1, 2, 3].map((slot) => {
-    const url = cachedSlotPhotos[slot];
-    const meta = (st.burstMeta && st.burstMeta[slot]) || null;
-    const isClahe = Boolean(meta && meta.claheEnhanced);
-    return `
-      <div class="burst-card" style="${slot === 2 ? 'border-color:var(--accent-teal);' : ''}">
-        <div>
-          <strong>${titles[slot].title}</strong><br/>
-          <small style="color:var(--text-muted);">${escapeHtml(meta ? meta.filename : titles[slot].sub)}</small>
-        </div>
-        ${url
-          ? `<img src="${url}" class="burst-thumb" onclick="openPhotoZoomModal(${slot})" title="Tap to zoom full nameplate crop" />`
-          : `<div style="height:82px;display:flex;align-items:center;justify-content:center;background:var(--bg-main);border-radius:6px;color:var(--text-muted);font-size:11px;">No Photo</div>`
-        }
-        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn ${slot === 2 ? '' : 'btn-secondary'}" style="font-size:11px;padding:4px 8px;min-height:30px;" onclick="captureStationBurstSlot(${slot})">
-            📸 ${url ? 'Retake' : 'Snap'}
-          </button>
-          ${url ? `<button class="btn ${isClahe ? 'btn-secondary' : 'btn-amber'}" style="font-size:11px;padding:4px 8px;min-height:30px;" onclick="toggleClaheOnSlot(${slot})">${isClahe ? '🎨 Raw Color' : '🔦 8x8 CLAHE'}</button>` : ''}
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-function renderNameplateTab(st) {
-  renderBurstSlotsUI(st);
-  document.getElementById("npMfg").value = st.mfg || "";
-  document.getElementById("npModel").value = st.model || "";
-  document.getElementById("npSerial").value = st.serial || "";
-  document.getElementById("npElec").value = st.elec || "";
-  document.getElementById("npLegacy").value = st.legacyCtrl || "";
-  document.getElementById("npAlcTarget").value = st.alcTarget || "";
-  runLiveSerialDecode(false);
-}
-
-function onLegacyControllerInput() {
-  const val = document.getElementById("npLegacy").value;
-  const matched = matchLegacyControllerObjJS(val);
-  if (matched) {
-    document.getElementById("npAlcTarget").value = matched.target;
-    const st = getActiveStation();
-    st.thermistorCurve = matched.curve;
-  }
-  runLiveSerialDecode(true);
-}
-
-function runLiveSerialDecode(saveNow = true) {
-  const st = getActiveStation();
-  st.mfg = document.getElementById("npMfg").value;
-  st.model = document.getElementById("npModel").value;
-  st.serial = document.getElementById("npSerial").value;
-  st.elec = document.getElementById("npElec").value;
-  st.legacyCtrl = document.getElementById("npLegacy").value;
-  st.alcTarget = document.getElementById("npAlcTarget").value;
-  if (saveNow) {
-    persistWalkState();
-    renderInteractiveMap();
-    renderStationStrip();
-  }
-
-  const res = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
-  const mdl = decodeModelDeterministic(st.mfg, st.model);
-  const out = document.getElementById("serialDecodeOutput");
-  out.className = (res.eol || mdl.a2lFlag) ? "amber-callout" : "status-callout";
-  out.innerHTML = `
-    <div><strong>🔢 Deterministic Serial, Model &amp; ASHRAE Ch. 38 Audit (${escapeHtml(res.rule)}):</strong></div>
-    <div style="margin-top:4px;">
-      • <strong>Decoded Mfg Date:</strong> <code>${res.year ? res.year + ' (' + escapeHtml(res.period) + ')' : 'Enter Serial Prefix to Decode'}</code>
-      | <strong>Age:</strong> <code>${res.age !== null ? res.age + ' Yrs (ASHRAE Benchmark: ' + res.lifeLimit + ' Yrs)' : 'N/A'}</code>
-      ${mdl.capacity ? `| <strong>Model Capacity:</strong> <code>${escapeHtml(mdl.capacity)}</code>` : ''}
-    </div>
-    <div style="margin-top:4px;">
-      • <strong>Service Life Status:</strong>
-      ${res.eol
-        ? `<strong style="color:#f59e0b;">⚠️ END-OF-LIFE RISK (&ge;${res.lifeLimit} YRS): Auto-flags Tier-1 Proposal exclusion for existing heat-exchanger, compressor, or seized valve body failure.</strong>`
-        : `<strong style="color:#2dd4bf;">✅ Within ASHRAE Ch. 38 median service life (${res.lifeLimit} yrs).</strong>`}
-    </div>
-    ${mdl.a2lFlag
-      ? `<div style="margin-top:5px;color:#fca5a5;font-weight:700;">🚨 ${escapeHtml(mdl.a2lNote)}</div>`
-      : ''}
-    ${st.ocrConf < 0.85
-      ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(245,158,11,0.4);">
-           <strong>🔍 POL-IT-AI-001 Click-to-Verify Alert (${Math.round(st.ocrConf * 100)}% OCR Confidence):</strong> ${escapeHtml(st.ambiguousNote)}
-         </div>`
-      : `<div style="margin-top:4px;font-size:11px;color:var(--text-muted);">✅ Confidence: ${Math.round((st.ocrConf || 1) * 100)}% | Export Filename: <code>${escapeHtml(_buildSortedFilename(st, 2))}</code></div>`}
-  `;
-
-  // BUG-12 FIX: Render Neutral #Golden-Library Board Rotary MAC / EOL / Jumper Reference Card
-  const boardRef = lookupNeutralBoardRefJS(st.mfg, st.model, st.legacyCtrl, st.alcTarget);
-  const boardEl = document.getElementById("boardRefOutput");
-  if (boardEl && boardRef) {
-    boardEl.innerHTML = `
-      <div><strong>📘 #Golden-Library Hardware Switch, EOL &amp; Jumper Reference:</strong> <code>${escapeHtml(boardRef.citation)}</code></div>
-      <div style="font-size:11.5px;margin-top:3px;font-weight:700;color:var(--accent-teal);">${escapeHtml(boardRef.family)}</div>
-      <ul style="margin:5px 0 0 18px;padding:0;font-size:11.5px;">
-        ${boardRef.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}
-      </ul>
-    `;
+    if (banner) banner.innerHTML = "📦 Photo saved locally for desktop processing.";
   }
 }
 
 // ============================================================================
-// 4B. TAB 3 (NEW PHASE 2): BAS OVERLAY, THERMISTOR CURVE & HARDWARE I/O TALLY
-// ============================================================================
-const CURVE_META = {
-  "10k_TYPE_II": { reuse: "✅ Direct Reuse on ALC UI", note: "Matches native Automated Logic 10kΩ Type II Precon curve." },
-  "10k_TYPE_III": { reuse: "⚠️ Custom Liner Table or Replace", note: "10k Type III differs ~1.8°F away from 77°F — configure custom ALC curve or swap probe." },
-  "20k_NTC": { reuse: "⚠️ Honeywell 20kΩ NTC Curve", note: "Configure custom 20kΩ lookup table in WebCTRL® or replace w/ 10k Type II." },
-  "1k_NICKEL": { reuse: "🚨 Replace Legacy JCI 1kΩ Ni Sensor", note: "1,000Ω Nickel RTD has steep low-resistance slope — include new ALC 10k Type II / ZS Pro sensors in BOM!" },
-  "1k_PLATINUM": { reuse: "⚠️ Check UI RTD Support or Replace", note: "1,000Ω Pt RTD (Siemens) — replace field sensors w/ ALC 10k Type II unless RTD input module used." },
-  "RNET_DIGITAL": { reuse: "✅ Native ALC Rnet Digital Bus (RFI-23-008)", note: "Consolidates Space Temp + RH + CO2 on single 4-conductor Rnet bus." },
-  "PNEUMATIC": { reuse: "🚨 Full Pneumatic-to-DDC Sensor Pull", note: "Cap 15/20 psi poly air line; furnish adapter plate + pull CMP/CL2P Rnet & 10k Type II cable." }
-};
-
-function _recommendAlcFromIoJS(st) {
-  const io = st.ioTally || { ui: 0, bi: 0, bo: 0, ao: 0 };
-  const totalIn = (io.ui || 0) + (io.bi || 0);
-  let model = "ALC ZN551 Unitary Controller";
-  let opti = 0, zn = 1, xpio = 0;
-
-  if (st.archetype === "VAV_TERMINAL" && totalIn <= 5 && (io.bo || 0) <= 3 && (io.ao || 0) <= 2) {
-    model = "ALC ZN341v Integrated VAV Controller (Internal Actuator + ΔP Pickup)";
-    opti = 0; zn = 1; xpio = 0;
-  } else if (totalIn <= 5 && (io.bo || 0) <= 5 && (io.ao || 0) <= 3 && st.archetype !== "CHILLER_BOILER_PLANT") {
-    model = "ALC ZN551 Equipment Controller";
-    opti = 0; zn = 1; xpio = 0;
-  } else if (totalIn <= 12 && (io.bo || 0) <= 8 && (io.ao || 0) <= 4) {
-    model = "ALC OptiFlex OF1628 Plant/AHU Controller";
-    opti = 1; zn = 0; xpio = 0;
-  } else {
-    const extraIn = Math.max(0, totalIn - 12);
-    const extraOut = Math.max(0, (io.bo || 0) - 8) + Math.max(0, (io.ao || 0) - 4);
-    xpio = Math.max(1, Math.ceil(Math.max(extraIn / 8, extraOut / 8)));
-    model = `ALC OptiFlex OF1628 + (${xpio}) FIO-812 / XPIO Expander(s)`;
-    opti = 1; zn = 0;
-  }
-  return { model, opti, zn, xpio, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-}
-
-function renderBasIoTab(st) {
-  if (!st.ioTally) st.ioTally = { ui: 4, bi: 2, bo: 2, ao: 2 };
-  document.getElementById("ioThermistorSelect").value = st.thermistorCurve || "10k_TYPE_II";
-  document.getElementById("ioParentPanel").value = st.parentPanel || "";
-  document.getElementById("ioServedBy").value = st.servedBy || "";
-  document.getElementById("ioMstpMac").value = st.mstpMac || "";
-  document.getElementById("ioUiVal").textContent = String(st.ioTally.ui || 0);
-  document.getElementById("ioBiVal").textContent = String(st.ioTally.bi || 0);
-  document.getElementById("ioBoVal").textContent = String(st.ioTally.bo || 0);
-  document.getElementById("ioAoVal").textContent = String(st.ioTally.ao || 0);
-
-  const rec = _recommendAlcFromIoJS(st);
-  const cMeta = CURVE_META[st.thermistorCurve || "10k_TYPE_II"] || CURVE_META["10k_TYPE_II"];
-  const out = document.getElementById("basIoRecommendOutput");
-  out.className = cMeta.reuse.startsWith("🚨") ? "amber-callout" : "status-callout";
-  out.innerHTML = `
-    <div><strong>🎯 Deterministic ALC Hardware Sizing (${rec.totalPoints} Hardwired Points + 15% Spare):</strong> <code>${escapeHtml(rec.model)}</code></div>
-    <div style="margin-top:4px;">• <strong>Sensor Curve Compatibility:</strong> <strong>${cMeta.reuse}</strong> — ${escapeHtml(cMeta.note)}</div>
-    <div style="margin-top:4px;font-size:11.5px;color:var(--text-muted);">
-      • Topology: Panel <code>${escapeHtml(st.parentPanel || 'TBD')}</code> | Upstream <code>${escapeHtml(st.servedBy || 'Standalone')}</code> | Trunk <code>${escapeHtml(st.mstpMac || 'Assign MAC 01-127')}</code>
-    </div>
-  `;
-}
-
-function stepIoCount(key, delta) {
-  const st = getActiveStation();
-  if (!st.ioTally) st.ioTally = { ui: 0, bi: 0, bo: 0, ao: 0 };
-  st.ioTally[key] = Math.max(0, (Number(st.ioTally[key]) || 0) + delta);
-  const rec = _recommendAlcFromIoJS(st);
-  st.alcTarget = rec.model;
-  persistWalkState();
-  renderBasIoTab(st);
-}
-
-function updateStationBasIo() {
-  const st = getActiveStation();
-  st.thermistorCurve = document.getElementById("ioThermistorSelect").value;
-  st.parentPanel = document.getElementById("ioParentPanel").value;
-  st.servedBy = document.getElementById("ioServedBy").value;
-  st.mstpMac = document.getElementById("ioMstpMac").value;
-  persistWalkState();
-  renderBasIoTab(st);
-}
-
-function pushStationIoToVaCalculator() {
-  const st = getActiveStation();
-  const rec = _recommendAlcFromIoJS(st);
-  const io = st.ioTally || { ui: 0, bi: 0, bo: 0, ao: 0 };
-  document.getElementById("calcOptiCount").value = String(rec.opti);
-  document.getElementById("calcZnCount").value = String(rec.zn);
-  document.getElementById("calcXpioCount").value = String(rec.xpio);
-  document.getElementById("calcSrActCount").value = String(Math.max(1, io.ao || 1));
-  document.getElementById("calcNsrActCount").value = String(Math.max(0, (io.bo || 0) > 2 ? 1 : 0));
-  document.getElementById("calcZsCount").value = String(st.thermistorCurve === "RNET_DIGITAL" ? 2 : 1);
-  switchTab("calculators");
-  showBannerToast(`⚡ <strong>Pushed ${escapeHtml(st.id)} I/O Tally &rarr; Unified TCP 24VAC Class 2 Sizer!</strong>`);
-}
-
-// ============================================================================
-// 5. TAB 4: LIVE CAMERA + TORCH + STEP-PEAK PDR WALK & VIDEO LAPLACIAN SLICER
-// ============================================================================
-function _handleDeviceMotionStep(ev) {
-  if (!livePdrActive) return;
-  const acc = ev.accelerationIncludingGravity;
-  if (!acc) return;
-  const mag = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
-  const now = Date.now();
-  // Walking step peak threshold (>11.6 m/s² vs 9.81 m/s² gravity, min 340ms cadence -> ZERO stationary drift!)
-  if (mag > 11.6 && now - lastStepPeakMs > 340) {
-    lastStepPeakMs = now;
-    const hdg = currentCompassDeg !== null ? currentCompassDeg : 90;
-    pdrSteps.push({ stepIdx: pdrSteps.length + 1, headingDeg: hdg, tMs: now });
-    state.pdrSteps = pdrSteps.slice(-400);
-    const sEl = document.getElementById("pdrStepCountEl");
-    if (sEl) sEl.textContent = String(pdrSteps.length);
-  }
-}
-
-async function toggleLivePdrWalk() {
-  const btn = document.getElementById("livePdrBtn");
-  const torchBtn = document.getElementById("torchToggleBtn");
-  const video = document.getElementById("walkVideoPlayer");
-
-  if (!livePdrActive) {
-    try {
-      pdrCameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
-      pdrVideoTrack = pdrCameraStream.getVideoTracks()[0] || null;
-      video.srcObject = pdrCameraStream;
-      video.style.display = "block";
-      await video.play();
-
-      livePdrActive = true;
-      window.addEventListener("devicemotion", _handleDeviceMotionStep, true);
-      window.addEventListener("deviceorientationabsolute", _handleOrientation, true);
-      window.addEventListener("deviceorientation", _handleOrientation, true);
-
-      if (btn) {
-        btn.className = "btn btn-danger";
-        btn.innerHTML = "⏹️ Stop Live PDR Cam";
-      }
-      if (torchBtn) torchBtn.style.display = "inline-flex";
-
-      // Live Laplacian sharpness monitor every 750ms
-      pdrSharpTimer = setInterval(() => {
-        if (!livePdrActive || !video.videoWidth) return;
-        const c = document.createElement("canvas");
-        c.width = 320;
-        c.height = Math.max(180, Math.round((video.videoHeight / video.videoWidth) * 320));
-        c.getContext("2d").drawImage(video, 0, 0, c.width, c.height);
-        const s = window.CSCDiscoveryAdapter.computeCanvasLaplacianSharpness(c);
-        const shEl = document.getElementById("pdrSharpEl");
-        if (shEl) shEl.textContent = String(s);
-      }, 750);
-
-      showBannerToast("📷 <strong>Live Rear Camera + Step-Peak PDR Active:</strong> Stationary stops produce ZERO drift! Tap <code>🅰️ Anchor A</code> at corridor start, snap crumbs, then tap <code>🅱️ Anchor B</code>.");
-    } catch (err) {
-      showBannerToast(`⚠️ Camera Notice (${escapeHtml(err.message)}): You can still use <code>+5 Steps</code> or <code>📹 Open Video File</code>!`, true);
-    }
-  } else {
-    livePdrActive = false;
-    clearInterval(pdrSharpTimer);
-    window.removeEventListener("devicemotion", _handleDeviceMotionStep, true);
-    if (pdrCameraStream) {
-      pdrCameraStream.getTracks().forEach((t) => t.stop());
-      pdrCameraStream = null;
-      pdrVideoTrack = null;
-    }
-    torchEnabled = false;
-    video.srcObject = null;
-    if (btn) {
-      btn.className = "btn";
-      btn.innerHTML = "📷 Start Live Cam + Step PDR";
-    }
-    if (torchBtn) {
-      torchBtn.style.display = "none";
-      torchBtn.innerHTML = "🔦 Torch OFF";
-    }
-  }
-}
-
-async function toggleCameraTorch() {
-  if (!pdrVideoTrack) return;
-  torchEnabled = !torchEnabled;
-  try {
-    await pdrVideoTrack.applyConstraints({ advanced: [{ torch: torchEnabled }] });
-    const tBtn = document.getElementById("torchToggleBtn");
-    if (tBtn) {
-      tBtn.className = torchEnabled ? "btn btn-amber" : "btn btn-secondary";
-      tBtn.innerHTML = torchEnabled ? "🔦 Torch ON" : "🔦 Torch OFF";
-    }
-  } catch (e) {
-    torchEnabled = false;
-    showBannerToast("⚠️ Hardware LED Torch constraint not exposed on this camera lens.", true);
-  }
-}
-
-function simulatePdrCorridorSteps(n = 5) {
-  const hdg = currentCompassDeg !== null ? currentCompassDeg : 90;
-  for (let i = 0; i < n; i++) {
-    pdrSteps.push({ stepIdx: pdrSteps.length + 1, headingDeg: hdg, tMs: Date.now() + i * 450 });
-  }
-  state.pdrSteps = pdrSteps.slice(-400);
-  const sEl = document.getElementById("pdrStepCountEl");
-  if (sEl) sEl.textContent = String(pdrSteps.length);
-  document.getElementById("interpTarget").value = String(pdrSteps.length);
-  runLinearInterpolatorDemo();
-}
-
-function setPdrAnchor(which) {
-  const st = getActiveStation();
-  if (which === "A") {
-    pdrAnchorA = {
-      xPct: st.xPct,
-      yPct: st.yPct,
-      stepIdx: pdrSteps.length,
-      floorId: state.activeFloorId
-    };
-    document.getElementById("interpTa").value = String(pdrSteps.length);
-    showBannerToast(`🅰️ <strong>Anchor A Locked at (${st.xPct}%, ${st.yPct}%) [Step ${pdrSteps.length}]:</strong> Walk corridor &amp; snap crumbs, then tap a destination pin + <code>🅱️ Anchor B</code>!`);
-    return;
-  }
-
-  // Anchor B -> Similarity-Transform / Step-Proportional Rubber-Banding of intermediate keyframes!
-  if (!pdrAnchorA || pdrAnchorA.floorId !== state.activeFloorId) {
-    showBannerToast("⚠️ Tap <code>🅰️ Anchor A</code> at your starting doorway/station on this floor first!", true);
-    return;
-  }
-  const endStep = Math.max(pdrAnchorA.stepIdx + 1, pdrSteps.length);
-  const span = endStep - pdrAnchorA.stepIdx;
-  let adjusted = 0;
-
-  (state.videoKeyframes || []).forEach((kf) => {
-    if (kf.floorId === state.activeFloorId && typeof kf.stepIdx === "number" && kf.stepIdx >= pdrAnchorA.stepIdx && kf.stepIdx <= endStep) {
-      const ratio = (kf.stepIdx - pdrAnchorA.stepIdx) / span;
-      kf.xPct = Number((pdrAnchorA.xPct + ratio * (st.xPct - pdrAnchorA.xPct)).toFixed(1));
-      kf.yPct = Number((pdrAnchorA.yPct + ratio * (st.yPct - pdrAnchorA.yPct)).toFixed(1));
-      kf.action = `PDR Rubber-Banded (${Math.round(ratio * 100)}% A->B @ Step ${kf.stepIdx})`;
-      adjusted++;
-    }
-  });
-
-  document.getElementById("interpTb").value = String(endStep);
-  persistWalkState();
-  renderInteractiveMap();
-  renderVideoTab();
-  showBannerToast(`🅱️ <strong>Anchor B Locked at (${st.xPct}%, ${st.yPct}%) [Step ${endStep}]:</strong> Rubber-banded <strong>${adjusted}</strong> intermediate PDR breadcrumb(s) onto floorplan!`);
-}
-
-function loadWalkthroughVideoFile(inputEl) {
-  const file = inputEl.files && inputEl.files[0];
-  if (!file) return;
-  if (livePdrActive) toggleLivePdrWalk();
-  const video = document.getElementById("walkVideoPlayer");
-  video.srcObject = null;
-  video.src = URL.createObjectURL(file);
-  video.style.display = "block";
-  showBannerToast(`🎥 <strong>Walkthrough Video Loaded (${escapeHtml(file.name)}):</strong> Play/pause at any doorway sign or nameplate and tap <strong>⚡ Snap Sharp Crumb</strong>!`);
-}
-
-async function grabLiveVideoKeyframe() {
-  const video = document.getElementById("walkVideoPlayer");
-  let sharpness = 180.0;
-  let thumbUrl = null;
-  let tSec = pdrSteps.length;
-
-  if (video && (video.src || video.srcObject) && video.videoWidth > 0) {
-    const maxW = 640;
-    const scale = maxW / Math.max(1, video.videoWidth);
-    const canvas = document.createElement("canvas");
-    canvas.width = maxW;
-    canvas.height = Math.round(video.videoHeight * scale);
-    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-    sharpness = window.CSCDiscoveryAdapter.computeCanvasLaplacianSharpness(canvas);
-    thumbUrl = canvas.toDataURL("image/jpeg", 0.82);
-    if (!livePdrActive) tSec = Math.round(video.currentTime * 10) / 10;
-  }
-
-  const mins = String(Math.floor(tSec / 60)).padStart(2, "0");
-  const secs = String(Math.floor(tSec % 60)).padStart(2, "0");
-  const timeFmt = livePdrActive ? `S-${pdrSteps.length}` : `${mins}:${secs}`;
-
-  const signText = document.getElementById("videoSignInput").value.trim() || `CRUMB @ ${timeFmt}`;
-  const narrText = document.getElementById("videoNarrInput").value.trim() || `Captured on ${state.activeFloorId}`;
-
-  const st = getActiveStation();
-  let xPct = Number(Math.min(95, st.xPct + 2.5).toFixed(1));
-  let yPct = st.yPct;
-
-  if (pdrAnchorA && pdrAnchorA.floorId === state.activeFloorId && pdrSteps.length > pdrAnchorA.stepIdx) {
-    // Project step vector along compass heading until Anchor B rubber-bands it!
-    const deltaSteps = pdrSteps.length - pdrAnchorA.stepIdx;
-    const hdg = currentCompassDeg !== null ? currentCompassDeg : 90;
-    const rad = ((hdg - 90) * Math.PI) / 180;
-    xPct = Number(Math.max(3, Math.min(96, pdrAnchorA.xPct + deltaSteps * 0.9 * Math.cos(rad))).toFixed(1));
-    yPct = Number(Math.max(4, Math.min(94, pdrAnchorA.yPct + deltaSteps * 0.9 * Math.sin(rad))).toFixed(1));
-  } else if (!livePdrActive && video && video.duration) {
-    const tA = parseFloat(document.getElementById("interpTa").value) || 0;
-    const tB = parseFloat(document.getElementById("interpTb").value) || Math.max(60, video.duration || 120);
-    const ratio = Math.max(0.05, Math.min(0.95, (tSec - tA) / Math.max(1, tB - tA)));
-    xPct = Number((18.0 + ratio * (76.0 - 18.0)).toFixed(1));
-    yPct = Number((32.0 + Math.sin(ratio * Math.PI) * 4.0).toFixed(1));
-  }
-
-  if (sharpness < 65.0) {
-    showBannerToast(`⚠️ <strong>Motion Blur Warning ($\\nabla^2 I = ${sharpness}$ &lt; 65):</strong> Hold steady for 1 second for crisp OCR!`, true);
-  }
-
-  const kfId = `KF-${String(state.videoKeyframes.length + 1).padStart(3, "0")}`;
-  if (thumbUrl) {
-    await window.CSCDiscoveryAdapter.saveMediaBlob(`videokf::${state.sessionId}::${kfId}`, thumbUrl);
-  }
-
-  state.videoKeyframes.push({
-    id: kfId,
-    floorId: state.activeFloorId,
-    timeSec: tSec,
-    stepIdx: pdrSteps.length,
-    timeFmt,
-    sharpness,
-    signOcr: signText.toUpperCase(),
-    narration: narrText,
-    xPct,
-    yPct,
-    action: `Mapped (${sharpness}) -> (${xPct}%, ${yPct}%)`
-  });
-
-  document.getElementById("videoSignInput").value = "";
-  document.getElementById("videoNarrInput").value = "";
-  persistWalkState();
-  renderInteractiveMap();
-  renderVideoTab();
-}
-
-function renderVideoTab() {
-  const sEl = document.getElementById("pdrStepCountEl");
-  if (sEl) sEl.textContent = String(pdrSteps.length);
-  const tbody = document.getElementById("videoKeyframesBody");
-  tbody.innerHTML = (state.videoKeyframes || []).map((k) => `
-    <tr>
-      <td><strong>${escapeHtml(k.id)}</strong> (${escapeHtml(k.timeFmt)})<br/><small>${escapeHtml(k.floorId || 'FLR-02')}</small></td>
-      <td><code>${k.sharpness}</code><br/><small style="color:${k.sharpness >= 85 ? '#2dd4bf' : '#f59e0b'};">${k.sharpness >= 85 ? 'Sharp' : 'Soft'}</small></td>
-      <td><strong>${escapeHtml(k.signOcr)}</strong></td>
-      <td><em>"${escapeHtml(k.narration)}"</em></td>
-      <td>(${k.xPct}%, ${k.yPct}%)<br/><strong>${escapeHtml(k.action)}</strong></td>
-    </tr>
-  `).join("");
-  runLinearInterpolatorDemo();
-}
-
-function runLinearInterpolatorDemo() {
-  const tA = parseFloat(document.getElementById("interpTa").value) || 0;
-  const tB = parseFloat(document.getElementById("interpTb").value) || 96;
-  const tTarget = parseFloat(document.getElementById("interpTarget").value) || 48;
-  const xA = pdrAnchorA ? pdrAnchorA.xPct : 18.0;
-  const yA = pdrAnchorA ? pdrAnchorA.yPct : 32.0;
-  const st = getActiveStation();
-  const xB = st ? st.xPct : 68.0;
-  const yB = st ? st.yPct : 28.0;
-
-  const ratio = Math.max(0, Math.min(1, (tTarget - tA) / Math.max(1, tB - tA)));
-  const xOut = (xA + ratio * (xB - xA)).toFixed(1);
-  const yOut = (yA + ratio * (yB - yA)).toFixed(1);
-  const pct = Math.round(ratio * 100);
-
-  const box = document.getElementById("interpResultBox");
-  if (box) {
-    box.innerHTML = `
-      <strong>📍 Deterministic Step/Time Corridor Interpolation:</strong>
-      Capture at <code>${tTarget}</code> sits at <strong>${pct}%</strong> between Anchor A <code>(${xA}%, ${yA}%)</code> &amp; Active Station <code>(${xB}%, ${yB}%)</code> &rarr;
-      <strong>(${xOut}%, ${yOut}%)</strong>
-    `;
-  }
-}
-
-// ============================================================================
-// 6. TAB 5 & GLOBAL FLOATING HOLD-TO-TALK MIC PILL (BUG-10 FIXED!)
+// HOLD-TO-TALK 150HZ FILTERED VOICE RECORDER + AUTO LOCATION PARSER
 // ============================================================================
 function toggleVerbalConsent(checked) {
   state.verbalConsentLogged = Boolean(checked);
@@ -2530,55 +2314,33 @@ function handlePttPointerDown(ev) {
 function handlePttPointerUp(ev) {
   ev.preventDefault();
   const heldMs = Date.now() - pttDownTimeMs;
-  // If user pressed-and-held (>420ms), releasing stops & saves immediately; if short tap, acts as toggle!
   if (heldMs > 420 && isRecordingAudio) {
     toggleWalkTalkMic();
   }
 }
 
 function _syncMicButtonsUI() {
-  const btn = document.getElementById("micToggleBtn");
-  const status = document.getElementById("micStatusText");
   const pill = document.getElementById("floatingPttPill");
   const pillLbl = document.getElementById("pttPillLabel");
-  const st = getActiveStation();
+  const tgBtn = document.getElementById("tgVoiceBtn");
+  const tgTxt = document.getElementById("tgVoiceBtnText");
 
   if (isRecordingAudio) {
-    if (btn) {
-      btn.className = "btn btn-danger";
-      btn.innerHTML = "⏹️ Stop & Save Clip to Station";
-    }
-    if (status) {
-      status.innerHTML = `🔴 <strong>RECORDING 150Hz FILTERED AUDIO</strong> &rarr; Bound to <code>${escapeHtml(st.id)}</code>`;
-    }
     if (pill) pill.classList.add("recording");
-    if (pillLbl) pillLbl.textContent = `⏹️ Rec (${st.id})...`;
+    if (pillLbl) pillLbl.textContent = "⏹️ Listening...";
+    if (tgBtn) tgBtn.classList.add("recording");
+    if (tgTxt) tgTxt.textContent = "Listening... Release to Save Voice Note & Location";
   } else {
-    if (btn) {
-      btn.className = "btn";
-      btn.innerHTML = "🎙️ Start Walk-Talk Mic (150Hz Filter)";
-    }
-    if (status) {
-      status.innerHTML = `🟢 Ready — ${state.cloudSpeechOptIn ? 'Cloud Speech Draft + ' : '100% Local '}IndexedDB Audio Store`;
-    }
     if (pill) pill.classList.remove("recording");
-    if (pillLbl) pillLbl.textContent = `🎙️ Note (${st.id})`;
+    if (pillLbl) pillLbl.textContent = "🎙️ Hold to Talk";
+    if (tgBtn) tgBtn.classList.remove("recording");
+    if (tgTxt) tgTxt.textContent = 'Hold to Speak (e.g. "2nd floor by Rm 204, bad actuator")';
     const mini = document.getElementById("pttMiniMeterFill");
     if (mini) mini.style.width = "0%";
   }
 }
 
-async function loadCachedAudioBlobs() {
-  for (const seg of state.audioSegments) {
-    if (seg.hasAudioBlob && !cachedAudioUrls[seg.id]) {
-      const dataUrl = await window.CSCDiscoveryAdapter.loadMediaBlob(`audio::${state.sessionId}::${seg.id}`);
-      if (dataUrl) cachedAudioUrls[seg.id] = dataUrl;
-    }
-  }
-}
-
 async function toggleWalkTalkMic() {
-  const meterBar = document.getElementById("audioMeterBar");
   const miniMeter = document.getElementById("pttMiniMeterFill");
 
   if (!isRecordingAudio) {
@@ -2591,7 +2353,6 @@ async function toggleWalkTalkMic() {
       audioCtx = new AudioContextCls();
       const source = audioCtx.createMediaStreamSource(mediaStream);
 
-      // 150 Hz High-Pass Mechanical Room Fan/Chiller Rumble Filter
       const hpFilter = audioCtx.createBiquadFilter();
       hpFilter.type = "highpass";
       hpFilter.frequency.value = 150;
@@ -2612,7 +2373,6 @@ async function toggleWalkTalkMic() {
         let sum = 0;
         for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
         const pct = `${Math.min(100, Math.round((sum / dataArray.length) * 1.6))}%`;
-        if (meterBar) meterBar.style.width = pct;
         if (miniMeter) miniMeter.style.width = pct;
         meterRafId = requestAnimationFrame(updateMeter);
       };
@@ -2620,7 +2380,7 @@ async function toggleWalkTalkMic() {
       recordedChunks = [];
       const mime = (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/webm;codecs=opus"))
         ? "audio/webm;codecs=opus"
-        : (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "");
+        : "";
       mediaRecorder = mime ? new MediaRecorder(dest.stream, { mimeType: mime }) : new MediaRecorder(dest.stream);
 
       mediaRecorder.ondataavailable = (ev) => {
@@ -2637,19 +2397,18 @@ async function toggleWalkTalkMic() {
           await window.CSCDiscoveryAdapter.saveMediaBlob(`audio::${state.sessionId}::${segId}`, dataUrl);
           cachedAudioUrls[segId] = dataUrl;
 
-          const noteEl = document.getElementById("quickVoiceNoteInput");
-          const typedNote = noteEl ? noteEl.value.trim() : "";
-          const finalTranscript = typedNote || liveSpeechBuffer.trim() || `[150Hz Filtered Audio Clip (${Math.round(blob.size / 1024)} KB) @ ${st.tag} — Bundled in .cscwalk.zip for Local faster-whisper]`;
+          const tgNoteEl = document.getElementById("tgQuickNoteInput");
+          const spoken = liveSpeechBuffer.trim() || (tgNoteEl ? tgNoteEl.value.trim() : "");
+          const finalTranscript = spoken || `Voice clip (${Math.round(blob.size / 1024)} KB) saved for ${st.tag}`;
 
-          // BUG-10 FIX: Run deterministic RFI trigger scanner on recorded voice transcripts too!
-          const rfiHits = extractRfiTriggersJS(finalTranscript);
-          if (rfiHits.some((h) => h.includes("RFI-23-011"))) {
-            state.rfi23011TempConditioningFlag = true;
-            renderHeaderMeta();
+          if (spoken) {
+            onTagGoNoteInput(spoken);
           }
-          const insightText = rfiHits.length > 0
-            ? rfiHits.join(" + ")
-            : `150Hz filtered audio bound to ${st.id} (${st.tag}).`;
+
+          const rfiHits = extractRfiTriggersJS(finalTranscript);
+          const locParsed = parseLocationFromVoiceJS(finalTranscript);
+          const locMsg = locParsed && locParsed.locationLabel ? `📍 Auto-Located: ${locParsed.locationLabel}` : "";
+          const insightText = [locMsg, ...rfiHits].filter(Boolean).join(" | ") || `Saved to ${st.tag}`;
 
           state.audioSegments.unshift({
             id: segId,
@@ -2661,36 +2420,35 @@ async function toggleWalkTalkMic() {
             text: finalTranscript,
             insight: insightText
           });
-          if (noteEl) noteEl.value = "";
           liveSpeechBuffer = "";
           persistWalkState();
-          if (state.uiMode === "deep" && state.activeTab === "audio") renderAudioTab(st);
-          showBannerToast(`🎙️ <strong>Saved Voice Note ${segId} &rarr; ${escapeHtml(st.id)}:</strong> ${escapeHtml(insightText)}`);
+          renderTagAndGoSheet(st);
+          renderUnitFeed();
+          renderRecentAudioFeed();
+          renderInteractiveMap();
+          showBannerToast(`🎙️ <strong>Voice Note Saved:</strong> ${escapeHtml(insightText)}`);
         };
         reader.readAsDataURL(blob);
       };
 
-      // BUG-10 FIX: Only invoke browser cloud SpeechRecognition if user explicitly opted in!
       liveSpeechBuffer = "";
-      if (state.cloudSpeechOptIn) {
-        const SpeechRecCls = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecCls) {
-          try {
-            speechRec = new SpeechRecCls();
-            speechRec.continuous = true;
-            speechRec.interimResults = true;
-            speechRec.onresult = (ev) => {
-              let txt = "";
-              for (let i = 0; i < ev.results.length; i++) {
-                txt += ev.results[i][0].transcript + " ";
-              }
-              liveSpeechBuffer = txt;
-              const inp = document.getElementById("quickVoiceNoteInput");
-              if (inp) inp.value = txt.trim();
-            };
-            speechRec.start();
-          } catch (e) {}
-        }
+      const SpeechRecCls = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecCls) {
+        try {
+          speechRec = new SpeechRecCls();
+          speechRec.continuous = true;
+          speechRec.interimResults = true;
+          speechRec.onresult = (ev) => {
+            let txt = "";
+            for (let i = 0; i < ev.results.length; i++) {
+              txt += ev.results[i][0].transcript + " ";
+            }
+            liveSpeechBuffer = txt;
+            const tgInp = document.getElementById("tgQuickNoteInput");
+            if (tgInp) tgInp.value = txt.trim();
+          };
+          speechRec.start();
+        } catch (e) {}
       }
 
       mediaRecorder.start(500);
@@ -2698,12 +2456,11 @@ async function toggleWalkTalkMic() {
       updateMeter();
       _syncMicButtonsUI();
     } catch (err) {
-      showBannerToast(`⚠️ Microphone Permission / Hardware Notice: ${escapeHtml(err.message)}`, true);
+      showBannerToast(`⚠️ Mic Notice: ${escapeHtml(err.message)}`, true);
     }
   } else {
     isRecordingAudio = false;
     cancelAnimationFrame(meterRafId);
-    if (meterBar) meterBar.style.width = "0%";
     if (speechRec) {
       try { speechRec.stop(); } catch (e) {}
       speechRec = null;
@@ -2723,202 +2480,8 @@ async function toggleWalkTalkMic() {
   }
 }
 
-function bookmarkAudioMoment() {
-  const st = getActiveStation();
-  const noteInput = document.getElementById("quickVoiceNoteInput");
-  const customText = noteInput.value.trim();
-  if (!customText) {
-    alert("Type a quick site-pro note or tap the Mic button to record live audio!");
-    return;
-  }
-  const nowStr = new Date().toTimeString().slice(0, 8);
-  const hits = extractRfiTriggersJS(customText);
-  if (hits.some((h) => h.includes("RFI-23-011"))) {
-    state.rfi23011TempConditioningFlag = true;
-    renderHeaderMeta();
-  }
-  const autoInsight = hits.length > 0 ? hits.join(" + ") : `Pinned directly to ${st.id} (${st.tag}).`;
-
-  state.audioSegments.unshift({
-    id: `AUD-${String(state.audioSegments.length + 1).padStart(2, "0")}`,
-    time: nowStr,
-    speaker: state.siteContact || window.CSCDiscoveryAdapter.getActiveUser().name,
-    stationId: st.id,
-    bookmarked: true,
-    hasAudioBlob: false,
-    text: customText,
-    insight: autoInsight
-  });
-  noteInput.value = "";
-  persistWalkState();
-  renderAudioTab(st);
-}
-
-async function renderAudioTab(st) {
-  document.getElementById("audioConsentCheck").checked = Boolean(state.verbalConsentLogged);
-  document.getElementById("cloudSpeechCheck").checked = Boolean(state.cloudSpeechOptIn);
-  document.getElementById("siteContactQuickInput").value = state.siteContact || "";
-  _syncMicButtonsUI();
-  await loadCachedAudioBlobs();
-  const tbody = document.getElementById("audioLogBody");
-  tbody.innerHTML = state.audioSegments.map((seg) => {
-    const audioPlayerHtml = cachedAudioUrls[seg.id]
-      ? `<audio controls src="${cachedAudioUrls[seg.id]}" style="height:28px;max-width:210px;margin-top:5px;display:block;"></audio>`
-      : "";
-    return `
-      <tr style="${seg.stationId === st.id ? 'background:rgba(13,148,136,0.14);' : ''}">
-        <td><strong>${escapeHtml(seg.id)}</strong> (${escapeHtml(seg.time)})<br/><small>${seg.bookmarked ? '📌 PINNED' : '⏱️ AUTO'}</small></td>
-        <td><strong>${escapeHtml(seg.speaker)}</strong><br/>Station: <code>${escapeHtml(seg.stationId)}</code></td>
-        <td><em>"${escapeHtml(seg.text)}"</em>${audioPlayerHtml}</td>
-        <td><strong style="color:var(--accent-teal);">${escapeHtml(seg.insight)}</strong></td>
-      </tr>
-    `;
-  }).join("");
-}
-
 // ============================================================================
-// 7. TAB 6: DETERMINISTIC VALVE (FAIL-OPEN) / DAMPER / UNIFIED VA / LABOR SIZERS
-// ============================================================================
-let lastCalcSnapshot = null;
-
-function renderCalculatorsTab() {
-  runFieldCalculators();
-}
-
-function runFieldCalculators() {
-  // 1. Hydronic Control Valve Sizer (BUG-06 FIX: Fail-Open Heating Spring-Return + Small VAV Cv + PICCV!)
-  const appMode = document.getElementById("calcValveApp").value || "heating";
-  const gpm = Math.max(0.2, parseFloat(document.getElementById("calcGpm").value) || 42.0);
-  const lineSz = parseFloat(document.getElementById("calcPipeSize").value) || 2.0;
-  const sg = parseFloat(document.getElementById("calcFluidSg").value) || 1.032;
-  const coilDp = Math.max(0.5, parseFloat(document.getElementById("calcCoilDp").value) || 4.0);
-  const usePiccv = document.getElementById("calcUsePiccv").checked;
-  const designDp = 4.5;
-  const theoCv = gpm * Math.sqrt(sg / designDp);
-
-  // Commercial Belimo table from 0.4 Cv VAV reheat up to 65 Cv AHU mains
-  const belimoTable = [
-    { cv: 0.4, sz: 0.5, body: "B207", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 0.8, sz: 0.5, body: "B208", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 1.2, sz: 0.5, body: "B209", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 1.9, sz: 0.5, body: "B210", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 3.0, sz: 0.5, body: "B211", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 4.7, sz: 0.5, body: "B213", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 7.4, sz: 0.75, body: "B218", sr: "LF24-SR", nsr: "LRB24-SR" },
-    { cv: 10.0, sz: 1.0, body: "B223", sr: "NFB24-SR", nsr: "NRB24-SR" },
-    { cv: 14.0, sz: 1.0, body: "B224", sr: "NFB24-SR", nsr: "NRB24-SR" },
-    { cv: 19.0, sz: 1.25, body: "B230", sr: "NFB24-SR", nsr: "NRB24-SR" },
-    { cv: 24.0, sz: 1.5, body: "B239", sr: "NFB24-SR", nsr: "NRB24-SR" },
-    { cv: 29.0, sz: 1.5, body: "B240", sr: "NFB24-SR", nsr: "NRB24-SR" },
-    { cv: 37.0, sz: 2.0, body: "B249", sr: "AFB24-SR", nsr: "ARB24-SR" },
-    { cv: 46.0, sz: 2.0, body: "B250", sr: "AFB24-SR", nsr: "ARB24-SR" },
-    { cv: 65.0, sz: 2.5, body: "B261", sr: "AFB24-SR", nsr: "ARB24-SR" }
-  ];
-
-  let sel = belimoTable[belimoTable.length - 1];
-  for (const v of belimoTable) {
-    if (v.cv >= theoCv) { sel = v; break; }
-  }
-  const actModel = appMode === "heating" ? `${sel.sr} (Fail-Open Spring-Return)` : `${sel.nsr} (Non-Spring Modulating)`;
-  const fullValveModel = usePiccv
-    ? `Belimo ePIV / PICCV (${sel.sz}", ${gpm} GPM) + ${actModel}`
-    : `Belimo ${sel.body} + ${actModel}`;
-  const actualDp = usePiccv ? 5.0 : sg * Math.pow(gpm / sel.cv, 2);
-  const beta = usePiccv ? 1.0 : actualDp / (actualDp + coilDp);
-  const needsReducer = sel.sz < lineSz;
-
-  document.getElementById("valveCalcOutput").innerHTML = `
-    <strong>💧 Deterministic Valve Sizing (${appMode === 'heating' ? 'Freeze-Safe Fail-Open per RFI-23-007' : 'Cooling'}):</strong><br/>
-    • Theo Cv: <code>${theoCv.toFixed(2)}</code> &rarr; Selection: <strong>${escapeHtml(fullValveModel)} (Cv = ${usePiccv ? 'PICCV' : sel.cv}, Body: ${sel.sz}")</strong><br/>
-    • Actual ΔP: <code>${actualDp.toFixed(2)} psi</code> | Authority β: <code>${beta.toFixed(2)}</code> ${beta >= 0.50 ? '✅ (&ge;0.50 Compliant)' : '⚠️ (&lt;0.50 — Check PICCV Box!)'}<br/>
-    • <strong>Div 23 21 13 Note:</strong> ${needsReducer ? `Furnish ${sel.sz}" valve; Div 23 21 13 installs <strong>${lineSz}" x ${sel.sz}" concentric reducers</strong> per RFI-23-005.` : `Line-sized ${sel.sz}" body installed inline by Div 23 21 13.`}
-  `;
-
-  // 2. Damper Area & Belimo Torque Sizer (Phase 2 — RFI-23-004)
-  const dW = Math.max(6, parseFloat(document.getElementById("calcDmpW").value) || 48);
-  const dH = Math.max(6, parseFloat(document.getElementById("calcDmpH").value) || 30);
-  const dApp = document.getElementById("calcDmpApp").value || "oa_ea_failsafe";
-  const tPerSqft = parseFloat(document.getElementById("calcDmpTorqueFactor").value) || 6.0;
-  const areaSqft = (dW * dH) / 144.0;
-  const reqInLb = areaSqft * tPerSqft * 1.25; // 25% safety margin
-  const isSpring = dApp === "oa_ea_failsafe";
-
-  let dmpAct = "";
-  let dmpQty = 1;
-  if (isSpring) {
-    if (reqInLb <= 35) dmpAct = "Belimo LF24-SR (35 in-lb Spring-Return)";
-    else if (reqInLb <= 90) dmpAct = "Belimo NFB24-SR (90 in-lb Spring-Return)";
-    else if (reqInLb <= 180) dmpAct = "Belimo AFB24-SR (180 in-lb Spring-Return)";
-    else {
-      dmpQty = Math.ceil(reqInLb / 180);
-      dmpAct = `(${dmpQty}) Belimo AFB24-SR (180 in-lb ea on Split Jackshaft)`;
-    }
-  } else {
-    if (reqInLb <= 45) dmpAct = "Belimo LMB24-SR (45 in-lb Non-Spring)";
-    else if (reqInLb <= 90) dmpAct = "Belimo NMB24-SR (90 in-lb Non-Spring)";
-    else if (reqInLb <= 180) dmpAct = "Belimo AMB24-SR (180 in-lb Non-Spring)";
-    else {
-      dmpQty = Math.ceil(reqInLb / 180);
-      dmpAct = `(${dmpQty}) Belimo AMB24-SR (180 in-lb ea)`;
-    }
-  }
-
-  document.getElementById("damperCalcOutput").innerHTML = `
-    <strong>🌬️ Damper Torque Result (RFI-23-004):</strong> Area: <code>${areaSqft.toFixed(1)} ft²</code> (${dW}"x${dH}") | Design Torque (w/ 1.25x SF): <code>${reqInLb.toFixed(0)} in-lb</code> &rarr; <strong>${escapeHtml(dmpAct)}</strong>
-  `;
-
-  // 3. Unified TCP Panel 24VAC Class 2 Transformer Sizer (BUG-13 FIXED: Matches Backend Constants!)
-  const optiCnt = parseInt(document.getElementById("calcOptiCount").value, 10) || 0;
-  const znCnt = parseInt(document.getElementById("calcZnCount").value, 10) || 0;
-  const xpioCnt = parseInt(document.getElementById("calcXpioCount").value, 10) || 0;
-  const srCnt = parseInt(document.getElementById("calcSrActCount").value, 10) || 0;
-  const nsrCnt = parseInt(document.getElementById("calcNsrActCount").value, 10) || 0;
-  const zsCnt = parseInt(document.getElementById("calcZsCount").value, 10) || 0;
-
-  const subVa = (optiCnt * 24) + (znCnt * 12) + (xpioCnt * 14) + (srCnt * 7) + (nsrCnt * 3) + (zsCnt * 1.5);
-  const totalVa = subVa * 1.15;
-  const xfmrs = Math.max(1, Math.ceil(totalVa / 80.0));
-
-  document.getElementById("vaCalcOutput").innerHTML = `
-    <strong>⚡ Unified TCP 24VAC Class 2 Sizer (RFI-23-009):</strong><br/>
-    • Connected: <code>${subVa.toFixed(1)} VA</code> | With 15% Spare: <strong><code>${totalVa.toFixed(1)} VA</code></strong> (80.0 VA continuous max per 100VA Class 2 Xfmr)<br/>
-    • <strong>Power Supply:</strong> <strong style="color:#f59e0b;">Furnish (${xfmrs}) 100VA 120/24VAC Class 2 Transformer(s)</strong> + Dedicated Div 26 120VAC 15A circuit.
-  `;
-
-  // 4. Physical Access & Rough-In Multiplier
-  const fCeil = parseFloat(document.getElementById("calcCeilFactor").value) || 1.0;
-  const fWall = parseFloat(document.getElementById("calcWallFactor").value) || 1.0;
-  const fShift = parseFloat(document.getElementById("calcShiftFactor").value) || 1.0;
-  const comp = (1.0 + (fCeil - 1.0) + (fWall - 1.0) + (fShift - 1.0)).toFixed(2);
-  document.getElementById("laborCalcOutput").innerHTML = `
-    <strong>👷 Composite Field Installation Labor Multiplier: <code>${comp}x</code></strong>
-    (${comp >= 1.4 ? '⚠️ HIGH FRICTION — Include Wiremold / Lift / Off-Hours Allowance in Tier-1 Estimate' : '✅ Standard Rough-In Conditions'})
-  `;
-
-  lastCalcSnapshot = {
-    valveSummary: `${fullValveModel} (${gpm} GPM, β=${beta.toFixed(2)})`,
-    damperSummary: `${dmpAct} (${areaSqft.toFixed(1)} sqft)`,
-    vaSummary: `${totalVa.toFixed(1)} VA (${xfmrs}x 100VA Xfmr)`,
-    laborMultiplier: `${comp}x`
-  };
-}
-
-function saveCalculatorsToActiveStation() {
-  runFieldCalculators();
-  if (!lastCalcSnapshot) return;
-  const st = getActiveStation();
-  st.calcSizing = JSON.parse(JSON.stringify(lastCalcSnapshot));
-  const summaryTag = `[SIZED: ${lastCalcSnapshot.valveSummary} | ${lastCalcSnapshot.vaSummary} | Labor ${lastCalcSnapshot.laborMultiplier}]`;
-  if (!(st.tierDelta || "").includes("[SIZED:")) {
-    st.tierDelta = st.tierDelta ? `${st.tierDelta} ${summaryTag}` : summaryTag;
-  }
-  persistWalkState();
-  renderStationStrip();
-  showBannerToast(`💾 <strong>Saved Valve, Damper, VA &amp; ${lastCalcSnapshot.laborMultiplier} Labor Sizing to ${escapeHtml(st.id)}!</strong>`);
-}
-
-// ============================================================================
-// 8. SESSION MANAGER, .CSCWALK.ZIP PACKAGER/UNPACKER & EXPORT BRIDGE
+// SESSION MANAGER, .CSCWALK.ZIP PACKAGER/UNPACKER & EXPORT BRIDGE
 // ============================================================================
 function openSessionManagerModal() {
   document.getElementById("newWalkProjectInput").value = state.projectName || "";
@@ -2926,6 +2489,10 @@ function openSessionManagerModal() {
   document.getElementById("newWalkContactInput").value = state.siteContact || "";
   document.getElementById("newWalkAddressInput").value = state.siteAddress || "";
   document.getElementById("geminiApiKeyInput").value = window.CSCDiscoveryAdapter.getSecretKey("gemini_api_key");
+  const cloudEl = document.getElementById("cloudSpeechCheck");
+  if (cloudEl) cloudEl.checked = Boolean(state.cloudSpeechOptIn);
+  const rfiEl = document.getElementById("rfi11ModalCheck");
+  if (rfiEl) rfiEl.checked = Boolean(state.rfi23011TempConditioningFlag);
   document.getElementById("sessionModal").style.display = "flex";
 }
 
@@ -2943,7 +2510,7 @@ function saveVaultAndProjectMeta() {
   persistWalkState();
   renderHeaderMeta();
   closeSessionManagerModal();
-  showBannerToast("💾 <strong>Project Metadata, Contacts &amp; Vault Settings Saved!</strong>");
+  showBannerToast("💾 <strong>Job Info &amp; Settings Saved!</strong>");
 }
 
 function startBlankSiteWalk() {
@@ -2953,16 +2520,19 @@ function startBlankSiteWalk() {
   const addr = document.getElementById("newWalkAddressInput").value.trim() || "";
   const sid = "CSC-WALK-" + Date.now();
   pdrSteps = [];
-  pdrAnchorA = null;
+  walkStepCounter = 0;
+  stepCounterAtLastSnap = 0;
+  allStationThumbs = {};
+
   state = _migrateLoadedState({
-    schemaVersion: "CSC-DISCOVERY-v2.0",
+    schemaVersion: "CSC-DISCOVERY-v3.0",
     sessionId: sid,
     projectName: proj,
     jobNumber: job,
     siteContact: contact,
     siteAddress: addr,
-    verbalConsentLogged: false,
-    cloudSpeechOptIn: false,
+    verbalConsentLogged: true,
+    cloudSpeechOptIn: true,
     uiMode: "quick",
     rfi23011TempConditioningFlag: false,
     activeFloorId: "FLR-01",
@@ -2972,21 +2542,23 @@ function startBlankSiteWalk() {
     barometricHpa: 989.30,
     elevationFt: 0.0,
     floors: [
-      { id: "FLR-BSMT", name: "Basement / Plant", elev: -14.0, hpa: 989.80, source: "Tap 'Snap Evac Map' or 'Load Plan' to anchor", hasCustomMap: false },
-      { id: "FLR-01", name: "Floor 1", elev: 0.0, hpa: 989.30, source: "Tap 'Snap Evac Map' or 'Load Plan' to anchor", hasCustomMap: false },
-      { id: "FLR-02", name: "Floor 2", elev: 14.0, hpa: 988.80, source: "Tap 'Snap Evac Map' or 'Load Plan' to anchor", hasCustomMap: false },
-      { id: "FLR-ROOF", name: "Roof (GNSS+Compass)", elev: 28.0, hpa: 988.30, source: "Outdoor GNSS + Compass Mode", hasCustomMap: false }
+      { id: "FLR-BSMT", name: "Basement", elev: -14.0, hpa: 989.80, source: "Auto-Estimated Grid", hasCustomMap: false },
+      { id: "FLR-01", name: "Floor 1", elev: 0.0, hpa: 989.30, source: "Auto-Estimated Grid", hasCustomMap: false },
+      { id: "FLR-02", name: "Floor 2", elev: 14.0, hpa: 988.80, source: "Auto-Estimated Grid", hasCustomMap: false },
+      { id: "FLR-ROOF", name: "Roof", elev: 28.0, hpa: 988.30, source: "Outdoor GPS + Compass", hasCustomMap: false }
     ],
     stations: [
       {
         id: "STN-01",
-        tag: "RTU-01",
+        tag: "Unit #1",
         archetype: "RTU_AHU",
+        condition: "good",
+        quickIssues: [],
         floorId: "FLR-01",
-        room: "Main Mechanical Room",
+        room: "Entry Point (Auto-GPS / Step Active)",
         xPct: 50.0,
         yPct: 50.0,
-        anchorType: "MANUAL_MAP_PIN",
+        anchorType: "AUTO_STEP_COMPASS",
         mfg: "",
         model: "",
         serial: "",
@@ -3010,37 +2582,26 @@ function startBlankSiteWalk() {
   });
   persistWalkState();
   closeSessionManagerModal();
-  refreshFloorMapBackground();
-  loadActiveStationBurstPhotos();
-  renderAll(true);
-  showBannerToast(`🆕 <strong>Started Clean Field Walk:</strong> ${escapeHtml(job)} — ${escapeHtml(proj)}`);
+  renderAll(false);
+  showBannerToast(`🆕 <strong>Started New Walk:</strong> Tap <strong>📸 + SNAP NEW UNIT</strong> to begin!`);
 }
 
 function resetToGoldenDemoWalk() {
   pdrSteps = [];
-  pdrAnchorA = null;
+  walkStepCounter = 0;
+  stepCounterAtLastSnap = 0;
+  allStationThumbs = {};
   state = _migrateLoadedState(JSON.parse(JSON.stringify(GOLDEN_DEMO_STATE)));
   persistWalkState();
   closeSessionManagerModal();
-  refreshFloorMapBackground();
-  loadActiveStationBurstPhotos();
-  renderAll(true);
-  showBannerToast("🧪 <strong>Restored Lee's Summit West KC Golden Demo Walk (v2.0)!</strong>");
+  renderAll(false);
+  showBannerToast("🧪 <strong>Loaded Lee's Summit West Demo Walk!</strong>");
 }
 
-/**
- * Exports a complete self-contained `.cscwalk.zip` archive containing:
- *   - `manifest.json` (Full walk state)
- *   - `maps/<FLR>.jpg`
- *   - `photos/<SortedFilename>.jpg`
- *   - `keyframes/<KF>.jpg`
- *   - `audio/<AUD>.webm`
- */
 async function exportFullWalkZipBundle() {
   const enc = new TextEncoder();
   const entries = [];
   const manifestCopy = JSON.parse(JSON.stringify(state));
-  // Strip any huge inline base64 floor maps from manifestCopy since they go in `maps/`
   (manifestCopy.floors || []).forEach((f) => { delete f.custom_map_data_url; });
 
   entries.push({
@@ -3081,7 +2642,7 @@ async function exportFullWalkZipBundle() {
     zipBlob,
     `CSC Site Discovery Bundle — ${state.jobNumber}`
   );
-  showBannerToast(`📦 <strong>Exported <code>${escapeHtml(outName)}</code> (${entries.length} bundled files)!</strong> Run <code>python run_discovery.py --input ${escapeHtml(outName)}</code> on PC to generate full Dossier PDF/DOCX/XLSX.`);
+  showBannerToast(`📦 <strong>Exported <code>${escapeHtml(outName)}</code> (${entries.length} files)!</strong>`);
 }
 
 async function importWalkBundleFile(inputEl) {
@@ -3094,7 +2655,6 @@ async function importWalkBundleFile(inputEl) {
       if (!parsed.manifest) throw new Error("No manifest.json inside .zip");
       state = _migrateLoadedState(parsed.manifest);
 
-      // Hydrate maps/, photos/, keyframes/, audio/ into local IndexedDB!
       for (const [relPath, bytes] of Object.entries(parsed.files)) {
         const low = relPath.toLowerCase();
         if (low.startsWith("maps/") && (low.endsWith(".jpg") || low.endsWith(".png"))) {
@@ -3124,10 +2684,8 @@ async function importWalkBundleFile(inputEl) {
 
     persistWalkState();
     closeSessionManagerModal();
-    await refreshFloorMapBackground();
-    await loadActiveStationBurstPhotos();
-    renderAll(true);
-    showBannerToast(`📥 <strong>Imported Walk Bundle (${escapeHtml(file.name)}):</strong> ${state.floors.length} floors &amp; ${state.stations.length} stations ready!`);
+    await renderAll(false);
+    showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(file.name)}):</strong> ${state.stations.length} units loaded!`);
   } catch (err) {
     showBannerToast(`⚠️ Import Error: ${escapeHtml(err.message)}`, true);
   } finally {
@@ -3136,16 +2694,20 @@ async function importWalkBundleFile(inputEl) {
 }
 
 async function exportScheduleCsv() {
-  const rows = state.stations.map((st) => {
+  const rows = state.stations.map((st, idx) => {
     const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
     const mdl = decodeModelDeterministic(st.mfg, st.model);
+    const stStatus = computeStationStatus(st);
     return {
       JobNumber: state.jobNumber,
+      UnitNumber: `Unit #${idx + 1}`,
       StationID: st.id,
       EquipmentTag: st.tag,
+      Condition: stStatus.cond.toUpperCase(),
+      QuickIssues: (st.quickIssues || []).join("; "),
       Archetype: st.archetype,
       Floor: st.floorId,
-      RoomZone: st.room,
+      EstimatedLocation: st.room || st.autoLocationBreadcrumb || "",
       MapX_Pct: st.xPct,
       MapY_Pct: st.yPct,
       GPS_Lat: st.gpsLat || "",
@@ -3161,11 +2723,8 @@ async function exportScheduleCsv() {
       ASHRAE_Life: dec.lifeLimit,
       EOL_Risk: dec.eol ? "YES" : "NO",
       LegacyController: st.legacyCtrl,
-      ThermistorCurve: st.thermistorCurve || "10k_TYPE_II",
       RecommendedALC: st.alcTarget,
-      ScheduledQty: st.scheduledQty,
-      ObservedQty: st.observedQty,
-      ScopeDeltaNote: st.tierDelta
+      FieldNotes: st.tierDelta
     };
   });
 
@@ -3184,7 +2743,7 @@ async function exportScheduleCsv() {
 }
 
 async function downloadSessionJson() {
-  const summaryText = `CSC Field Discovery (${state.jobNumber} — ${state.projectName}): ${state.stations.length} stations, ${state.audioSegments.length} audio notes.`;
+  const summaryText = `CSC Field Discovery (${state.jobNumber} — ${state.projectName}): ${state.stations.length} units, ${state.audioSegments.length} audio notes.`;
   await window.CSCDiscoveryAdapter.shareOrExport(
     `CSC Discovery — ${state.jobNumber}`,
     summaryText,
@@ -3197,16 +2756,20 @@ function toggleSunlightMode() {
   document.body.classList.toggle("sunlight-mode");
 }
 
-function renderAll(skipAsyncMedia = false) {
+async function renderAll(skipAsyncMedia = false) {
   renderHeaderMeta();
-  setUiMode(state.uiMode || "quick");
+  renderUnitFeed();
+  renderRecentAudioFeed();
   renderFloorTabs();
   renderInteractiveMap();
   renderStationStrip();
   _syncMicButtonsUI();
   if (!skipAsyncMedia) {
-    refreshFloorMapBackground();
-    loadActiveStationBurstPhotos();
+    await preloadAllStationThumbnails();
+    await refreshFloorMapBackground();
+    await loadActiveStationBurstPhotos();
+    renderUnitFeed();
+    renderInteractiveMap();
   }
 }
 
@@ -3214,5 +2777,6 @@ window.openSessionManagerModal = openSessionManagerModal;
 
 window.addEventListener("DOMContentLoaded", () => {
   loadInitialWalkState();
+  startAutoBackgroundSensors();
   renderAll(false);
 });

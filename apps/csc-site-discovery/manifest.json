@@ -1,11 +1,11 @@
 {
-  "name": "CSC Site Discovery & Field Survey Companion v2.0",
-  "short_name": "CSC Discovery",
-  "version": "2.0.0",
-  "description": "Streamlined <15s HVAC Controls & Mechanical Equipment Field Discovery Companion (Quick Walk, 8x8 CLAHE, Step-PDR, .cscwalk.zip) for Control Service Company (CSC)",
+  "name": "CSC Field Snap & Go v3.0 — Site Discovery Companion",
+  "short_name": "CSC Snap & Go",
+  "version": "3.0.0",
+  "description": "Zero-Typing Photo-First Field Discovery Companion (Snap -> Tag & Go, Auto-GPS/Step/Voice Rough Location, Hold-to-Talk Mic, .cscwalk.zip) for Control Service Company (CSC)",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "background_color": "#090e1a",
   "theme_color": "#0d9488",
   "orientation": "any"
 }
