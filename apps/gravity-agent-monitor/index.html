@@ -1419,8 +1419,8 @@
           <button class="quick-chip" onclick="sendQuickSteer('APPROVE', 'Proceed with the recommended plan.')">✅ Approve & Proceed</button>
           <button class="quick-chip" onclick="sendQuickSteer('STEER', 'Compile findings into a clean PDF report in the workspace.')">📄 Export PDF</button>
           <button class="quick-chip" onclick="sendQuickSteer('STEER', 'Run tests and verify deterministic output.')">🧪 Run Tests</button>
-          <button class="quick-chip" onclick="lockSlashCommandPill('/boost')">🚀 /boost</button>
-          <button class="quick-chip" onclick="lockSlashCommandPill('/grill-me')">🔥 /grill-me</button>
+          <button class="quick-chip" onclick="lockSlashCommandPill('/boost', false)">🚀 /boost</button>
+          <button class="quick-chip" onclick="lockSlashCommandPill('/grill-me', false)">🔥 /grill-me</button>
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/compact')">🗜️ /compact</button>
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/goal')">🎯 /goal</button>
         </div>
@@ -2687,6 +2687,7 @@
 
       // Merge any optimistic mobile steps for this conversation that have not yet appeared in server steps
       const serverSteps = Array.isArray(data.steps) ? data.steps.slice() : [];
+      const consumedServerIndices = new Set();
       const activeOpt = [];
       for (const opt of window._optimisticUserSteps) {
         if (opt.conversation_id !== currentConversationId) {
@@ -2694,14 +2695,26 @@
           continue;
         }
         const optText = String(opt.content || '').trim();
-        const matchedOnServer = serverSteps.some(s => {
-          if (s.type !== 'USER_INPUT') return false;
+        const baselineSet = opt.baseline_step_indices instanceof Set ? opt.baseline_step_indices : new Set();
+        let matchedIdx = -1;
+        for (let si = 0; si < serverSteps.length; si++) {
+          if (consumedServerIndices.has(si)) continue;
+          const s = serverSteps[si];
+          if (s.type !== 'USER_INPUT') continue;
+          if (s.step_index !== undefined && baselineSet.has(s.step_index)) continue;
           const sText = String(s.content || '').trim();
-          if (optText && (sText === optText || sText.includes(optText))) return true;
-          if (!optText && opt.media && opt.media.length > 0 && s.media && s.media.length > 0) return true;
-          return false;
-        });
-        if (!matchedOnServer && Date.now() - (opt.added_ms || 0) < 45000) {
+          if (optText && sText === optText) {
+            matchedIdx = si;
+            break;
+          }
+          if (!optText && opt.media && opt.media.length > 0 && s.media && s.media.length > 0) {
+            matchedIdx = si;
+            break;
+          }
+        }
+        if (matchedIdx !== -1) {
+          consumedServerIndices.add(matchedIdx);
+        } else if (Date.now() - (opt.added_ms || 0) < 45000) {
           activeOpt.push(opt);
           serverSteps.push(opt);
         }
@@ -2787,8 +2800,13 @@
       const rawText = String(st.content || '').trim();
       const mediaList = Array.isArray(st.media) ? st.media : [];
       const isQueued = st.status === 'QUEUED' || st.source === 'USER_MOBILE_QUEUED';
-      const msgKey = `${currentConversationId || 'conv'}_umsg_${st.step_index !== undefined ? st.step_index : idx}_${rawText.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '')}`;
-      const isOpen = window._expandedUserMsgs.has(msgKey);
+      const slug = rawText.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '');
+      const msgKey = `${currentConversationId || 'conv'}_umsg_${st.step_index !== undefined ? st.step_index : idx}_${slug}`;
+      const fallbackKey = `${currentConversationId || 'conv'}_umsg_txt_${slug}_${mediaList.length}`;
+      const isOpen = window._expandedUserMsgs.has(msgKey) || window._expandedUserMsgs.has(fallbackKey);
+      if (isOpen && !window._expandedUserMsgs.has(msgKey)) {
+        window._expandedUserMsgs.add(msgKey);
+      }
 
       const badgeHtml = isQueued
         ? `<span class="user-msg-badge queued">⏳ Queued</span>`
@@ -2819,7 +2837,7 @@
 
       return `
         <div class="step-item">
-          <div id="umsg_${escapeHtml(msgKey)}" class="user-msg-card ${isQueued ? 'queued' : ''} ${isOpen ? 'open' : ''}">
+          <div id="umsg_${escapeHtml(msgKey)}" data-fallback-key="${escapeHtml(fallbackKey)}" class="user-msg-card ${isQueued ? 'queued' : ''} ${isOpen ? 'open' : ''}">
             <div class="user-msg-1line" onclick="toggleUserMsgCard('${escapeHtml(msgKey)}', event)">
               ${badgeHtml}
               ${imgIndicatorHtml}
@@ -2840,12 +2858,17 @@
       window._expandedUserMsgs = window._expandedUserMsgs || new Set();
       const card = document.getElementById('umsg_' + msgKey);
       if (!card) return;
+      const fallbackKey = card.getAttribute('data-fallback-key') || '';
       const nowOpen = !card.classList.contains('open');
       card.classList.toggle('open', nowOpen);
       if (nowOpen) {
         window._expandedUserMsgs.add(msgKey);
+        if (fallbackKey && card.classList.contains('queued')) {
+          window._expandedUserMsgs.add(fallbackKey);
+        }
       } else {
         window._expandedUserMsgs.delete(msgKey);
+        if (fallbackKey) window._expandedUserMsgs.delete(fallbackKey);
       }
       const chev = card.querySelector('.user-msg-chev');
       if (chev) chev.textContent = nowOpen ? '▴' : '▾';
@@ -3010,8 +3033,17 @@
       }
     });
 
+    // Dismiss slash autocomplete menu when clicking outside steer-dock
+    document.addEventListener('click', (ev) => {
+      const dock = document.querySelector('.steer-dock');
+      if (dock && !dock.contains(ev.target)) {
+        hideSlashAutocompleteMenu();
+      }
+    });
+
     // Slash Command Pill Chips & Autocomplete Popup
     window._activeCommandPills = [];
+    window._currentSlashMatches = [];
 
     function renderSteerCommandPills() {
       const container = document.getElementById('steerCommandPills');
@@ -3044,7 +3076,11 @@
       }
       const inp = document.getElementById('steerInput');
       if (inp && removeTokenFromInput) {
-        inp.value = inp.value.replace(/(?:^|\s)\/[a-zA-Z0-9_-]*\s*$/, ' ').trimStart();
+        const val = inp.value;
+        const caret = typeof inp.selectionStart === 'number' ? inp.selectionStart : val.length;
+        const before = val.slice(0, caret).replace(/(?:^|\s)\/[a-zA-Z0-9_-]*\s*$/, ' ');
+        const after = val.slice(caret);
+        inp.value = (before + after).replace(/^\s+/, '');
         autoResizeChatBox(inp);
       }
       renderSteerCommandPills();
@@ -3053,6 +3089,7 @@
     }
 
     function hideSlashAutocompleteMenu() {
+      window._currentSlashMatches = [];
       const menu = document.getElementById('slashAutocompleteMenu');
       if (menu) {
         menu.style.display = 'none';
@@ -3079,6 +3116,7 @@
         return;
       }
 
+      window._currentSlashMatches = matches;
       menu.style.display = 'block';
       menu.innerHTML = matches.map((item, i) => `
         <div class="slash-menu-item ${i === 0 ? 'active-item' : ''}" onclick="lockSlashCommandPill('${escapeHtml(item.cmd)}', true)">
@@ -3091,8 +3129,12 @@
     function handleSteerInputChange(el) {
       if (!el) return;
       const val = el.value;
-      // Check if user just completed a recognized "/command " followed by space (works on both desktop & Android soft keyboards)
-      const spaceMatch = val.match(/(^|\s)(\/[a-zA-Z0-9_-]+)\s$/);
+      const caret = typeof el.selectionStart === 'number' ? el.selectionStart : val.length;
+      const beforeCaret = val.slice(0, caret);
+      const afterCaret = val.slice(caret);
+
+      // Check if user just completed a recognized "/command " followed by space before the cursor (works on desktop & Android soft keyboards)
+      const spaceMatch = beforeCaret.match(/(^|\s)(\/[a-zA-Z0-9_-]+)\s$/);
       if (spaceMatch) {
         const candidate = spaceMatch[2];
         const canonical = matchRecognizedSlashCommand(candidate);
@@ -3100,7 +3142,11 @@
           if (!window._activeCommandPills.includes(canonical)) {
             window._activeCommandPills.push(canonical);
           }
-          el.value = (val.slice(0, spaceMatch.index) + (spaceMatch[1] || '')).replace(/^\s+/, '');
+          const newBefore = (beforeCaret.slice(0, spaceMatch.index) + (spaceMatch[1] || '')).replace(/^\s+/, '');
+          const nextVal = (newBefore + afterCaret).replace(/^\s+/, '');
+          el.value = nextVal;
+          const newCaret = Math.min(newBefore.length, nextVal.length);
+          try { el.setSelectionRange(newCaret, newCaret); } catch (e) {}
           renderSteerCommandPills();
           hideSlashAutocompleteMenu();
           autoResizeChatBox(el);
@@ -3108,8 +3154,10 @@
         }
       }
 
-      // Check if user is actively typing a /command token at the end
-      const activeSlash = val.match(/(?:^|\s)(\/[a-zA-Z0-9_-]*)$/);
+      // Check if user is actively typing a /command token at the cursor
+      const activeSlash = (!afterCaret || /^\s/.test(afterCaret))
+        ? beforeCaret.match(/(?:^|\s)(\/[a-zA-Z0-9_-]*)$/)
+        : null;
       if (activeSlash) {
         updateSlashAutocompleteMenu(activeSlash[1]);
       } else {
@@ -3120,6 +3168,11 @@
 
     function handleSteerInputKeydown(ev) {
       const inp = ev.target;
+      if (ev.key === 'Tab' && window._currentSlashMatches && window._currentSlashMatches.length > 0) {
+        ev.preventDefault();
+        lockSlashCommandPill(window._currentSlashMatches[0].cmd, true);
+        return;
+      }
       if (ev.key === 'Backspace' && inp && inp.selectionStart === 0 && inp.selectionEnd === 0 && window._activeCommandPills.length > 0) {
         ev.preventDefault();
         window._activeCommandPills.pop();
@@ -3142,9 +3195,13 @@
 
       // Optimistic immediate queued rendering in trajectory view
       window._optimisticUserSteps = window._optimisticUserSteps || [];
+      const existingSteps = (window._lastTrajData && Array.isArray(window._lastTrajData.steps)) ? window._lastTrajData.steps : [];
+      const baselineIndices = new Set(existingSteps.map(s => s.step_index).filter(x => x !== undefined));
+      const sameConvOptCount = window._optimisticUserSteps.filter(o => o.conversation_id === currentConversationId).length;
       window._optimisticUserSteps.push({
         conversation_id: currentConversationId,
-        step_index: (window._lastTrajData ? (window._lastTrajData.step_count || 0) : 0) + window._optimisticUserSteps.length + 100,
+        step_index: (window._lastTrajData ? (window._lastTrajData.step_count || 0) : 0) + sameConvOptCount,
+        baseline_step_indices: baselineIndices,
         source: 'USER_MOBILE_QUEUED',
         type: 'USER_INPUT',
         status: 'QUEUED',
@@ -3208,10 +3265,12 @@
       const inp = document.getElementById('steerInput');
       let rawVal = inp ? inp.value.trim() : '';
 
-      // If rawVal itself is a single recognized slash command, canonicalize it
-      if (rawVal.startsWith('/') && !rawVal.includes(' ')) {
-        const canon = matchRecognizedSlashCommand(rawVal);
-        if (canon) rawVal = canon;
+      // Canonicalize any recognized /command tokens remaining inside rawVal
+      if (rawVal) {
+        rawVal = rawVal.replace(/(^|\s)(\/[a-zA-Z0-9_-]+)(?=\s|$)/g, (m, pre, tok) => {
+          const canon = matchRecognizedSlashCommand(tok);
+          return pre + (canon || tok);
+        });
       }
 
       const combinedText = [...(window._activeCommandPills || []), rawVal].filter(Boolean).join(' ').trim();
