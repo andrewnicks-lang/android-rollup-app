@@ -1,6 +1,6 @@
 /**
- * app.js — RollupOS Mobile Controller for Lightning Garage (2023 F-150 Lightning ER Lariat)
- * Uses RollupBridge.storage for isolated per-user persistence + GarageEngine for deterministic math.
+ * app.js — RollupOS Mobile Controller for Blue Oval Garage v2.0 (2011–2026+ Ford & Lincoln FORScan Companion)
+ * Uses RollupBridge.storage for isolated per-user multi-vehicle persistence + GarageEngine for deterministic math.
  */
 (function (global) {
   'use strict';
@@ -10,6 +10,7 @@
 
   const BUNDLE = global.LIGHTNING_GARAGE_BUNDLE || {
     entries: [],
+    ford_platforms: [],
     ford_modules: {},
     ford_fcodes: {},
     module_editorial: {},
@@ -17,24 +18,38 @@
   };
 
   // --- State Keys in RollupBridge.storage ---
+  const KEY_VEHICLES = 'garage_vehicles_v2';
+  const KEY_ACTIVE_VID = 'garage_active_vid_v2';
   const KEY_PROFILE = 'truck_profile';
-  const KEY_MOD_OVERRIDES = 'mod_overrides'; // { [id]: { status, wanted, verified_on_my_truck, user_notes } }
-  const KEY_BACKUPS = 'backups_list';        // Array of parsed backup objects
+  const KEY_MOD_OVERRIDES = 'mod_overrides';
+  const KEY_BACKUPS = 'backups_list';
   const KEY_CHANGE_LOG = 'change_log';
+  const KEY_CUSTOM_MODS = 'custom_mods_v2';
+
+  let camStream = null;
+  let camTimer = null;
 
   let state = {
     activeTab: 'truck',
+    vehicles: [],
+    activeVehicleId: 1,
     profile: null,
     modOverrides: {},
     backups: [],
     changeLog: [],
+    customMods: [],
+    scannerOpen: false,
+    addVehicleOpen: false,
+    customBuilderOpen: false,
+    selectedPlatformSlug: null,
     modFilters: {
       search: '',
       chip: 'popular', // 'all' | 'popular' | 'wanted' | 'ready' | 'approved' | 'ev_safe'
       module: 'ALL',
-      tier: 'ALL'
+      tier: 'ALL',
+      allPlatforms: false
     },
-    moduleFilter: 'ALL', // 'ALL' | 'MODDABLE' | 'PRESENT' | 'CRITICAL'
+    moduleFilter: 'PRESENT', // 'ALL' | 'MODDABLE' | 'PRESENT' | 'CRITICAL'
     selectedModId: null
   };
 
@@ -57,34 +72,77 @@
       .replace(/"/g, '&quot;');
   }
 
-  // --- Initialization & Storage Hydration ---
+  function resolveUpstreamPlatform(platformSlug) {
+    const slug = String(platformSlug || 'f150_14g').toLowerCase();
+    if (['f150', 'super_duty', 'ranger_6g', 'explorer', 'bronco', 'mustang'].includes(slug)) return slug;
+    const pl = (BUNDLE.ford_platforms || []).find((p) => p.slug === slug);
+    if (pl && pl.upstream_dir) return pl.upstream_dir;
+    if (slug.startsWith('super_duty')) return 'super_duty';
+    if (slug.startsWith('ranger')) return 'ranger_6g';
+    if (slug.startsWith('explorer')) return 'explorer';
+    if (slug.startsWith('bronco') || slug.startsWith('maverick')) return 'bronco';
+    if (slug.startsWith('mustang')) return 'mustang';
+    return 'f150';
+  }
+
+  function getScopedKey(baseKey, vid) {
+    return vid === 1 ? baseKey : `${baseKey}_v${vid}`;
+  }
+
+  // --- Initialization & Multi-Vehicle Storage Hydration ---
   function loadState() {
     const cfg = (global.RollupBridge && RollupBridge.user.getAppConfig(APP_ID)) || {};
-    const savedProfile = (global.RollupBridge && RollupBridge.storage.get(KEY_PROFILE, null, APP_ID)) || null;
     const defProf = BUNDLE.default_profile || {};
+    const legacyProfile = (global.RollupBridge && RollupBridge.storage.get(KEY_PROFILE, null, APP_ID)) || null;
+    const savedVehicles = (global.RollupBridge && RollupBridge.storage.get(KEY_VEHICLES, null, APP_ID)) || null;
 
-    state.profile = {
-      vin: (savedProfile && savedProfile.vin) || cfg.default_vin || defProf.vin || '1FT6W1EV4PWG11434',
-      model_year: Number((savedProfile && savedProfile.model_year) || defProf.model_year || 2023),
-      model: (savedProfile && savedProfile.model) || defProf.model || 'F-150 Lightning',
-      trim: (savedProfile && savedProfile.trim) || cfg.default_trim || defProf.trim || 'Lariat',
-      battery: (savedProfile && savedProfile.battery) || cfg.default_battery || defProf.battery || 'Extended Range (131 kWh)',
-      options: (savedProfile && savedProfile.options) || defProf.options || '511A, Max Trailer Tow, Tow Tech, BlueCruise, Pro Power 9.6kW',
-      adapter: (savedProfile && savedProfile.adapter) || defProf.adapter || 'OBDLink EX',
-      forscan_license: (savedProfile && savedProfile.forscan_license) || defProf.forscan_license || 'Extended License',
-      odometer: (savedProfile && savedProfile.odometer) || defProf.odometer || '',
-      vin_online: (savedProfile && savedProfile.vin_online) || null
-    };
+    if (Array.isArray(savedVehicles) && savedVehicles.length > 0) {
+      state.vehicles = savedVehicles;
+    } else {
+      const v1 = {
+        id: 1,
+        vin: (legacyProfile && legacyProfile.vin) || cfg.default_vin || defProf.vin || '1FT6W1EV4PWG11434',
+        nickname: (legacyProfile && legacyProfile.nickname) || '2023 F-150 Lightning Lariat ER',
+        make: (legacyProfile && legacyProfile.make) || 'Ford',
+        model_year: Number((legacyProfile && legacyProfile.model_year) || defProf.model_year || 2023),
+        model: (legacyProfile && legacyProfile.model) || defProf.model || 'F-150 Lightning',
+        platform_slug: (legacyProfile && legacyProfile.platform_slug) || 'f150_14g',
+        trim: (legacyProfile && legacyProfile.trim) || cfg.default_trim || defProf.trim || 'Lariat',
+        powertrain: (legacyProfile && legacyProfile.powertrain) || 'BEV',
+        battery: (legacyProfile && legacyProfile.battery) || cfg.default_battery || defProf.battery || 'Extended Range (131 kWh)',
+        options: (legacyProfile && legacyProfile.options) || defProf.options || '511A, Max Trailer Tow, Tow Tech, BlueCruise, Pro Power 9.6kW',
+        adapter: (legacyProfile && legacyProfile.adapter) || defProf.adapter || 'OBDLink EX',
+        forscan_license: (legacyProfile && legacyProfile.forscan_license) || defProf.forscan_license || 'Extended License',
+        odometer: (legacyProfile && legacyProfile.odometer) || defProf.odometer || '',
+        vin_online: (legacyProfile && legacyProfile.vin_online) || null
+      };
+      state.vehicles = [v1];
+      saveVehicles();
+    }
 
-    // Seed default popular wanted/approved overrides on first launch if empty
-    const savedOverrides = (global.RollupBridge && RollupBridge.storage.get(KEY_MOD_OVERRIDES, null, APP_ID)) || null;
+    const savedActiveVid = Number((global.RollupBridge && RollupBridge.storage.get(KEY_ACTIVE_VID, 1, APP_ID)) || 1);
+    const activeVeh = state.vehicles.find((v) => v.id === savedActiveVid) || state.vehicles[0];
+    state.activeVehicleId = activeVeh.id;
+    state.profile = activeVeh;
+    state.selectedPlatformSlug = activeVeh.platform_slug || 'f150_14g';
+
+    loadScopedVehicleData(state.activeVehicleId);
+  }
+
+  function loadScopedVehicleData(vid) {
+    const ovKey = getScopedKey(KEY_MOD_OVERRIDES, vid);
+    const bkKey = getScopedKey(KEY_BACKUPS, vid);
+    const clKey = getScopedKey(KEY_CHANGE_LOG, vid);
+    const cmKey = getScopedKey(KEY_CUSTOM_MODS, vid);
+
+    const savedOverrides = (global.RollupBridge && RollupBridge.storage.get(ovKey, null, APP_ID)) || null;
     if (savedOverrides) {
       state.modOverrides = savedOverrides;
     } else {
       state.modOverrides = {};
-      // Pre-star the top 3-star community favorites as Wanted for convenience
+      const upPlat = resolveUpstreamPlatform(state.profile.platform_slug);
       (BUNDLE.entries || []).forEach((e) => {
-        if (e.popularity >= 3 && e.tier <= 2 && e.ev_status !== 'ICE_ONLY') {
+        if ((e.platform_slug || 'f150') === upPlat && e.popularity >= 3 && e.tier <= 2 && e.ev_status !== 'ICE_ONLY') {
           state.modOverrides[e.id] = {
             status: 'APPROVED',
             wanted: 1,
@@ -96,38 +154,55 @@
       saveModOverrides();
     }
 
-    state.backups = (global.RollupBridge && RollupBridge.storage.get(KEY_BACKUPS, [], APP_ID)) || [];
-    state.changeLog = (global.RollupBridge && RollupBridge.storage.get(KEY_CHANGE_LOG, [], APP_ID)) || [];
+    state.backups = (global.RollupBridge && RollupBridge.storage.get(bkKey, [], APP_ID)) || [];
+    state.changeLog = (global.RollupBridge && RollupBridge.storage.get(clKey, [], APP_ID)) || [];
+    state.customMods = (global.RollupBridge && RollupBridge.storage.get(cmKey, [], APP_ID)) || [];
+  }
+
+  function saveVehicles() {
+    if (global.RollupBridge) {
+      RollupBridge.storage.set(KEY_VEHICLES, state.vehicles, APP_ID);
+      RollupBridge.storage.set(KEY_ACTIVE_VID, state.activeVehicleId, APP_ID);
+      if (state.activeVehicleId === 1) {
+        RollupBridge.storage.set(KEY_PROFILE, state.profile, APP_ID);
+      }
+    }
   }
 
   function saveProfile() {
-    if (global.RollupBridge) {
-      RollupBridge.storage.set(KEY_PROFILE, state.profile, APP_ID);
+    const idx = state.vehicles.findIndex((v) => v.id === state.activeVehicleId);
+    if (idx !== -1) {
+      state.vehicles[idx] = state.profile;
     }
+    saveVehicles();
   }
 
   function saveModOverrides() {
     if (global.RollupBridge) {
-      RollupBridge.storage.set(KEY_MOD_OVERRIDES, state.modOverrides, APP_ID);
+      RollupBridge.storage.set(getScopedKey(KEY_MOD_OVERRIDES, state.activeVehicleId), state.modOverrides, APP_ID);
     }
   }
 
   function saveBackups() {
     if (global.RollupBridge) {
-      RollupBridge.storage.set(KEY_BACKUPS, state.backups, APP_ID);
+      RollupBridge.storage.set(getScopedKey(KEY_BACKUPS, state.activeVehicleId), state.backups, APP_ID);
+    }
+  }
+
+  function saveCustomMods() {
+    if (global.RollupBridge) {
+      RollupBridge.storage.set(getScopedKey(KEY_CUSTOM_MODS, state.activeVehicleId), state.customMods, APP_ID);
     }
   }
 
   // --- Merged View of Current As-Built State & Entries ---
   function getMergedTruckState() {
     const merged = {};
-    // Apply FORSCAN_BACKUP files in chronological order
     state.backups
       .filter((b) => b.kind === 'FORSCAN_BACKUP')
       .forEach((b) => {
         Object.assign(merged, b.dict || {});
       });
-    // If no FORSCAN_BACKUP yet, fall back to FORD_AB factory baseline if imported
     if (Object.keys(merged).length === 0) {
       state.backups
         .filter((b) => b.kind === 'FORD_AB')
@@ -154,9 +229,15 @@
     return state.backups.some((b) => b.is_synthetic);
   }
 
-  function getHydratedEntries() {
+  function getHydratedEntries(includeAllPlatforms = false) {
     const truckState = getMergedTruckState();
-    return (BUNDLE.entries || []).map((raw) => {
+    const upPlat = resolveUpstreamPlatform(state.profile.platform_slug);
+    const pt = String(state.profile.powertrain || 'BEV').toUpperCase();
+    const baseEntries = includeAllPlatforms || state.modFilters.allPlatforms
+      ? [...state.customMods, ...(BUNDLE.entries || [])]
+      : [...state.customMods, ...(BUNDLE.entries || []).filter((e) => (e.platform_slug || 'f150') === upPlat)];
+
+    return baseEntries.map((raw) => {
       const ov = state.modOverrides[raw.id] || {};
       const entry = {
         ...raw,
@@ -165,13 +246,14 @@
         verified_on_my_truck: ov.verified_on_my_truck !== undefined ? ov.verified_on_my_truck : raw.verified_on_my_truck || 0,
         user_notes: ov.user_notes !== undefined ? ov.user_notes : raw.user_notes || ''
       };
-      const r = GarageEngine.readiness(entry, truckState);
+      const r = GarageEngine.readiness(entry, truckState, pt);
       return { ...entry, _readiness: r };
     });
   }
 
   // --- Navigation ---
   global.switchTab = function (tabName) {
+    if (tabName !== 'truck') stopCameraStream();
     state.activeTab = tabName;
     document.querySelectorAll('.tab-section').forEach((sec) => {
       sec.classList.toggle('active', sec.id === `sec-${tabName}`);
@@ -183,6 +265,7 @@
   };
 
   function renderActiveTab() {
+    renderGarageSwitcherStrip();
     updateHeaderKPIs();
     if (state.activeTab === 'truck') renderTruckTab();
     else if (state.activeTab === 'mods') renderModsTab();
@@ -191,11 +274,74 @@
     else if (state.activeTab === 'plan') renderPlanTab();
   }
 
+  function renderGarageSwitcherStrip() {
+    const el = document.getElementById('garage-switcher-strip');
+    if (!el) return;
+    const opts = state.vehicles
+      .map((v) => {
+        const badge = v.powertrain === 'BEV' ? '⚡ ' : '🚘 ';
+        const label = v.nickname || `${v.model_year || ''} ${v.make || 'Ford'} ${v.model || ''} ${v.trim || ''}`.trim();
+        const vinTail = v.vin ? `..${String(v.vin).slice(-6)}` : 'no VIN';
+        return `<option value="${v.id}" ${v.id === state.activeVehicleId ? 'selected' : ''}>${badge}${escapeHtml(label)} (${escapeHtml(vinTail)})</option>`;
+      })
+      .join('');
+
+    el.innerHTML = `
+      <span style="font-size:11px;font-weight:800;color:#93c5fd;">Active Vehicle:</span>
+      <select class="field-input" style="width:auto;flex:1;min-width:190px;padding:5px 8px;font-size:12px;" onchange="switchActiveVehicle(this.value)">
+        ${opts}
+      </select>
+      <button class="btn btn-primary" style="padding:5px 9px;font-size:11px;" onclick="openAddVehicleDrawer()">➕ Add Vehicle</button>
+      ${
+        state.vehicles.length > 1
+          ? `<button class="btn btn-danger" style="padding:5px 8px;font-size:11px;" onclick="deleteActiveVehicle()" title="Remove active vehicle">🗑️</button>`
+          : ''
+      }
+    `;
+  }
+
+  global.switchActiveVehicle = function (vidStr) {
+    const vid = parseInt(vidStr, 10);
+    const veh = state.vehicles.find((v) => v.id === vid);
+    if (!veh) return;
+    state.activeVehicleId = vid;
+    state.profile = veh;
+    state.selectedPlatformSlug = veh.platform_slug || 'f150_14g';
+    saveVehicles();
+    loadScopedVehicleData(vid);
+    renderActiveTab();
+    showToast(`Switched to ${veh.nickname || `${veh.model_year} ${veh.model}`}`);
+  };
+
+  global.openAddVehicleDrawer = function () {
+    state.addVehicleOpen = !state.addVehicleOpen;
+    if (state.activeTab !== 'truck') {
+      switchTab('truck');
+    } else {
+      renderTruckTab();
+    }
+  };
+
+  global.deleteActiveVehicle = function () {
+    if (state.vehicles.length <= 1) return;
+    const cur = state.profile;
+    state.vehicles = state.vehicles.filter((v) => v.id !== cur.id);
+    state.activeVehicleId = state.vehicles[0].id;
+    state.profile = state.vehicles[0];
+    state.selectedPlatformSlug = state.profile.platform_slug || 'f150_14g';
+    saveVehicles();
+    loadScopedVehicleData(state.activeVehicleId);
+    renderActiveTab();
+    showToast('Removed vehicle from garage.');
+  };
+
   function updateHeaderKPIs() {
-    const entries = getHydratedEntries();
+    const entries = getHydratedEntries(false);
     const wantedCount = entries.filter((e) => e.wanted).length;
     const readyCount = entries.filter((e) => e._readiness.can_apply).length;
     const backupCount = state.backups.length;
+    const p = state.profile;
+    const g = GarageEngine.adapterGuidance(p.model_year, p.platform_slug);
 
     const badgeWanted = document.getElementById('nav-badge-wanted');
     if (badgeWanted) badgeWanted.textContent = String(wantedCount);
@@ -205,14 +351,18 @@
     const stripEl = document.getElementById('top-status-strip');
     if (stripEl) {
       const synthWarn = isSyntheticBaselineActive()
-        ? `<span class="pill pill-amber">🧪 Synthetic Demo Baseline Active</span>`
+        ? `<span class="pill pill-amber">🧪 Synthetic Demo Baseline</span>`
         : backupCount > 0
-        ? `<span class="pill pill-green">🛡️ ${backupCount} Backup File(s) Loaded</span>`
-        : `<span class="pill pill-muted">📂 No .abt/.ab Loaded Yet</span>`;
+        ? `<span class="pill pill-green">🛡️ ${backupCount} Backup(s)</span>`
+        : `<span class="pill pill-muted">📂 No .abt/.ab Yet</span>`;
+      const msCanBadge = g.ms_can_required
+        ? `<span class="pill pill-amber" title="${escapeHtml(g.note)}">⚠️ MS-CAN 125k (STP33)</span>`
+        : `<span class="pill pill-dark">HS-CAN / CAN-FD</span>`;
 
       stripEl.innerHTML = `
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span class="pill pill-blue">⚡ ${escapeHtml(state.profile.model_year)} ${escapeHtml(state.profile.trim)} • ${escapeHtml(state.profile.battery)}</span>
+          <span class="pill pill-blue">${p.powertrain === 'BEV' ? '⚡' : '🚘'} ${escapeHtml(p.model_year)} ${escapeHtml(p.model)} ${escapeHtml(p.trim || '')} • ${escapeHtml(p.powertrain || 'BEV')}</span>
+          ${msCanBadge}
           <span class="pill pill-purple">⭐ ${wantedCount} Wanted</span>
           <span class="pill pill-green">🟢 ${readyCount} Ready</span>
           ${synthWarn}
@@ -222,7 +372,7 @@
   }
 
   // =========================================================================
-  // TAB 1: TRUCK & VIN DECODER
+  // TAB 1: MULTI-VEHICLE GARAGE, HYBRID VIN SCANNER & PLATFORM SPREADSHEETS
   // =========================================================================
   function renderTruckTab() {
     const container = document.getElementById('truck-tab-content');
@@ -231,17 +381,22 @@
     const p = state.profile;
     const offline = GarageEngine.decodeVinOffline(p.vin);
     const online = p.vin_online;
-    const entries = getHydratedEntries();
+    const entries = getHydratedEntries(false);
     const wanted = entries.filter((e) => e.wanted);
     const ready = entries.filter((e) => e._readiness.can_apply);
     const approved = entries.filter((e) => e.status === 'APPROVED');
+    const g = GarageEngine.adapterGuidance(p.model_year, p.platform_slug);
+
+    const platforms = BUNDLE.ford_platforms || [];
+    const activePlatSlug = state.selectedPlatformSlug || p.platform_slug || 'f150_14g';
+    const activePlat = platforms.find((pl) => pl.slug === activePlatSlug) || platforms[0] || null;
 
     let vinDecodeHtml = '';
     if (!offline.ok) {
-      vinDecodeHtml = `<div class="alert alert-red">❌ ${escapeHtml((offline.problems || []).join('; '))}</div>`;
+      vinDecodeHtml = `<div class="alert alert-red" style="margin-top:8px;">❌ ${escapeHtml((offline.problems || []).join('; '))}</div>`;
     } else {
       const chkBadge = offline.check_digit.valid
-        ? `<span class="pill pill-green">✓ ISO 3779 Check Digit '${escapeHtml(offline.check_digit.actual)}' Valid</span>`
+        ? `<span class="pill pill-green">✓ ISO 3779 Modulo-11 Check Digit '${escapeHtml(offline.check_digit.actual)}' Valid</span>`
         : `<span class="pill pill-amber">⚠️ Check Digit '${escapeHtml(offline.check_digit.actual)}' (Expected '${escapeHtml(offline.check_digit.expected)}')</span>`;
 
       const onlineBlock = online && online.fields
@@ -249,17 +404,14 @@
           <div style="margin-top:10px;padding:10px;background:#061224;border:1px solid #1e3a8a;border-radius:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <strong style="font-size:11.5px;color:#38bdf8;">🌐 NHTSA vPIC Verified Telemetry</strong>
-              <span class="pill pill-green">Confirmed BEV</span>
+              <span class="pill pill-green">Powertrain: ${escapeHtml(online.powertrain || p.powertrain || 'BEV')}</span>
             </div>
             <div class="kv-grid">
               <div><span class="kv-label">Make / Model:</span> <strong>${escapeHtml(online.fields.Make)} ${escapeHtml(online.fields.Model)}</strong></div>
-              <div><span class="kv-label">Series / Cab:</span> <strong>${escapeHtml(online.fields.Series)} (${escapeHtml(online.fields.BodyClass)})</strong></div>
-              <div><span class="kv-label">HV Battery Pack:</span> <strong style="color:#34d399;">${escapeHtml(online.fields._resolvedPack || online.fields.BatteryInfo)}</strong></div>
+              <div><span class="kv-label">Series / Cab:</span> <strong>${escapeHtml(online.fields.Series)} (${escapeHtml(online.fields.BodyCabType || online.fields.BodyClass)})</strong></div>
+              <div><span class="kv-label">Pack / Engine:</span> <strong style="color:#34d399;">${escapeHtml(online.fields._resolvedPack || online.fields.BatteryInfo || online.fields.EngineModel || p.battery)}</strong></div>
               <div><span class="kv-label">Drive / GVWR:</span> <strong>${escapeHtml(online.fields.DriveType)} • ${escapeHtml(online.fields.GVWR)}</strong></div>
               <div><span class="kv-label">Assembly Plant:</span> <strong>${escapeHtml(online.fields.PlantCity)}, ${escapeHtml(online.fields.PlantCountry)}</strong></div>
-            </div>
-            <div style="font-size:10.5px;color:#94a3b8;margin-top:6px;">
-              <em>Note: NHTSA's <code>BatteryKWh=${escapeHtml(online.fields.BatteryKWh || '98.00')}</code> field is a model-line floor value; <code>BatteryInfo</code> ("${escapeHtml(online.fields.BatteryInfo)}") + Position 8='V' confirms Extended Range (131 kWh / 320 mi EPA).</em>
             </div>
           </div>
         `
@@ -273,10 +425,10 @@
           </div>
           <div class="kv-grid">
             <div><span class="kv-label">WMI (Pos 1–3):</span> <strong>${escapeHtml(offline.wmi)} — ${escapeHtml(offline.wmi_meaning)}</strong></div>
-            <div><span class="kv-label">Series (Pos 4–6):</span> <strong>${escapeHtml(offline.series_code)} — ${escapeHtml(offline.series_meaning)}</strong></div>
-            <div><span class="kv-label">Motor/Pack (Pos 8='${escapeHtml(offline.engine_code)}'):</span> <strong style="color:#38bdf8;">${escapeHtml(offline.inferred_pack || 'EV Powertrain')}</strong></div>
-            <div><span class="kv-label">Drive Output:</span> <strong>${escapeHtml(offline.inferred_motors || 'Dual Electric Motors')}</strong></div>
-            <div><span class="kv-label">Model Year (Pos 10):</span> <strong>${escapeHtml(offline.model_year || '2023')}</strong></div>
+            <div><span class="kv-label">Series (Pos 5–7):</span> <strong>${escapeHtml(offline.series_code)} — ${escapeHtml(offline.series_meaning)}</strong></div>
+            <div><span class="kv-label">Platform Slug:</span> <strong style="color:#38bdf8;">${escapeHtml(offline.platform_slug || p.platform_slug)}</strong></div>
+            <div><span class="kv-label">Pack / Engine (Pos 8='${escapeHtml(offline.engine_code)}'):</span> <strong>${escapeHtml(offline.inferred_pack || p.battery || 'Standard')}</strong></div>
+            <div><span class="kv-label">Model Year (Pos 10):</span> <strong>${escapeHtml(offline.model_year || (offline.model_year_candidates || []).join('/') || p.model_year)}</strong></div>
             <div><span class="kv-label">Plant (Pos 11='${escapeHtml(offline.plant_code)}'):</span> <strong>${escapeHtml(offline.plant_meaning)} • Serial #${escapeHtml(offline.serial)}</strong></div>
           </div>
           ${onlineBlock}
@@ -284,26 +436,141 @@
       `;
     }
 
+    const addVehHtml = state.addVehicleOpen
+      ? `
+        <div class="card" style="border-color:#38bdf8;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="margin:0;font-size:14px;color:#38bdf8;">➕ Add Another Ford or Lincoln Vehicle (2011–2026+)</h3>
+            <button class="btn btn-secondary" style="padding:3px 8px;" onclick="openAddVehicleDrawer()">✕</button>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="field-label">17-Character VIN (or 18-char Barcode)</label>
+              <input type="text" id="new-veh-vin" class="field-input" maxlength="20" placeholder="e.g. 1FTFW1E50MFA12345">
+            </div>
+            <div>
+              <label class="field-label">Year, Make &amp; Model</label>
+              <div style="display:flex;gap:5px;">
+                <input type="number" id="new-veh-year" class="field-input" style="width:32%;" value="2021" min="2011" max="2027">
+                <select id="new-veh-make" class="field-input" style="width:30%;">
+                  <option value="Ford">Ford</option>
+                  <option value="Lincoln">Lincoln</option>
+                </select>
+                <input type="text" id="new-veh-model" class="field-input" style="width:38%;" placeholder="F-150, Bronco, Super Duty">
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Trim &amp; Powertrain</label>
+              <div style="display:flex;gap:5px;">
+                <input type="text" id="new-veh-trim" class="field-input" style="width:45%;" placeholder="Lariat, XLT, Raptor">
+                <select id="new-veh-pt" class="field-input" style="width:55%;">
+                  <option value="">Auto-Detect Powertrain</option>
+                  <option value="ICE_GAS">Gasoline / EcoBoost (ICE_GAS)</option>
+                  <option value="ICE_DIESEL">Power Stroke Diesel (ICE_DIESEL)</option>
+                  <option value="HEV">PowerBoost / Hybrid (HEV)</option>
+                  <option value="PHEV">Plug-In Hybrid (PHEV)</option>
+                  <option value="BEV">Battery Electric (⚡ BEV)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn btn-primary" style="width:100%;" onclick="createNewVehicleFromForm()">✓ Save &amp; Switch to Vehicle</button>
+            </div>
+          </div>
+        </div>
+      `
+      : '';
+
+    const scannerHtml = state.scannerOpen
+      ? `
+        <div style="margin:10px 0;padding:11px;background:#081224;border:1px solid #0284c7;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <strong style="font-size:12.5px;color:#38bdf8;">📷 Hybrid VIN Barcode, Photo &amp; Modulo-11 OCR Scanner</strong>
+            <button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;" onclick="toggleVinScanner()">Close</button>
+          </div>
+          <p style="margin:0 0 8px 0;font-size:11px;color:#94a3b8;">
+            Scan a door-jamb Code 39 / DataMatrix barcode (auto-strips Ford's 18th-char <code>I</code>/<code>*</code> guard), snap a photo of a windshield VIN plate (with Canvas CLAHE contrast enhancement), or run deterministic ISO 3779 Modulo-11 optical repair.
+          </p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+            <button class="btn btn-primary" onclick="startLiveVinCamera()">🎥 Live Barcode Camera</button>
+            <label class="btn btn-blue" style="cursor:pointer;">
+              📸 Snap / Upload VIN Photo
+              <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleMobileVinPhoto(this.files[0])">
+            </label>
+            <button class="btn btn-secondary" onclick="runGeminiVisionVinFallback()">🤖 Gemini Vision Plate OCR</button>
+          </div>
+          <video id="mob-vin-video" playsinline muted style="display:none;width:100%;max-height:220px;border:2px solid #38bdf8;border-radius:8px;margin-bottom:6px;"></video>
+          <canvas id="mob-clahe-canvas" style="display:none;width:100%;max-height:180px;border:1px solid #334155;border-radius:6px;margin-bottom:6px;"></canvas>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="mob-ocr-raw" class="field-input" style="font-family:monospace;" placeholder="Paste raw barcode / OCR string (e.g. I1FT6W1EV4PWG11434)">
+            <button class="btn btn-amber" onclick="runDeterministicVinRepair()">🔧 Modulo-11 Repair</button>
+          </div>
+          <div id="mob-scan-status" style="margin-top:6px;font-size:11.5px;"></div>
+        </div>
+      `
+      : '';
+
+    const platOptsHtml = platforms
+      .map((pl) => `<option value="${escapeHtml(pl.slug)}" ${pl.slug === activePlatSlug ? 'selected' : ''}>${escapeHtml(pl.name)} [${escapeHtml(pl.architecture)}]</option>`)
+      .join('');
+
+    const platDownloadsHtml = activePlat
+      ? `
+        <div style="font-size:11.5px;color:#93c5fd;margin-bottom:8px;">${escapeHtml(activePlat.adapter_note || '')}</div>
+        ${(activePlat.downloads || [])
+          .map(
+            (dl) => `
+          <div style="padding:9px 11px;background:#090e1a;border:1px solid #1e293b;border-radius:9px;margin-bottom:6px;">
+            <div style="font-weight:800;font-size:12.5px;color:#f8fafc;margin-bottom:5px;">
+              ${escapeHtml(dl.title)} <span style="font-weight:400;color:#94a3b8;font-size:11px;">by ${escapeHtml(dl.author || 'Community')}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${dl.xlsx_url ? `<a href="${escapeHtml(dl.xlsx_url)}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:5px 9px;font-size:11px;">📥 Download .XLSX</a>` : ''}
+              ${dl.pdf_url ? `<a href="${escapeHtml(dl.pdf_url)}" target="_blank" rel="noopener" class="btn btn-blue" style="padding:5px 9px;font-size:11px;">📄 Download .PDF</a>` : ''}
+              ${dl.sheet_url ? `<a href="${escapeHtml(dl.sheet_url)}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:5px 9px;font-size:11px;">📊 Google Sheet &nearr;</a>` : ''}
+              ${dl.forum_url ? `<a href="${escapeHtml(dl.forum_url)}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:5px 9px;font-size:11px;">💬 Forum &nearr;</a>` : ''}
+            </div>
+          </div>
+        `
+          )
+          .join('')}
+        <div style="margin-top:8px;font-size:11.5px;color:#cbd5e1;">
+          <strong style="color:#38bdf8;">Popular Mods on ${escapeHtml(activePlat.short_name || activePlat.name)}:</strong>
+          <ul style="margin:4px 0 0 18px;padding:0;line-height:1.45;">
+            ${(activePlat.top_mods || []).map((m) => `<li>${escapeHtml(m)}</li>`).join('')}
+          </ul>
+        </div>
+      `
+      : '';
+
     container.innerHTML = `
-      <!-- Hero Truck Card -->
+      ${addVehHtml}
+
+      <!-- Hero Vehicle Card -->
       <div class="card card-accent">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
           <div>
             <div style="font-size:10.5px;font-weight:800;color:#38bdf8;text-transform:uppercase;letter-spacing:0.6px;">
-              ⚡ Active Vehicle Profile • RollupOS Mobile Companion
+              ${p.powertrain === 'BEV' ? '⚡ Electric Vehicle Profile' : '🚘 Ford / Lincoln Vehicle Profile'} • Blue Oval Garage v2.0
             </div>
             <h2 style="margin:3px 0 4px 0;font-size:18px;color:#f8fafc;">
-              ${escapeHtml(p.model_year)} Ford ${escapeHtml(p.model)} ${escapeHtml(p.trim)}
+              ${escapeHtml(p.model_year)} ${escapeHtml(p.make || 'Ford')} ${escapeHtml(p.model)} ${escapeHtml(p.trim || '')}
             </h2>
             <div style="font-size:12px;color:#cbd5e1;">
-              <strong>${escapeHtml(p.battery)}</strong> • 320 mi EPA @ 100% • <code>${escapeHtml(p.vin)}</code>
+              <strong>${escapeHtml(p.battery || p.powertrain || 'Standard')}</strong> • Platform: <code>${escapeHtml(p.platform_slug || 'f150_14g')}</code> • <code>${escapeHtml(p.vin)}</code>
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="switchTab('mods')">🎛️ Browse ${entries.length} Mods</button>
+            <button class="btn btn-primary" onclick="switchTab('mods')">🎛️ Browse ${entries.length} Platform Mods</button>
             <button class="btn btn-secondary" onclick="switchTab('plan')">📋 Session Plan (${wanted.length})</button>
           </div>
         </div>
+
+        ${
+          g.ms_can_required
+            ? `<div class="alert alert-amber" style="margin-top:10px;"><strong>⚠️ 125 kbaud MS-CAN Vehicle (${escapeHtml(g.architecture)}):</strong> ${escapeHtml(g.note)}</div>`
+            : ''
+        }
 
         <!-- Quick Readiness Strip -->
         <div class="stat-row" style="margin-top:12px;">
@@ -326,13 +593,79 @@
         </div>
       </div>
 
+      <!-- VIN Entry + Hybrid Barcode / Photo / OCR Scanner Card -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <h3 style="margin:0;font-size:14px;color:#f8fafc;">🔢 VIN Decoder &amp; Barcode / Photo Scanner</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-amber" onclick="toggleVinScanner()">📷 Scan Barcode / VIN Plate</button>
+            <button class="btn btn-secondary" onclick="copyVinToClipboard()">📋 Copy VIN</button>
+            <button class="btn btn-blue" id="btn-nhtsa-lookup" onclick="runOnlineVinDecode()">🌐 Verify w/ NHTSA vPIC</button>
+          </div>
+        </div>
+
+        ${scannerHtml}
+
+        <div class="form-grid">
+          <div>
+            <label class="field-label">17-Character VIN</label>
+            <input type="text" id="inp-vin" class="field-input" maxlength="20" value="${escapeHtml(p.vin)}" oninput="onProfileInput()">
+          </div>
+          <div>
+            <label class="field-label">Model Year, Model &amp; Trim</label>
+            <div style="display:flex;gap:5px;">
+              <input type="number" id="inp-year" class="field-input" style="width:28%;" value="${escapeHtml(p.model_year)}" oninput="onProfileInput()">
+              <input type="text" id="inp-model" class="field-input" style="width:40%;" value="${escapeHtml(p.model)}" oninput="onProfileInput()">
+              <input type="text" id="inp-trim" class="field-input" style="width:32%;" value="${escapeHtml(p.trim)}" oninput="onProfileInput()">
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Powertrain &amp; Pack / Engine</label>
+            <div style="display:flex;gap:5px;">
+              <select id="inp-pt" class="field-input" style="width:42%;" onchange="onProfileInput()">
+                <option value="BEV" ${p.powertrain === 'BEV' ? 'selected' : ''}>⚡ BEV</option>
+                <option value="ICE_GAS" ${p.powertrain === 'ICE_GAS' ? 'selected' : ''}>⛽ Gas / EcoBoost</option>
+                <option value="ICE_DIESEL" ${p.powertrain === 'ICE_DIESEL' ? 'selected' : ''}>🛢️ Power Stroke Diesel</option>
+                <option value="HEV" ${p.powertrain === 'HEV' ? 'selected' : ''}>🔋 Hybrid / PowerBoost</option>
+                <option value="PHEV" ${p.powertrain === 'PHEV' ? 'selected' : ''}>🔌 Plug-In Hybrid</option>
+              </select>
+              <input type="text" id="inp-battery" class="field-input" style="width:58%;" value="${escapeHtml(p.battery)}" oninput="onProfileInput()">
+            </div>
+          </div>
+          <div>
+            <label class="field-label">OBD Adapter &amp; Installed Options</label>
+            <input type="text" id="inp-options" class="field-input" value="${escapeHtml(p.options)}" oninput="onProfileInput()">
+          </div>
+        </div>
+
+        ${vinDecodeHtml}
+      </div>
+
+      <!-- Vehicle-Specific FORScan Spreadsheets & Downloads Card -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <div>
+            <h3 style="margin:0;font-size:14px;color:#f8fafc;">📥 Vehicle-Specific FORScan Spreadsheets &amp; Downloads (2011–2026+)</h3>
+            <p style="margin:2px 0 0 0;font-size:11.5px;color:#94a3b8;">
+              1-tap <code>.xlsx</code> &amp; <code>.pdf</code> exports of community master spreadsheets (Livnitup, ZooDad, DanMc85) for offline reference.
+            </p>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <select class="field-input" onchange="onSelectPlatformGuide(this.value)">
+            ${platOptsHtml}
+          </select>
+        </div>
+        ${platDownloadsHtml}
+      </div>
+
       <!-- Fast Baseline / Demo Loader Card -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
             <h3 style="margin:0;font-size:14px;color:#f8fafc;">🚀 Quick Baseline &amp; Dry-Run Setup</h3>
             <p style="margin:3px 0 0 0;font-size:11.5px;color:#94a3b8;">
-              Import your truck's real FORScan <code>.abt</code> or Ford <code>.ab</code> XML file—or load a synthetic demo baseline to preview exact nibble/checksum math right now on your phone.
+              Import your vehicle's real FORScan <code>.abt</code> or Ford <code>.ab</code> XML file—or load a synthetic demo baseline to preview exact nibble/checksum math right now.
             </p>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -349,51 +682,13 @@
         </div>
       </div>
 
-      <!-- VIN & Equipment Editor Card -->
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-          <h3 style="margin:0;font-size:14px;color:#f8fafc;">🔢 VIN Decoder &amp; Truck Specs</h3>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-secondary" onclick="copyVinToClipboard()">📋 Copy VIN</button>
-            <button class="btn btn-blue" id="btn-nhtsa-lookup" onclick="runOnlineVinDecode()">🌐 Verify w/ NHTSA vPIC</button>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <div>
-            <label class="field-label">17-Character VIN</label>
-            <input type="text" id="inp-vin" class="field-input" maxlength="17" value="${escapeHtml(p.vin)}" oninput="onProfileInput()">
-          </div>
-          <div>
-            <label class="field-label">Model Year &amp; Trim</label>
-            <div style="display:flex;gap:6px;">
-              <input type="number" id="inp-year" class="field-input" style="width:38%;" value="${escapeHtml(p.model_year)}" oninput="onProfileInput()">
-              <input type="text" id="inp-trim" class="field-input" style="width:62%;" value="${escapeHtml(p.trim)}" oninput="onProfileInput()">
-            </div>
-          </div>
-          <div>
-            <label class="field-label">Battery Pack</label>
-            <select id="inp-battery" class="field-input" onchange="onProfileInput()">
-              <option value="Extended Range (131 kWh)" ${String(p.battery).includes('Extended') ? 'selected' : ''}>Extended Range (131 kWh / ~320 mi)</option>
-              <option value="Standard Range (98 kWh)" ${String(p.battery).includes('Standard') ? 'selected' : ''}>Standard Range (98 kWh / ~240 mi)</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label">OBD Adapter &amp; Installed Options</label>
-            <input type="text" id="inp-options" class="field-input" value="${escapeHtml(p.options)}" oninput="onProfileInput()">
-          </div>
-        </div>
-
-        ${vinDecodeHtml}
-      </div>
-
       <!-- Phone <-> PC Vault Sync Card -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
             <h3 style="margin:0;font-size:14px;color:#f8fafc;">💾 RollupOS Vault &amp; PC Sync</h3>
             <p style="margin:3px 0 0 0;font-size:11.5px;color:#94a3b8;">
-              Export your complete Lightning Garage state (profile, starred mods, notes, and imported <code>.abt</code>/<code>.ab</code> backups) to a portable JSON file or share via Android Share Sheet.
+              Export your complete Blue Oval Garage state (all vehicles, starred mods, custom lines, and imported <code>.abt</code>/<code>.ab</code> backups) to a portable JSON file.
             </p>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -408,18 +703,259 @@
     `;
   }
 
+  global.onSelectPlatformGuide = function (slug) {
+    state.selectedPlatformSlug = slug;
+    renderTruckTab();
+  };
+
+  global.createNewVehicleFromForm = function () {
+    const rawVin = ((document.getElementById('new-veh-vin') || {}).value || '').trim();
+    const vin = GarageEngine.normalizeVin(rawVin);
+    let yr = parseInt((document.getElementById('new-veh-year') || {}).value, 10) || 2021;
+    let make = (document.getElementById('new-veh-make') || {}).value || 'Ford';
+    let model = ((document.getElementById('new-veh-model') || {}).value || '').trim();
+    const trim = ((document.getElementById('new-veh-trim') || {}).value || '').trim();
+    let pt = (document.getElementById('new-veh-pt') || {}).value || '';
+
+    let offline = null;
+    if (vin) {
+      offline = GarageEngine.decodeVinOffline(vin);
+      if (!offline.ok) {
+        showToast((offline.problems || []).join('; '), true);
+        return;
+      }
+      if (offline.model_year) yr = offline.model_year;
+      if (offline.inferred && offline.inferred.make) make = offline.inferred.make;
+      if (!model && offline.inferred && offline.inferred.model) model = offline.inferred.model;
+    }
+    model = model || 'F-150';
+    pt = pt || GarageEngine.classifyPowertrain(offline, null, model, '');
+    const platformSlug = GarageEngine.resolvePlatformSlug(model, yr, vin, make);
+    const newId = Date.now();
+    const newVeh = {
+      id: newId,
+      vin: vin || '',
+      nickname: `${yr} ${make} ${model} ${trim}`.trim(),
+      make,
+      model_year: yr,
+      model,
+      platform_slug: platformSlug,
+      trim,
+      powertrain: pt,
+      battery: (offline && offline.inferred_pack) || pt,
+      options: '',
+      adapter: 'OBDLink EX',
+      forscan_license: 'Extended License',
+      odometer: '',
+      vin_online: null
+    };
+    state.vehicles.push(newVeh);
+    state.activeVehicleId = newId;
+    state.profile = newVeh;
+    state.selectedPlatformSlug = platformSlug;
+    state.addVehicleOpen = false;
+    saveVehicles();
+    loadScopedVehicleData(newId);
+    renderActiveTab();
+    showToast(`Added & activated ${newVeh.nickname}!`);
+  };
+
+  global.toggleVinScanner = function () {
+    state.scannerOpen = !state.scannerOpen;
+    if (!state.scannerOpen) stopCameraStream();
+    renderTruckTab();
+  };
+
+  function stopCameraStream() {
+    if (camTimer) {
+      clearInterval(camTimer);
+      camTimer = null;
+    }
+    if (camStream) {
+      camStream.getTracks().forEach((t) => t.stop());
+      camStream = null;
+    }
+  }
+
+  global.startLiveVinCamera = async function () {
+    const vid = document.getElementById('mob-vin-video');
+    const st = document.getElementById('mob-scan-status');
+    if (!vid) return;
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+      });
+      vid.srcObject = camStream;
+      vid.style.display = 'block';
+      await vid.play();
+      if (st) st.innerHTML = `<span style="color:#93c5fd;">Point camera at door-jamb VIN barcode or windshield VIN plate...</span>`;
+      if ('BarcodeDetector' in global) {
+        const det = new global.BarcodeDetector({ formats: ['code_39', 'code_128', 'data_matrix', 'qr_code', 'pdf417'] });
+        camTimer = setInterval(async () => {
+          if (!camStream) return;
+          try {
+            const codes = await det.detect(vid);
+            if (codes && codes.length) {
+              const raw = codes[0].rawValue || '';
+              const rawInp = document.getElementById('mob-ocr-raw');
+              if (rawInp) rawInp.value = raw;
+              stopCameraStream();
+              vid.style.display = 'none';
+              runDeterministicVinRepair();
+            }
+          } catch (_) {}
+        }, 350);
+      }
+    } catch (err) {
+      if (st) st.innerHTML = `<span style="color:#f87171;">Camera unavailable (${escapeHtml(err.message)}). Use Photo Upload or paste text below.</span>`;
+    }
+  };
+
+  global.handleMobileVinPhoto = function (file) {
+    if (!file) return;
+    const st = document.getElementById('mob-scan-status');
+    if (st) st.innerHTML = `<span style="color:#93c5fd;">Applying CLAHE high-contrast filter &amp; scanning barcode...</span>`;
+    const img = new Image();
+    img.onload = async () => {
+      const c = document.getElementById('mob-clahe-canvas');
+      if (c) {
+        const ctx = c.getContext('2d');
+        const w = Math.min(960, img.naturalWidth || img.width || 640);
+        const h = Math.round((img.naturalHeight || img.height || 240) * (w / (img.naturalWidth || img.width || 640)));
+        c.width = w;
+        c.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        const id = ctx.getImageData(0, 0, w, h);
+        const d = id.data;
+        let min = 255;
+        let max = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          if (lum < min) min = lum;
+          if (lum > max) max = lum;
+        }
+        const span = Math.max(1, max - min);
+        for (let i = 0; i < d.length; i += 4) {
+          const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          const norm = Math.min(255, Math.max(0, Math.round(((lum - min) / span) * 255)));
+          const sharp = norm > 128 ? Math.min(255, norm + 28) : Math.max(0, norm - 28);
+          d[i] = d[i + 1] = d[i + 2] = sharp;
+        }
+        ctx.putImageData(id, 0, 0);
+        c.style.display = 'block';
+      }
+      if ('BarcodeDetector' in global) {
+        try {
+          const det = new global.BarcodeDetector({ formats: ['code_39', 'code_128', 'data_matrix', 'qr_code', 'pdf417'] });
+          let codes = await det.detect(img);
+          if ((!codes || !codes.length) && c) codes = await det.detect(c);
+          if (codes && codes.length) {
+            const rawInp = document.getElementById('mob-ocr-raw');
+            if (rawInp) rawInp.value = codes[0].rawValue || '';
+            runDeterministicVinRepair();
+            return;
+          }
+        } catch (_) {}
+      }
+      if (st) {
+        st.innerHTML = `<span style="color:#fbbf24;">CLAHE contrast preview ready. Tap <strong>🤖 Gemini Vision Plate OCR</strong> or type/paste characters above and tap <strong>🔧 Modulo-11 Repair</strong>.</span>`;
+      }
+    };
+    img.src = URL.createObjectURL(file);
+  };
+
+  global.runDeterministicVinRepair = function () {
+    const raw = ((document.getElementById('mob-ocr-raw') || {}).value || '').trim();
+    const st = document.getElementById('mob-scan-status');
+    if (!raw) {
+      if (st) st.innerHTML = `<span style="color:#f87171;">Enter or scan a raw barcode/OCR string first.</span>`;
+      return;
+    }
+    const res = GarageEngine.repairAndValidateVinCandidates(raw, 2);
+    if (res.ok && res.best) {
+      const b = res.best;
+      state.profile.vin = b.vin;
+      if (b.model_year) state.profile.model_year = b.model_year;
+      if (b.inferred && b.inferred.model) state.profile.model = b.inferred.model;
+      if (b.inferred && b.inferred.make) state.profile.make = b.inferred.make;
+      if (b.platform_slug) {
+        state.profile.platform_slug = b.platform_slug;
+        state.selectedPlatformSlug = b.platform_slug;
+      }
+      state.profile.powertrain = GarageEngine.classifyPowertrain({ inferred: b.inferred }, null, state.profile.model, state.profile.battery);
+      saveProfile();
+      renderTruckTab();
+      updateHeaderKPIs();
+      showToast(`✓ Modulo-11 Verified VIN: ${b.vin}`);
+    } else if (st) {
+      st.innerHTML = `<span style="color:#f87171;">No 17-character candidate with a valid ISO 3779 Modulo-11 check digit found within 2 optical edits.</span>`;
+    }
+  };
+
+  global.runGeminiVisionVinFallback = async function () {
+    const st = document.getElementById('mob-scan-status');
+    const c = document.getElementById('mob-clahe-canvas');
+    if (!c || c.style.display === 'none') {
+      if (st) st.innerHTML = `<span style="color:#fbbf24;">Snap or upload a VIN plate photo first so the CLAHE canvas is populated.</span>`;
+      return;
+    }
+    const apiKey = global.RollupBridge && RollupBridge.vault && RollupBridge.vault.get('gemini_api_key');
+    if (!apiKey) {
+      if (st) st.innerHTML = `<span style="color:#fbbf24;">No Gemini API key configured in RollupOS Key Vault — use the deterministic Modulo-11 Repair box above.</span>`;
+      return;
+    }
+    try {
+      if (st) st.innerHTML = `<span style="color:#93c5fd;">⏳ Reading VIN plate via Gemini Vision + deterministic Modulo-11 gate...</span>`;
+      const b64 = c.toDataURL('image/jpeg', 0.85).split(',')[1];
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: 'Extract the 17-character automotive VIN from this image. Return ONLY the raw 17-character alphanumeric string.' },
+                { inlineData: { mimeType: 'image/jpeg', data: b64 } }
+              ]
+            }
+          ]
+        })
+      });
+      const data = await resp.json();
+      const txt = (((data.candidates || [])[0] || {}).content || {}).parts?.[0]?.text || '';
+      const rawInp = document.getElementById('mob-ocr-raw');
+      if (rawInp) rawInp.value = txt.trim();
+      runDeterministicVinRepair();
+    } catch (err) {
+      if (st) st.innerHTML = `<span style="color:#f87171;">Vision OCR error: ${escapeHtml(err.message)}</span>`;
+    }
+  };
+
   global.onProfileInput = function () {
     const vinEl = document.getElementById('inp-vin');
     const yrEl = document.getElementById('inp-year');
+    const modEl = document.getElementById('inp-model');
     const trimEl = document.getElementById('inp-trim');
+    const ptEl = document.getElementById('inp-pt');
     const batEl = document.getElementById('inp-battery');
     const optEl = document.getElementById('inp-options');
-    if (vinEl) state.profile.vin = vinEl.value.trim().toUpperCase();
+    if (vinEl) state.profile.vin = GarageEngine.normalizeVin(vinEl.value);
     if (yrEl) state.profile.model_year = parseInt(yrEl.value, 10) || 2023;
+    if (modEl) state.profile.model = modEl.value.trim();
     if (trimEl) state.profile.trim = trimEl.value.trim();
+    if (ptEl) state.profile.powertrain = ptEl.value;
     if (batEl) state.profile.battery = batEl.value;
     if (optEl) state.profile.options = optEl.value.trim();
+    state.profile.platform_slug = GarageEngine.resolvePlatformSlug(
+      state.profile.model,
+      state.profile.model_year,
+      state.profile.vin,
+      state.profile.make
+    );
+    state.selectedPlatformSlug = state.profile.platform_slug;
+    state.profile.nickname = `${state.profile.model_year} ${state.profile.make || 'Ford'} ${state.profile.model} ${state.profile.trim || ''}`.trim();
     saveProfile();
+    renderGarageSwitcherStrip();
     updateHeaderKPIs();
   };
 
@@ -441,12 +977,24 @@
     try {
       const res = await GarageEngine.decodeVinOnline(state.profile.vin);
       state.profile.vin_online = res;
-      if (res.fields && res.fields._resolvedPack && res.fields._resolvedPack.includes('Extended Range')) {
-        state.profile.battery = 'Extended Range (131 kWh)';
+      if (res.fields) {
+        if (res.fields.Make) state.profile.make = res.fields.Make;
+        if (res.fields.Model) state.profile.model = res.fields.Model;
+        if (res.fields.ModelYear && /^\d+$/.test(res.fields.ModelYear)) {
+          state.profile.model_year = parseInt(res.fields.ModelYear, 10);
+        }
+        if (res.fields._resolvedPack) {
+          state.profile.battery = res.fields._resolvedPack;
+        }
       }
+      if (res.powertrain) state.profile.powertrain = res.powertrain;
+      if (res.platform_slug) {
+        state.profile.platform_slug = res.platform_slug;
+        state.selectedPlatformSlug = res.platform_slug;
+      }
+      state.profile.nickname = `${state.profile.model_year} ${state.profile.make || 'Ford'} ${state.profile.model} ${state.profile.trim || ''}`.trim();
       saveProfile();
-      renderTruckTab();
-      updateHeaderKPIs();
+      renderActiveTab();
       showToast('Verified VIN with NHTSA vPIC!');
     } catch (err) {
       showToast(`NHTSA lookup failed (offline?): ${err.message}`, true);
@@ -493,16 +1041,17 @@
   };
 
   // =========================================================================
-  // TAB 2: FORSCAN MOD MENU (59 RECIPES)
+  // TAB 2: FORSCAN MOD MENU (183 RECIPES + CUSTOM SPREADSHEET BUILDER)
   // =========================================================================
   function renderModsTab() {
     const container = document.getElementById('mods-tab-content');
     if (!container) return;
 
-    const allEntries = getHydratedEntries();
+    const allEntries = getHydratedEntries(state.modFilters.allPlatforms);
     const f = state.modFilters;
+    const upPlat = resolveUpstreamPlatform(state.profile.platform_slug);
+    const pt = String(state.profile.powertrain || 'BEV').toUpperCase();
 
-    // Collect distinct system modules for dropdown
     const modCounts = {};
     allEntries.forEach((e) => {
       const m = e.system || 'OTHER';
@@ -510,16 +1059,16 @@
     });
 
     const filtered = allEntries.filter((e) => {
-      if (f.chip === 'popular' && e.popularity < 2) return false;
+      if (f.chip === 'popular' && e.popularity < 2 && !e.is_custom) return false;
       if (f.chip === 'wanted' && !e.wanted) return false;
       if (f.chip === 'ready' && !e._readiness.can_apply) return false;
       if (f.chip === 'approved' && e.status !== 'APPROVED') return false;
-      if (f.chip === 'ev_safe' && (e.ev_status === 'ICE_ONLY' || e.tier === 3)) return false;
+      if (f.chip === 'ev_safe' && ((pt === 'BEV' && e.ev_status === 'ICE_ONLY') || e.tier === 3)) return false;
       if (f.module !== 'ALL' && e.system !== f.module) return false;
       if (f.tier !== 'ALL' && String(e.tier) !== String(f.tier)) return false;
       if (f.search) {
         const q = f.search.toLowerCase();
-        const hay = `${e.title} ${e.category} ${e.system} ${e.system_name} ${e.notes || ''}`.toLowerCase();
+        const hay = `${e.title} ${e.category} ${e.system} ${e.system_name} ${e.platform_slug || ''} ${e.notes || ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -531,7 +1080,7 @@
       { id: 'wanted', label: `⭐ Wanted (${allEntries.filter((e) => e.wanted).length})` },
       { id: 'approved', label: `✅ Approved (${allEntries.filter((e) => e.status === 'APPROVED').length})` },
       { id: 'ready', label: `🟢 Ready (${allEntries.filter((e) => e._readiness.can_apply).length})` },
-      { id: 'ev_safe', label: '⚡ EV Compatible' }
+      { id: 'ev_safe', label: pt === 'BEV' ? '⚡ EV Compatible' : '✅ Safe Tier 1–2' }
     ];
 
     const chipsHtml = chips
@@ -549,35 +1098,135 @@
       })
       .join('');
 
+    const customBuilderHtml = state.customBuilderOpen
+      ? `
+        <div class="card" style="border-color:#38bdf8;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <strong style="font-size:13px;color:#38bdf8;">➕ Quick-Add Custom Spreadsheet Line (Deterministic Mask &amp; Checksum)</strong>
+            <button class="btn btn-secondary" style="padding:3px 8px;" onclick="toggleCustomModBuilder()">✕</button>
+          </div>
+          <p style="margin:0 0 8px 0;font-size:11px;color:#94a3b8;">
+            Paste any row from your vehicle's downloaded FORScan spreadsheet (<code>.xlsx</code> or <code>.pdf</code>). Blue Oval Garage validates the address and mask, computes the exact target hex &amp; Modulo-256 checksum against your backup, and adds it to your Session Plan.
+          </p>
+          <div class="form-grid">
+            <div>
+              <label class="field-label">Feature Title</label>
+              <input type="text" id="cust-title" class="field-input" placeholder="e.g. Disable Door Ajar Chime">
+            </div>
+            <div>
+              <label class="field-label">Module &amp; Address (MMM-BB-LL)</label>
+              <div style="display:flex;gap:5px;">
+                <input type="text" id="cust-mod" class="field-input" style="width:35%;" placeholder="IPC / 720">
+                <input type="text" id="cust-addr" class="field-input" style="width:65%;font-family:monospace;" placeholder="720-01-02">
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Mask (* = Target Nibble) &amp; Target Hex</label>
+              <div style="display:flex;gap:5px;">
+                <input type="text" id="cust-mask" class="field-input" style="width:68%;font-family:monospace;" placeholder="xx*x xxxx xx--">
+                <input type="text" id="cust-hex" class="field-input" style="width:32%;font-family:monospace;" placeholder="0">
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Notes / Plain-English Menu</label>
+              <input type="text" id="cust-notes" class="field-input" placeholder="Spreadsheet tab / notes">
+            </div>
+          </div>
+          <div style="margin-top:8px;display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="addCustomModFromMobileForm()">✓ Add &amp; Dry-Run Custom Line</button>
+          </div>
+        </div>
+      `
+      : '';
+
     const cardsHtml = filtered.length
       ? filtered.map((e) => renderModCardHtml(e)).join('')
       : `<div class="card" style="text-align:center;color:#94a3b8;padding:24px;">No mods match current filter. Tap "All (${allEntries.length})" above to reset.</div>`;
 
     container.innerHTML = `
+      ${customBuilderHtml}
+
       <div class="card" style="padding:12px;">
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-          <input type="search" id="mod-search-inp" class="field-input" placeholder="Search 59 mods (e.g. double horn, bambi, glare,fold, chime)..." value="${escapeHtml(f.search)}" oninput="onModSearchInput(this.value)">
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          <input type="search" id="mod-search-inp" class="field-input" style="flex:1;min-width:180px;" placeholder="Search mods (e.g. double horn, bambi, glare, fold, chime)..." value="${escapeHtml(f.search)}" oninput="onModSearchInput(this.value)">
+          <button class="btn btn-blue" onclick="toggleCustomModBuilder()">➕ Custom Line</button>
         </div>
         <div class="chip-row">${chipsHtml}</div>
-        <div style="display:flex;gap:6px;margin-top:8px;">
-          <select class="field-input" style="flex:1;" onchange="setModModuleFilter(this.value)">${moduleOpts}</select>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+          <select class="field-input" style="flex:1;min-width:140px;" onchange="setModModuleFilter(this.value)">${moduleOpts}</select>
           <select class="field-input" style="width:135px;" onchange="setModTierFilter(this.value)">
             <option value="ALL" ${f.tier === 'ALL' ? 'selected' : ''}>All Risk Tiers</option>
             <option value="1" ${f.tier === '1' ? 'selected' : ''}>🟢 Tier 1 (Low)</option>
             <option value="2" ${f.tier === '2' ? 'selected' : ''}>🟡 Tier 2 (Med)</option>
             <option value="3" ${f.tier === '3' ? 'selected' : ''}>🔴 Tier 3 (Locked)</option>
           </select>
+          <label style="font-size:11.5px;color:#93c5fd;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" ${f.allPlatforms ? 'checked' : ''} onchange="toggleAllPlatformsFilter(this.checked)">
+            All 6 Ford Platforms (183)
+          </label>
         </div>
       </div>
 
-      <div style="font-size:11px;color:#94a3b8;margin:6px 2px;display:flex;justify-content:space-between;">
-        <span>Showing <strong>${filtered.length}</strong> of ${allEntries.length} recipes</span>
+      <div style="font-size:11px;color:#94a3b8;margin:6px 2px;display:flex;justify-content:space-between;flex-wrap:wrap;">
+        <span>Showing <strong>${filtered.length}</strong> of ${allEntries.length} recipes (${f.allPlatforms ? 'All 6 Platforms' : `Platform: ${escapeHtml(upPlat)}`})</span>
         <span>Tap any card for nibble mask &amp; checksum dry-run</span>
       </div>
 
       <div id="mod-cards-list">${cardsHtml}</div>
     `;
   }
+
+  global.toggleCustomModBuilder = function () {
+    state.customBuilderOpen = !state.customBuilderOpen;
+    renderModsTab();
+  };
+
+  global.toggleAllPlatformsFilter = function (checked) {
+    state.modFilters.allPlatforms = Boolean(checked);
+    renderModsTab();
+  };
+
+  global.addCustomModFromMobileForm = function () {
+    try {
+      const entry = GarageEngine.buildCustomModEntry({
+        title: (document.getElementById('cust-title') || {}).value,
+        module: (document.getElementById('cust-mod') || {}).value,
+        address: (document.getElementById('cust-addr') || {}).value,
+        mask: (document.getElementById('cust-mask') || {}).value,
+        targetHex: (document.getElementById('cust-hex') || {}).value,
+        notes: (document.getElementById('cust-notes') || {}).value,
+        platformSlug: resolveUpstreamPlatform(state.profile.platform_slug),
+        modelYear: state.profile.model_year
+      });
+      state.customMods.unshift(entry);
+      state.modOverrides[entry.id] = {
+        status: entry.status,
+        wanted: entry.wanted,
+        verified_on_my_truck: 0,
+        user_notes: entry.notes || ''
+      };
+      saveCustomMods();
+      saveModOverrides();
+      state.customBuilderOpen = false;
+      renderModsTab();
+      updateHeaderKPIs();
+      openModDetailModal(entry.id);
+      showToast(`Added custom mod: ${entry.title}`);
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  global.deleteCustomModById = function (id) {
+    state.customMods = state.customMods.filter((m) => m.id !== id);
+    delete state.modOverrides[id];
+    saveCustomMods();
+    saveModOverrides();
+    closeModDetailModal();
+    renderModsTab();
+    updateHeaderKPIs();
+    showToast('Deleted custom spreadsheet line.');
+  };
 
   function renderModCardHtml(e) {
     const stars = '★'.repeat(e.popularity || 0) + '☆'.repeat(Math.max(0, 3 - (e.popularity || 0)));
@@ -588,12 +1237,16 @@
         ? `<span class="pill pill-amber">T2 Behavior</span>`
         : `<span class="pill pill-red">🔒 T3 Locked</span>`;
 
-    const evBadge =
-      e.ev_status === 'EV_MENTIONED'
-        ? `<span class="pill pill-blue">⚡ EV Verified</span>`
-        : e.ev_status === 'ICE_ONLY'
-        ? `<span class="pill pill-red">⛽ ICE Only</span>`
-        : `<span class="pill pill-muted">EV Unverified</span>`;
+    const pt = String(state.profile.powertrain || 'BEV').toUpperCase();
+    const evBadge = e.is_custom
+      ? `<span class="pill pill-purple">✨ Custom Line</span>`
+      : e.ev_status === 'EV_MENTIONED'
+      ? `<span class="pill pill-blue">⚡ EV Verified</span>`
+      : e.ev_status === 'ICE_ONLY'
+      ? `<span class="pill pill-red">⛽ ICE Only</span>`
+      : pt === 'BEV'
+      ? `<span class="pill pill-muted">EV Unverified</span>`
+      : `<span class="pill pill-dark">${escapeHtml(e.platform_slug || 'f150')}</span>`;
 
     const r = e._readiness;
     const stateBadge =
@@ -664,7 +1317,8 @@
 
   global.toggleModWanted = function (id) {
     const cur = state.modOverrides[id] || {};
-    const entry = (BUNDLE.entries || []).find((x) => x.id === id) || {};
+    const allRaw = [...state.customMods, ...(BUNDLE.entries || [])];
+    const entry = allRaw.find((x) => x.id === id) || {};
     const nextWanted = (cur.wanted !== undefined ? cur.wanted : entry.wanted) ? 0 : 1;
     const nextStatus = nextWanted && (!cur.status || cur.status === 'DRAFT') && entry.tier !== 3 ? 'APPROVED' : cur.status || entry.status || 'DRAFT';
     state.modOverrides[id] = {
@@ -679,7 +1333,7 @@
 
   global.openModDetailModal = function (id) {
     state.selectedModId = id;
-    const entries = getHydratedEntries();
+    const entries = getHydratedEntries(true);
     const e = entries.find((x) => x.id === id);
     if (!e) return;
 
@@ -727,7 +1381,7 @@
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
         <div>
           <div style="font-size:10.5px;color:#38bdf8;font-weight:800;text-transform:uppercase;">
-            ${escapeHtml(e.system)} (${escapeHtml(e.system_name || '')}) • ${escapeHtml(e.category)}
+            ${escapeHtml(e.system)} (${escapeHtml(e.system_name || '')}) • ${escapeHtml(e.category)} • ${escapeHtml(e.platform_slug || 'f150')}
           </div>
           <h3 style="margin:3px 0 0 0;font-size:16px;color:#f8fafc;">${escapeHtml(e.title)}</h3>
         </div>
@@ -763,10 +1417,15 @@
             <option value="APPLIED" ${e.status === 'APPLIED' ? 'selected' : ''}>Status: APPLIED</option>
             <option value="REJECTED" ${e.status === 'REJECTED' ? 'selected' : ''}>Status: REJECTED</option>
           </select>
+          ${
+            e.is_custom
+              ? `<button class="btn btn-danger" onclick="deleteCustomModById(${e.id})">🗑️ Delete Custom Line</button>`
+              : ''
+          }
         </div>
         <div style="margin-top:8px;">
-          <label class="field-label">Personal Truck Notes</label>
-          <input type="text" class="field-input" placeholder="e.g. Verified on my 2023 Lariat ER..." value="${escapeHtml(e.user_notes || '')}" onchange="updateModUserNotes(${e.id}, this.value)">
+          <label class="field-label">Personal Vehicle Notes</label>
+          <input type="text" class="field-input" placeholder="e.g. Verified on my vehicle..." value="${escapeHtml(e.user_notes || '')}" onchange="updateModUserNotes(${e.id}, this.value)">
         </div>
         <div style="font-size:10px;color:#64748b;margin-top:8px;">
           Source: ${escapeHtml(e.source_key)} ${e.source_sheet ? `• Sheet: ${escapeHtml(e.source_sheet)}` : ''}
@@ -804,7 +1463,7 @@
   };
 
   // =========================================================================
-  // TAB 3: MODULES GUIDE (87 FORD MODULES + EDITORIAL LIGHTNING GUIDE)
+  // TAB 3: MODULES GUIDE (87 FORD MODULES + MS-CAN / HS-CAN ARCHITECTURE)
   // =========================================================================
   function renderModulesTab() {
     const container = document.getElementById('modules-tab-content');
@@ -813,9 +1472,9 @@
     const editorial = BUNDLE.module_editorial || {};
     const fordNames = BUNDLE.ford_modules || {};
     const fcodeNames = BUNDLE.ford_fcodes || {};
-    const entries = getHydratedEntries();
+    const entries = getHydratedEntries(false);
+    const g = GarageEngine.adapterGuidance(state.profile.model_year, state.profile.platform_slug);
 
-    // Count recipes touching each module
     const recipeUsage = {};
     entries.forEach((e) => {
       (e.steps || []).forEach((s) => {
@@ -827,7 +1486,6 @@
       });
     });
 
-    // Evidence from backups
     const backupLinesByMod = {};
     const factoryLinesByMod = {};
     const factoryPartsByMod = {};
@@ -907,6 +1565,11 @@
             ? `<span class="pill pill-green">LOW RISK</span>`
             : '';
 
+        const msCanTag =
+          g.ms_can_required && ['740', '741', '733', '791', '744'].includes(r.addr)
+            ? `<span class="pill pill-amber">MS-CAN 125k (STP33)</span>`
+            : '';
+
         const evidenceBadges = [];
         if (r.bLines > 0) evidenceBadges.push(`<span class="pill pill-green">✓ ${r.bLines} Backup Lines</span>`);
         if (r.fLines > 0) evidenceBadges.push(`<span class="pill pill-blue">🏭 ${r.fLines} Factory .ab Lines</span>`);
@@ -931,10 +1594,10 @@
                 <span style="font-family:monospace;font-size:13px;font-weight:800;color:#38bdf8;">0x${escapeHtml(r.addr)}</span>
                 <strong style="font-size:14px;color:#f8fafc;margin-left:6px;">${escapeHtml(r.short)} — ${escapeHtml(r.long)}</strong>
               </div>
-              <div style="display:flex;gap:4px;flex-wrap:wrap;">${riskBadge}</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">${msCanTag}${riskBadge}</div>
             </div>
             ${r.does ? `<p style="margin:6px 0 0 0;font-size:12px;color:#cbd5e1;line-height:1.4;">${escapeHtml(r.does)}</p>` : ''}
-            ${r.ev ? `<div style="margin-top:4px;font-size:11.5px;color:#38bdf8;"><strong>⚡ Lightning EV Note:</strong> ${escapeHtml(r.ev)}</div>` : ''}
+            ${r.ev ? `<div style="margin-top:4px;font-size:11.5px;color:#38bdf8;"><strong>⚡ Architecture Note:</strong> ${escapeHtml(r.ev)}</div>` : ''}
             ${r.touch ? `<div style="margin-top:4px;font-size:11.5px;color:#fbbf24;"><strong>💡 Advice:</strong> ${escapeHtml(r.touch)}</div>` : ''}
             ${partsHtml}
             ${evidenceBadges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">${evidenceBadges.join('')}</div>` : ''}
@@ -945,12 +1608,12 @@
 
     container.innerHTML = `
       <div class="card">
-        <h3 style="margin:0 0 4px 0;font-size:14px;color:#f8fafc;">🧩 F-150 Lightning Control Module Architecture</h3>
+        <h3 style="margin:0 0 4px 0;font-size:14px;color:#f8fafc;">🧩 Ford &amp; Lincoln Control Module Architecture (${escapeHtml(g.architecture)})</h3>
         <p style="margin:0 0 8px 0;font-size:11.5px;color:#94a3b8;">
-          Module names from Ford's official list (87 addresses); functional &amp; EV notes curated for the 2023 F-150 Lightning ER.
+          ${escapeHtml(g.note)}
         </p>
         <div class="chip-row">
-          <button class="chip-btn ${state.moduleFilter === 'PRESENT' ? 'active' : ''}" onclick="setModuleTabFilter('PRESENT')">⭐ Key Lightning Modules</button>
+          <button class="chip-btn ${state.moduleFilter === 'PRESENT' ? 'active' : ''}" onclick="setModuleTabFilter('PRESENT')">⭐ Key Modules</button>
           <button class="chip-btn ${state.moduleFilter === 'MODDABLE' ? 'active' : ''}" onclick="setModuleTabFilter('MODDABLE')">🎛️ Has Mod Recipes</button>
           <button class="chip-btn ${state.moduleFilter === 'CRITICAL' ? 'active' : ''}" onclick="setModuleTabFilter('CRITICAL')">🔒 Safety / HV Locked</button>
           <button class="chip-btn ${state.moduleFilter === 'ALL' ? 'active' : ''}" onclick="setModuleTabFilter('ALL')">📚 All 87 Ford Addresses</button>
@@ -978,7 +1641,7 @@
     const container = document.getElementById('backups-tab-content');
     if (!container) return;
 
-    const entries = getHydratedEntries();
+    const entries = getHydratedEntries(false);
     const wanted = entries.filter((e) => e.wanted || e.status === 'APPROVED');
     const requiredMods = new Set();
     wanted.forEach((e) => {
@@ -1034,9 +1697,8 @@
         `
           )
           .join('')
-      : `<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px;">No <code>.abt</code> or <code>.ab</code> files imported yet.</div>`;
+      : `<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px;">No <code>.abt</code> or <code>.ab</code> files imported for this vehicle yet.</div>`;
 
-    // Factory vs Current Drift
     const fac = getFactoryState();
     const cur = getMergedTruckState();
     let driftHtml = '';
@@ -1109,7 +1771,7 @@
       <div class="card">
         <h3 style="margin:0 0 4px 0;font-size:14px;color:#f8fafc;">🏭 Get Ford's Official Factory As-Built (<code>.ab</code>)</h3>
         <p style="margin:0 0 8px 0;font-size:11.5px;color:#cbd5e1;line-height:1.45;">
-          Ford's Motorcraft As-Built site uses a visual security CAPTCHA, so we never scrape it behind your back. Download your official <code>1FT6W1EV4PWG11434.ab</code> XML in 20 seconds:
+          Ford's Motorcraft As-Built site uses a visual security CAPTCHA, so we never scrape it behind your back. Download your official <code>${escapeHtml(state.profile.vin || 'VIN')}.ab</code> XML in 20 seconds:
         </p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <button class="btn btn-secondary" onclick="copyVinToClipboard()">1️⃣ Copy VIN (${escapeHtml(state.profile.vin)})</button>
@@ -1140,14 +1802,12 @@
     const files = Array.from((ev.target && ev.target.files) || []);
     if (!files.length) return;
 
-    let importedCount = 0;
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const text = String(e.target.result || '');
           const parsed = GarageEngine.parseAnyBackupFile(file.name, text);
-          // Remove synthetic baseline once a real file is imported
           state.backups = state.backups.filter((b) => !b.is_synthetic && b.sha256 !== parsed.sha256);
           state.backups.push({
             id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -1166,7 +1826,6 @@
             raw_text: text
           });
           saveBackups();
-          importedCount++;
           renderActiveTab();
           showToast(`Imported ${file.name} (${parsed.lines.length} lines across ${parsed.modules.join(', ')})`);
         } catch (err) {
@@ -1223,8 +1882,9 @@
     const container = document.getElementById('plan-tab-content');
     if (!container) return;
 
-    const entries = getHydratedEntries();
+    const entries = getHydratedEntries(true);
     const planned = entries.filter((e) => e.wanted);
+    const g = GarageEngine.adapterGuidance(state.profile.model_year, state.profile.platform_slug);
     const modsToBackup = new Set();
     planned.forEach((e) => {
       (e.steps || []).forEach((s) => {
@@ -1281,7 +1941,7 @@
           <div>
             <h3 style="margin:0;font-size:15px;color:#f8fafc;">📋 In-Cab FORScan Session Checklist</h3>
             <div style="font-size:11.5px;color:#cbd5e1;margin-top:2px;">
-              ${escapeHtml(state.profile.model_year)} ${escapeHtml(state.profile.model)} ${escapeHtml(state.profile.trim)} • <code>${escapeHtml(state.profile.vin)}</code>
+              ${escapeHtml(state.profile.model_year)} ${escapeHtml(state.profile.make || 'Ford')} ${escapeHtml(state.profile.model)} ${escapeHtml(state.profile.trim || '')} • <code>${escapeHtml(state.profile.vin)}</code>
             </div>
           </div>
           <div style="display:flex;gap:6px;">
@@ -1291,11 +1951,17 @@
         </div>
       </div>
 
+      ${
+        g.ms_can_required
+          ? `<div class="alert alert-amber" style="margin-bottom:10px;"><strong>⚠️ MS-CAN (125 kbaud) Vehicle (${escapeHtml(g.architecture)}):</strong> ${escapeHtml(g.note)}</div>`
+          : ''
+      }
+
       <div class="card">
-        <h4 style="margin:0 0 6px 0;font-size:13px;color:#38bdf8;">Step 1 — Truck &amp; 12V Pre-Flight</h4>
+        <h4 style="margin:0 0 6px 0;font-size:13px;color:#38bdf8;">Step 1 — Vehicle &amp; 12V Pre-Flight</h4>
         <ul style="margin:0;padding-left:18px;font-size:12px;color:#cbd5e1;line-height:1.55;">
-          <li>Connect <strong>${escapeHtml(state.profile.adapter || 'OBDLink EX')}</strong> to the OBD-II port; turn truck to <strong>Accessory / Run (KOEO)</strong> (not actively driving).</li>
-          <li>Ensure 12V battery is healthy (on the Lightning, the <code>746 SOBDMC</code> DC-DC converter supports 12V when HV contactors are closed or plugged into EVSE).</li>
+          <li>Connect <strong>${escapeHtml(state.profile.adapter || 'OBDLink EX')}</strong> to the OBD-II port; turn vehicle to <strong>Key-On Engine-Off (KOEO) / Ready</strong>.</li>
+          <li>Ensure 12V battery is supported by a maintainer (on BEVs, the <code>746 SOBDMC</code> DC-DC converter supports 12V when HV contactors are closed).</li>
           <li>Before modifying any line, open FORScan &rarr; <strong>Configuration and Programming</strong> &rarr; <strong>Save All</strong> into a dated <code>.abt</code> backup for: <strong>${escapeHtml(Array.from(modsToBackup).join(', ') || '726, 7D0, 720, 740, 741, 724')}</strong>.</li>
         </ul>
       </div>
@@ -1308,10 +1974,10 @@
   }
 
   global.shareSessionPlan = function () {
-    const entries = getHydratedEntries().filter((e) => e.wanted);
+    const entries = getHydratedEntries(true).filter((e) => e.wanted);
     const lines = [
-      `LIGHTNING GARAGE — FORSCAN SESSION PLAN`,
-      `Vehicle: ${state.profile.model_year} ${state.profile.model} ${state.profile.trim} (${state.profile.battery})`,
+      `BLUE OVAL GARAGE — FORSCAN SESSION PLAN`,
+      `Vehicle: ${state.profile.model_year} ${state.profile.make || 'Ford'} ${state.profile.model} ${state.profile.trim || ''} (${state.profile.battery || state.profile.powertrain})`,
       `VIN: ${state.profile.vin}`,
       `Adapter: ${state.profile.adapter}`,
       `----------------------------------------`
@@ -1328,7 +1994,7 @@
     });
     const text = lines.join('\n');
     if (global.RollupBridge) {
-      RollupBridge.files.share('Lightning Garage FORScan Session Plan', text);
+      RollupBridge.files.share('Blue Oval Garage FORScan Session Plan', text);
     }
   };
 
@@ -1336,15 +2002,19 @@
   global.exportGarageVaultJson = function () {
     const payload = {
       app: APP_ID,
+      version: '2.0.0',
       exported_at: new Date().toISOString(),
+      activeVehicleId: state.activeVehicleId,
+      vehicles: state.vehicles,
       profile: state.profile,
       modOverrides: state.modOverrides,
       backups: state.backups,
+      customMods: state.customMods,
       changeLog: state.changeLog
     };
     if (global.RollupBridge) {
-      RollupBridge.files.exportJSON(`lightning_garage_vault_${state.profile.vin || 'export'}.json`, payload);
-      showToast('Exported Lightning Garage JSON Vault!');
+      RollupBridge.files.exportJSON(`blue_oval_garage_vault_${state.profile.vin || 'export'}.json`, payload);
+      showToast('Exported Blue Oval Garage JSON Vault!');
     }
   };
 
@@ -1355,7 +2025,12 @@
     reader.onload = (e) => {
       try {
         const data = JSON.parse(String(e.target.result || '{}'));
-        if (data.profile) {
+        if (Array.isArray(data.vehicles) && data.vehicles.length) {
+          state.vehicles = data.vehicles;
+          state.activeVehicleId = data.activeVehicleId || data.vehicles[0].id;
+          state.profile = state.vehicles.find((v) => v.id === state.activeVehicleId) || state.vehicles[0];
+          saveVehicles();
+        } else if (data.profile) {
           state.profile = { ...state.profile, ...data.profile };
           saveProfile();
         }
@@ -1367,8 +2042,12 @@
           state.backups = data.backups;
           saveBackups();
         }
+        if (Array.isArray(data.customMods)) {
+          state.customMods = data.customMods;
+          saveCustomMods();
+        }
         renderActiveTab();
-        showToast('Restored Lightning Garage Vault!');
+        showToast('Restored Blue Oval Garage Vault!');
       } catch (err) {
         showToast(`Invalid Vault JSON: ${err.message}`, true);
       }

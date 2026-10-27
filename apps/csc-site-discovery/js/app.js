@@ -2297,7 +2297,8 @@ function _buildSortedFilename(st, slot, suffixTag = "") {
   return `${state.jobNumber}_${unitPrefix}_${cleanTag}_${st.floorId}_${condStr}_${slotLabels[slot] || "Photo"}${sfx}.jpg`;
 }
 
-function buildUnitStampMeta(st, slot) {
+function buildUnitStampMeta(st, slotOrIdx, optionalSlot) {
+  const slot = optionalSlot !== undefined ? optionalSlot : slotOrIdx;
   const unitIdx = Math.max(1, (state.stations || []).findIndex((x) => x.id === st.id) + 1);
   const stStatus = computeStationStatus(st);
   const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
@@ -2897,7 +2898,7 @@ async function pushWalkToOfficeWifiServer(silentAuto = false) {
     cfg.lastSyncedAt = new Date().toISOString();
     window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", cfg);
     updateWifiSyncBadgesUI("🟢 Synced to Office PC!", true);
-    showBannerToast(`✅ <strong>Pushed to Office PC over Wi-Fi!</strong> Unpacked photos &amp; compiled PDF/Excel/Word dossier in <code>${escapeHtml(resJson.dest_folder || 'output')}</code>.`);
+    showBannerToast(`✅ <strong>Pushed to Office PC over Wi-Fi!</strong> Unpacked photos &amp; compiled PDF/Excel/Word dossier in <code>${escapeHtml(resJson.savedDir || resJson.dest_folder || 'output')}</code>.`);
     return { ok: true, response: resJson };
   } catch (err) {
     if (cfg.autoUpload) {
@@ -3170,6 +3171,34 @@ function buildFieldNotesMarkdownText() {
 }
 
 function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
+  const floorSvgsHtml = (state.floors || []).map((flr) => {
+    const flrStations = (state.stations || []).filter((s) => s.floorId === flr.id);
+    if (!flrStations.length) return "";
+    const pinsSvg = flrStations.map((st) => {
+      const unitNum = Math.max(1, (state.stations || []).findIndex((x) => x.id === st.id) + 1);
+      const stStatus = computeStationStatus(st);
+      const sx = Math.round((st.xPct || 50) * 9.6 + 20);
+      const sy = Math.round((st.yPct || 50) * 2.6 + 15);
+      const shortTag = (st.tag || `Unit #${unitNum}`).split("(")[0].trim();
+      return `<g>
+        <circle cx="${sx}" cy="${sy}" r="12" fill="${stStatus.color}" stroke="#ffffff" stroke-width="2.5"/>
+        <text x="${sx}" y="${sy + 4}" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">#${unitNum}</text>
+        <rect x="${sx + 15}" y="${sy - 11}" width="${Math.max(85, shortTag.length * 7 + 14)}" height="22" rx="5" fill="#0f172a"/>
+        <text x="${sx + 21}" y="${sy + 4}" fill="#f8fafc" font-size="10.5" font-weight="bold">${escapeHtml(shortTag)}</text>
+      </g>`;
+    }).join("");
+    return `<div style="border:1px solid #cbd5e1;border-radius:8px;padding:10px;margin-bottom:10px;background:#f8fafc;">
+      <div style="font-weight:700;margin-bottom:6px;color:#0f172a;">📍 ${escapeHtml(flr.name || flr.id)} (${flrStations.length} Unit${flrStations.length === 1 ? '' : 's'})</div>
+      <svg viewBox="0 0 1000 300" style="width:100%;height:auto;background:#0f172a;border-radius:6px;">
+        <rect x="10" y="10" width="980" height="280" rx="6" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+        <line x1="330" y1="10" x2="330" y2="290" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+        <line x1="670" y1="10" x2="670" y2="290" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+        <line x1="10" y1="150" x2="990" y2="150" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+        ${pinsSvg}
+      </svg>
+    </div>`;
+  }).filter(Boolean).join("");
+
   const rowsHtml = (state.stations || []).map((st, idx) => {
     const stStatus = computeStationStatus(st);
     const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
@@ -3220,12 +3249,13 @@ function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
     <h1 style="margin:0 0 6px 0;font-size:20px;">Control Service Company (CSC) — Self-Contained Field Walk Dossier (v3.2)</h1>
     <div>Job: <strong>${escapeHtml(state.jobNumber)}</strong> | Project: <strong>${escapeHtml(state.projectName)}</strong> | Units: <strong>${(state.stations || []).length}</strong> | Voice Notes: <strong>${(state.audioSegments || []).length}</strong></div>
   </div>
-  <h2>1. Equipment Schedule &amp; Watermarked Photo Evidence</h2>
+  ${floorSvgsHtml ? `<h2>1. Spatial Floor Map &amp; Equipment Pins</h2>${floorSvgsHtml}` : ""}
+  <h2>2. Equipment Schedule &amp; Watermarked Photo Evidence</h2>
   <table>
     <thead><tr><th>Unit &amp; Location</th><th>Condition &amp; Issues</th><th>Decoded Nameplate</th><th>ALC Target &amp; Notes</th><th>Stamped Field Evidence Photo</th></tr></thead>
     <tbody>${rowsHtml}</tbody>
   </table>
-  <h2>2. Site Voice Notes &amp; Transcripts</h2>
+  <h2>3. Site Voice Notes &amp; Transcripts</h2>
   <table>
     <thead><tr><th>ID / Time</th><th>Unit / Speaker</th><th>Spoken Transcript</th><th>Extracted Insight</th></tr></thead>
     <tbody>${audioHtml}</tbody>
@@ -3335,7 +3365,14 @@ async function buildCompleteWalkZipPackage() {
   const zipBlob = window.CSCDiscoveryAdapter.buildCscWalkZipBlob(entries);
   const cleanJob = (state.jobNumber || "CSC-WALK").replace(/[^a-zA-Z0-9_-]/g, "");
   const filename = `${cleanJob}_Site_Discovery.cscwalk.zip`;
-  return { zipBlob, filename, entriesCount: entries.length, stampedFileObjects };
+  return {
+    zipBlob,
+    filename,
+    zipFilename: filename,
+    entriesCount: entries.length,
+    stampedFileObjects,
+    stampedFiles: stampedFileObjects
+  };
 }
 
 async function exportFullWalkZipBundle(preferShare = false) {
@@ -3402,12 +3439,15 @@ async function shareStampedUnitPhotos() {
   showBannerToast(`🏷️ <strong>Generated ${pkg.stampedFileObjects.length} Watermarked Unit Photo(s)!</strong>`);
 }
 
-async function importWalkBundleFile(inputEl) {
-  const file = inputEl.files && inputEl.files[0];
+async function importWalkBundleFile(inputOrFile) {
+  const file = (inputOrFile && inputOrFile.files && inputOrFile.files[0])
+    ? inputOrFile.files[0]
+    : (inputOrFile && typeof inputOrFile.arrayBuffer === "function" ? inputOrFile : null);
   if (!file) return;
   try {
     archiveCurrentWalkToVault(false);
-    if (file.name.toLowerCase().endsWith(".zip")) {
+    const fileName = String(file.name || "walk.cscwalk.zip");
+    if (fileName.toLowerCase().endsWith(".zip")) {
       const ab = await file.arrayBuffer();
       const parsed = await window.CSCDiscoveryAdapter.parseCscWalkZipBuffer(ab);
       if (!parsed.manifest) throw new Error("No manifest.json inside .zip");
@@ -3434,8 +3474,9 @@ async function importWalkBundleFile(inputEl) {
           (low.startsWith("02_raw_photos/") || low.startsWith("photos/") || low.startsWith("01_stamped_photos/")) &&
           (low.endsWith(".jpg") || low.endsWith(".jpeg") || low.endsWith(".png"))
         ) {
-          // Fixes BUG-07: Restore 100% of unit photos back into IndexedDB on .cscwalk.zip import!
-          const isStampedFolder = low.startsWith("01_stamped_photos/");
+          // Fixes BUG-07: Restore 100% of unit photos back into IndexedDB on .cscwalk.zip import,
+          // ensuring clean 02_Raw_Photos/ are never overwritten by watermarked 01_Stamped_Photos/ or photos/!
+          const isCleanRawPhoto = low.startsWith("02_raw_photos/") || low.includes("_raw.");
           const fname = relPath.split("/").pop();
           let matchedStId = null;
           let matchedSlot = 2;
@@ -3462,7 +3503,7 @@ async function importWalkBundleFile(inputEl) {
             const durl = `data:${mime};base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
             const key = `photo::${state.sessionId}::${matchedStId}::slot${matchedSlot}`;
             const rawKey = `photo_raw::${state.sessionId}::${matchedStId}::slot${matchedSlot}`;
-            if (!isStampedFolder || !(await window.CSCDiscoveryAdapter.loadMediaBlob(rawKey))) {
+            if (isCleanRawPhoto || !(await window.CSCDiscoveryAdapter.loadMediaBlob(rawKey))) {
               await window.CSCDiscoveryAdapter.saveMediaBlob(key, durl);
               await window.CSCDiscoveryAdapter.saveMediaBlob(rawKey, durl);
               restoredPhotosCount++;
@@ -3470,7 +3511,7 @@ async function importWalkBundleFile(inputEl) {
           }
         }
       }
-      showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(file.name)}):</strong> ${state.stations.length} units &amp; ${restoredPhotosCount} photo(s) restored!`);
+      showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(fileName)}):</strong> ${state.stations.length} units &amp; ${restoredPhotosCount} photo(s) restored!`);
     } else {
       const txt = await file.text();
       const rawObj = JSON.parse(txt);
@@ -3481,7 +3522,7 @@ async function importWalkBundleFile(inputEl) {
           flr.hasCustomMap = true;
         }
       }
-      showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(file.name)}):</strong> ${state.stations.length} units loaded!`);
+      showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(fileName)}):</strong> ${state.stations.length} units loaded!`);
     }
 
     persistWalkState();
@@ -3490,7 +3531,9 @@ async function importWalkBundleFile(inputEl) {
   } catch (err) {
     showBannerToast(`⚠️ Import Error: ${escapeHtml(err.message)}`, true);
   } finally {
-    inputEl.value = "";
+    if (inputOrFile && "value" in inputOrFile) {
+      inputOrFile.value = "";
+    }
   }
 }
 

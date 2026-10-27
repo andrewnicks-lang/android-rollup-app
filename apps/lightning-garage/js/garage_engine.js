@@ -256,14 +256,15 @@
   }
 
   // --- 4. Readiness Gating & Session Verification (validator.py) ---
-  function readiness(entry, stateMap) {
+  function readiness(entry, stateMap, powertrain) {
+    const pt = String(powertrain || 'BEV').toUpperCase();
     const steps = Array.isArray(entry.steps) ? entry.steps : [];
     const blockers = [];
     if (entry.tier === 3) {
       blockers.push(`TIER 3 LOCKED: ${entry.tier_reason || 'Safety/Powertrain/ADAS critical'}`);
     }
-    if (entry.ev_status === 'ICE_ONLY') {
-      blockers.push(`ICE-only: ${entry.ev_reason || 'Gas powertrain feature'}`);
+    if (entry.ev_status === 'ICE_ONLY' && pt === 'BEV') {
+      blockers.push(`ICE-only: ${entry.ev_reason || 'Gas/Diesel powertrain feature (blocked on BEV)'}`);
     }
     const issues = Array.isArray(entry.import_issues) ? entry.import_issues : [];
     if (issues.length > 0) {
@@ -619,7 +620,7 @@
     };
   }
 
-  // --- 6. Deterministic VIN Decoder (vin.py) ---
+  // --- 6. Deterministic VIN Decoder, Powertrain/Platform Resolver & Modulo-11 Optical Repair (vin.py) ---
   const TRANSLIT = {
     0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9,
     A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8,
@@ -629,16 +630,34 @@
   const WEIGHTS = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
   const YEAR_LETTERS = 'ABCDEFGHJKLMNPRSTVWXY';
   const WMI_MAP = {
-    '1FT': 'Ford Motor Company, USA — Trucks (F-Series / Lightning)',
-    '1FA': 'Ford Motor Company, USA — Passenger Cars',
-    '1FM': 'Ford Motor Company, USA — SUVs / Multi-Purpose',
-    '1FD': 'Ford Motor Company, USA — Incomplete Vehicles',
-    '1FB': 'Ford Motor Company, USA — Buses'
+    '1FA': 'Ford Motor Company, USA — Passenger Cars (Mustang, Fusion, Focus, Taurus)',
+    '1FB': 'Ford Motor Company, USA — Buses / Passenger Vans (Transit Wagon, E-Series)',
+    '1FC': 'Ford Motor Company, USA — Stripped Chassis',
+    '1FD': 'Ford Motor Company, USA — Incomplete Vehicles (Super Duty Chassis Cab)',
+    '1FM': 'Ford Motor Company, USA — SUVs / Multi-Purpose (Explorer, Expedition, Bronco)',
+    '1FT': 'Ford Motor Company, USA — Trucks (F-150, F-150 Lightning, Super Duty, Ranger, Transit)',
+    '1ZV': 'AutoAlliance International (Ford USA) — Mustang (2005–2014)',
+    '1LN': 'Lincoln Motor Company, USA — Passenger Cars (Continental, MKZ)',
+    '5LM': 'Lincoln Motor Company, USA — SUVs (Navigator, Aviator, Corsair, MKX)',
+    '2FA': 'Ford Motor Company of Canada — Passenger Cars',
+    '2FM': 'Ford Motor Company of Canada — SUVs / Crossovers (Edge, Flex)',
+    '2FT': 'Ford Motor Company of Canada — Trucks',
+    '2LM': 'Lincoln Motor Company of Canada — SUVs (Nautilus, MKX, MKT)',
+    '3FA': 'Ford Motor Company, Mexico — Passenger Cars (Fusion, Fiesta)',
+    '3FM': 'Ford Motor Company, Mexico — SUVs (Bronco Sport, Mustang Mach-E)',
+    '3FT': 'Ford Motor Company, Mexico — Trucks (Maverick, Super Duty)',
+    '3LN': 'Lincoln Motor Company, Mexico — Passenger Cars (MKZ)',
+    'WF0': 'Ford-Werke GmbH, Germany — European Ford (Focus RS, Transit Connect)',
+    'NM0': 'Ford Otosan, Turkey — Transit / Transit Connect',
+    'VS6': 'Ford Espana, Spain — Transit Connect',
+    '6FP': 'Ford Motor Company of Australia — Ranger / Global Platform'
   };
   const F150_SERIES_MAP = {
-    W1E: 'F-150 SuperCrew 4WD (BEV / Lightning Series)',
+    W1E: 'F-150 SuperCrew 4WD (BEV / Lightning / EcoBoost)',
     W1C: 'F-150 SuperCrew 2WD',
-    W1P: 'F-150 SuperCrew 4WD Police / SSV'
+    W1P: 'F-150 SuperCrew 4WD Police / SSV',
+    W2B: 'F-250 Super Duty 4WD Crew Cab',
+    W3B: 'F-350 Super Duty SRW 4WD Crew Cab'
   };
   const LIGHTNING_ENGINE_CODES = {
     V: { pack: 'Extended Range (131 kWh usable / ~320 mi EPA)', motors: 'Dual Electric Motors (580 hp / 775 lb-ft)' },
@@ -650,41 +669,185 @@
   const PLANT_CODES = {
     W: 'Rouge Electric Vehicle Center (Dearborn, Michigan)',
     F: 'Dearborn Truck Plant (Dearborn, Michigan)',
-    K: 'Kansas City Assembly Plant (Claycomo, Missouri)'
+    K: 'Kansas City Assembly Plant (Claycomo, Missouri)',
+    E: 'Kentucky Truck Plant (Louisville, Kentucky)',
+    U: 'Louisville Assembly Plant (Louisville, Kentucky)',
+    G: 'Chicago Assembly Plant (Chicago, Illinois)',
+    L: 'Michigan Assembly Plant (Wayne, Michigan)',
+    R: 'Hermosillo Stamping & Assembly (Hermosillo, Mexico)',
+    M: 'Cuautitlan Stamping & Assembly (Cuautitlan, Mexico)',
+    B: 'Oakville Assembly Complex (Oakville, Ontario)'
   };
 
+  function normalizeVin(vinRaw) {
+    const s = String(vinRaw || '').replace(/[\s\-*]+/g, '').toUpperCase();
+    if (s.length === 18 && s.startsWith('I') && /^[A-HJ-NPR-Z0-9]{17}$/.test(s.slice(1))) {
+      return s.slice(1);
+    }
+    return s;
+  }
+
+  function computeVinCheckDigit(vin) {
+    let total = 0;
+    for (let i = 0; i < 17; i++) {
+      total += (TRANSLIT[vin[i]] || 0) * WEIGHTS[i];
+    }
+    const rem = total % 11;
+    return rem === 10 ? 'X' : String(rem);
+  }
+
+  function inferVehicleFromVin(vin, year) {
+    const wmi = vin.slice(0, 3);
+    const line = vin.slice(4, 7);
+    const eng = vin[7];
+    const make = ['1LN', '5LM', '2LM', '3LN'].includes(wmi) ? 'Lincoln' : 'Ford';
+    let model = null;
+    let powertrain = null;
+    let batteryOrEngine = null;
+
+    if (wmi === '1FT' || wmi === '2FT') {
+      if (['W1E', 'F1E', 'W1P', 'X1E', 'W1C', 'F1C', 'W1R'].includes(line)) {
+        if (['V', 'L', '7', 'M'].includes(eng) && (year || 2023) >= 2022 && line === 'W1E') {
+          model = 'F-150 Lightning';
+          powertrain = 'BEV';
+          batteryOrEngine = ['V', '7'].includes(eng) ? 'Extended Range (131 kWh)' : 'Standard Range (98 kWh)';
+        } else {
+          model = 'F-150';
+        }
+      } else if (/^(W2|W3|W4|X2|X3|F2|F3)/.test(line)) {
+        model = line.includes('2') ? 'F-250 Super Duty' : line.includes('3') ? 'F-350 Super Duty' : 'F-450 Super Duty';
+      } else if (/^(R1|R4)/.test(line)) {
+        model = 'Ranger';
+      } else if (/^(BW|YR|NE)/.test(line)) {
+        model = 'Transit';
+      }
+    } else if (wmi === '1FD') {
+      model = 'Super Duty Chassis Cab';
+    } else if (wmi === '3FT') {
+      if (/^(W8|F8)/.test(line)) model = 'Maverick';
+      else if (/^(W2|W3|W4)/.test(line)) model = 'Super Duty';
+    } else if (wmi === '1FM') {
+      if (/^E[0-9]/.test(line)) model = 'Bronco';
+      else if (/^(K7|K8|5K)/.test(line)) model = 'Explorer';
+      else if (/^(JU|JK)/.test(line)) model = 'Expedition';
+    } else if (wmi === '3FM') {
+      if (line.startsWith('CR') || line.startsWith('R')) model = 'Bronco Sport';
+      else if (line.startsWith('TK') || line.startsWith('K')) {
+        model = 'Mustang Mach-E';
+        powertrain = 'BEV';
+      }
+    } else if (wmi === '1FA' || wmi === '1ZV') {
+      if (/^(P8|T8)/.test(line)) model = 'Mustang';
+      else if (/^(P0|6P)/.test(line)) model = 'Fusion';
+      else if (/^(DP|P3)/.test(line)) model = 'Focus';
+    } else if (wmi === '3FA') {
+      model = 'Fusion';
+    } else if (wmi === '5LM') {
+      model = line.startsWith('JJ') ? 'Navigator' : line.startsWith('5J') ? 'Aviator' : 'Corsair';
+    } else if (wmi === '2FM') {
+      model = 'Edge';
+    } else if (wmi === '2LM') {
+      model = 'Nautilus';
+    } else if (wmi === 'WF0') {
+      model = 'Focus RS';
+    } else if (wmi === 'NM0' || wmi === 'VS6') {
+      model = 'Transit Connect';
+    } else if (wmi === '6FP') {
+      model = 'Ranger';
+    }
+    return { make, model, powertrain, battery_or_engine: batteryOrEngine };
+  }
+
+  function classifyPowertrain(offline, online, model, batteryOrEngine) {
+    let m = String(model || '').toLowerCase();
+    const be = String(batteryOrEngine || '').toLowerCase();
+    if (online && online.ok && online.fields) {
+      const f = online.fields;
+      const elec = String(f.ElectrificationLevel || '').toUpperCase();
+      const fuel1 = String(f.FuelTypePrimary || '').toUpperCase();
+      const fuel2 = String(f.FuelTypeSecondary || '').toUpperCase();
+      if (elec.includes('BEV') || elec.includes('BATTERY ELECTRIC') || (fuel1 === 'ELECTRIC' && !fuel2)) return 'BEV';
+      if (elec.includes('PHEV') || elec.includes('PLUG-IN') || (fuel1 === 'ELECTRIC' && fuel2)) return 'PHEV';
+      if (elec.includes('HEV') || elec.includes('HYBRID') || fuel2 === 'ELECTRIC') return 'HEV';
+      if (fuel1.includes('DIESEL') || String(f.DisplacementL || '').includes('6.7')) return 'ICE_DIESEL';
+      if (fuel1.includes('GASOLINE') || fuel1.includes('FLEX')) return 'ICE_GAS';
+      m = m || String(f.Model || '').toLowerCase();
+    }
+    if (m.includes('lightning') || m.includes('mach-e') || m.includes('e-transit') || be.includes('bev') || be.includes('extended range') || be.includes('standard range')) return 'BEV';
+    if (m.includes('phev') || m.includes('energi') || be.includes('plug-in')) return 'PHEV';
+    if (m.includes('hybrid') || m.includes('powerboost') || be.includes('hev') || be.includes('powerboost')) return 'HEV';
+    if (m.includes('diesel') || be.includes('power stroke') || be.includes('6.7l') || be.includes('diesel')) return 'ICE_DIESEL';
+    if (offline && offline.inferred && offline.inferred.powertrain) return offline.inferred.powertrain;
+    return 'ICE_GAS';
+  }
+
+  function resolvePlatformSlug(model, modelYear, vin, make) {
+    let m = String(model || '').toLowerCase().trim();
+    let mk = String(make || '').toLowerCase().trim();
+    const yr = Number(modelYear) || 2023;
+    if (!m && vin && String(vin).length >= 8) {
+      const inf = inferVehicleFromVin(normalizeVin(vin), yr);
+      m = String(inf.model || '').toLowerCase();
+      mk = mk || String(inf.make || '').toLowerCase();
+    }
+    if (m.includes('lightning') || ((m.includes('f-150') || m.includes('f150') || m.includes('raptor')) && yr >= 2021)) return 'f150_14g';
+    if ((m.includes('f-150') || m.includes('f150') || m.includes('raptor')) && yr >= 2015 && yr <= 2020) return 'f150_13g';
+    if ((m.includes('f-150') || m.includes('f150') || m.includes('raptor')) && yr <= 2014) return 'f150_12g';
+    if (['super duty', 'f-250', 'f-350', 'f-450', 'f-550', 'f250', 'f350', 'f450'].some((x) => m.includes(x))) {
+      if (yr >= 2023) return 'super_duty_23';
+      if (yr >= 2017) return 'super_duty_17_22';
+      return 'super_duty_11_16';
+    }
+    if (m.includes('bronco sport') || m.includes('corsair') || m.includes('escape')) return 'bronco_sport';
+    if (m.includes('bronco')) return 'bronco_6g';
+    if (m.includes('ranger')) return yr >= 2024 ? 'ranger_6g' : 'ranger_5g';
+    if (m.includes('maverick')) return 'maverick';
+    if (m.includes('mach-e') || m.includes('mach e')) return 'mach_e';
+    if (m.includes('mustang')) return yr >= 2024 ? 'mustang_s650' : 'mustang_s550';
+    if (m.includes('explorer') || m.includes('aviator')) return yr >= 2020 ? 'explorer_6g' : 'explorer_5g';
+    if (m.includes('expedition') || m.includes('navigator')) return 'expedition';
+    if (m.includes('fusion') || m.includes('mkz') || m.includes('continental')) return 'fusion_2g';
+    if (m.includes('focus') || m.includes('fiesta')) return 'focus_st_rs';
+    if (m.includes('transit') || m.includes('e-series')) return 'transit';
+    if (m.includes('edge') || m.includes('nautilus') || m.includes('mkx') || m.includes('mkt') || m.includes('flex') || m.includes('taurus') || mk === 'lincoln') return 'ford_generic';
+    return yr >= 2021 ? 'f150_14g' : 'ford_generic';
+  }
+
   function decodeVinOffline(vinRaw) {
-    const vin = String(vinRaw || '').replace(/\s+/g, '').toUpperCase();
+    const vin = normalizeVin(vinRaw);
     if (vin.length !== 17) {
       return { ok: false, vin, problems: [`VIN must be 17 characters (got ${vin.length})`] };
     }
     if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
       return { ok: false, vin, problems: ['VIN contains invalid characters (I, O, Q are prohibited by ISO 3779)'] };
     }
-    let total = 0;
-    for (let i = 0; i < 17; i++) {
-      total += (TRANSLIT[vin[i]] || 0) * WEIGHTS[i];
-    }
-    const rem = total % 11;
-    const expectedCheck = rem === 10 ? 'X' : String(rem);
+    const expectedCheck = computeVinCheckDigit(vin);
     const actualCheck = vin[8];
 
     const yChar = vin[9];
     const modern = /[A-Z]/.test(vin[6]);
-    let modelYear = null;
+    let modelYearCandidates = [];
     if (/\d/.test(yChar)) {
       const d = parseInt(yChar, 10);
-      modelYear = modern ? 2030 + d : 2000 + d;
+      if (d !== 0) {
+        modelYearCandidates = modern ? [2030 + d] : [1980 + d, 2000 + d];
+      }
     } else {
       const idx = YEAR_LETTERS.indexOf(yChar);
-      if (idx !== -1) modelYear = 2010 + idx;
+      if (idx !== -1) {
+        modelYearCandidates = modern ? [2010 + idx] : [1980 + idx, 2010 + idx];
+      }
     }
+    const modelYear = modelYearCandidates.length === 1 ? modelYearCandidates[0] : null;
 
     const wmi = vin.slice(0, 3);
-    const seriesCode = vin.slice(3, 6);
+    const seriesCode = vin.slice(4, 7);
     const engineCode = vin[7];
     const plantCode = vin[10];
-    const engInfo = LIGHTNING_ENGINE_CODES[engineCode] || null;
+    const inferred = inferVehicleFromVin(vin, modelYear);
+    const isLightning = inferred.model === 'F-150 Lightning';
+    const engInfo = isLightning ? (LIGHTNING_ENGINE_CODES[engineCode] || null) : null;
+    const platformSlug = resolvePlatformSlug(inferred.model, modelYear, vin, inferred.make);
 
     return {
       ok: true,
@@ -694,10 +857,13 @@
       wmi,
       wmi_meaning: WMI_MAP[wmi] || 'Unrecognized WMI',
       series_code: seriesCode,
-      series_meaning: F150_SERIES_MAP[seriesCode] || `Series ${seriesCode}`,
+      series_meaning: F150_SERIES_MAP[seriesCode] || (inferred.model ? `${inferred.make} ${inferred.model}` : `Series ${seriesCode}`),
       engine_code: engineCode,
-      inferred_pack: engInfo ? engInfo.pack : null,
+      inferred_pack: engInfo ? engInfo.pack : inferred.battery_or_engine,
       inferred_motors: engInfo ? engInfo.motors : null,
+      inferred,
+      platform_slug: platformSlug,
+      model_year_candidates: modelYearCandidates,
       model_year: modelYear,
       plant_code: plantCode,
       plant_meaning: PLANT_CODES[plantCode] || `Plant code ${plantCode}`,
@@ -707,16 +873,17 @@
   }
 
   async function decodeVinOnline(vinRaw) {
-    const vin = String(vinRaw || '').replace(/\s+/g, '').toUpperCase();
+    const vin = normalizeVin(vinRaw);
     const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`NHTSA HTTP ${resp.status}`);
     const data = await resp.json();
     const row = (data && data.Results && data.Results[0]) || {};
     const keep = [
-      'Make', 'Model', 'ModelYear', 'Trim', 'Series', 'BodyClass', 'DriveType',
-      'ElectrificationLevel', 'BatteryKWh', 'BatteryInfo', 'BatteryType',
-      'EVDriveUnit', 'PlantCity', 'PlantCountry', 'VehicleType', 'GVWR'
+      'Make', 'Model', 'ModelYear', 'Trim', 'Series', 'BodyClass', 'BodyCabType', 'DriveType',
+      'ElectrificationLevel', 'BatteryKWh', 'BatteryInfo', 'BatteryType', 'EVDriveUnit',
+      'FuelTypePrimary', 'FuelTypeSecondary', 'DisplacementL', 'EngineCylinders', 'EngineModel',
+      'PlantCity', 'PlantCountry', 'VehicleType', 'GVWR'
     ];
     const fields = {};
     keep.forEach((k) => {
@@ -727,8 +894,216 @@
       ? 'Extended Range (131 kWh usable / ~320 mi EPA)'
       : infoLower.includes('standard range')
       ? 'Standard Range (98 kWh usable / ~240 mi EPA)'
-      : fields.BatteryInfo || '';
-    return { ok: true, source: 'NHTSA vPIC', fields };
+      : fields.BatteryInfo || (fields.DisplacementL ? `${fields.DisplacementL}L ${fields.EngineModel || ''} ${fields.FuelTypePrimary || ''}`.trim() : '');
+    const yr = /^\d+$/.test(fields.ModelYear) ? parseInt(fields.ModelYear, 10) : null;
+    const powertrain = classifyPowertrain(null, { ok: true, fields }, fields.Model, fields._resolvedPack);
+    const platformSlug = resolvePlatformSlug(fields.Model, yr, vin, fields.Make);
+    return { ok: true, source: 'NHTSA vPIC', fields, powertrain, platform_slug: platformSlug };
+  }
+
+  // Deterministic Optical Confusable Repair against ISO 3779 Position 9 Modulo-11 Check Digit
+  const ILLEGAL_MAP = { I: '1', O: '0', Q: '0' };
+  const CONFUSABLES = {
+    0: ['0', 'D', 'C', 'U'],
+    D: ['D', '0'],
+    1: ['1', 'L', 'T', 'J'],
+    L: ['L', '1'],
+    2: ['2', 'Z'],
+    Z: ['Z', '2'],
+    4: ['4', 'A'],
+    A: ['A', '4'],
+    5: ['5', 'S'],
+    S: ['S', '5'],
+    6: ['6', 'G', 'B'],
+    G: ['G', '6'],
+    8: ['8', 'B'],
+    B: ['B', '8'],
+    U: ['U', 'V', '0'],
+    V: ['V', 'U', 'Y']
+  };
+
+  function repairAndValidateVinCandidates(rawText, maxEdits = 2) {
+    if (!rawText) return { ok: false, best: null, candidates: [] };
+    const cleaned = String(rawText).toUpperCase().replace(/[^A-Z0-9\s\-*]/g, '');
+    const tokens = cleaned.replace(/[\s\-*]+/g, ' ').match(/[A-Z0-9]{15,20}/g) || [];
+    const compact = String(rawText).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (compact.length >= 17) {
+      for (let i = 0; i <= Math.max(0, compact.length - 17); i++) {
+        const chunk18 = compact.slice(i, i + 18);
+        if (chunk18.length === 18 && chunk18.startsWith('I')) tokens.push(chunk18.slice(1));
+        tokens.push(compact.slice(i, i + 17));
+      }
+    }
+
+    const windows = [];
+    const seen = new Set();
+    tokens.forEach((t) => {
+      let norm = normalizeVin(t);
+      if (norm.length === 18 && norm.startsWith('I')) norm = norm.slice(1);
+      if (norm.length >= 17) {
+        for (let i = 0; i <= norm.length - 17; i++) {
+          const w = norm.slice(i, i + 17);
+          if (!seen.has(w)) {
+            seen.add(w);
+            windows.push(w);
+          }
+        }
+      }
+    });
+
+    const validMap = {};
+    function scoreAndRecord(cand, edits, orig) {
+      if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(cand)) return;
+      if (computeVinCheckDigit(cand) !== cand[8]) return;
+      const isFord = Boolean(WMI_MAP[cand.slice(0, 3)]);
+      const dec = decodeVinOffline(cand);
+      const yrOk = (dec.model_year_candidates || []).some((y) => y >= 2005 && y <= 2030);
+      const score = (isFord ? 100 : 40) + (yrOk ? 20 : 0) - edits * 15;
+      if (!validMap[cand] || score > validMap[cand].score) {
+        validMap[cand] = {
+          vin: cand,
+          score,
+          edits,
+          repaired_from: cand !== orig ? orig : null,
+          is_ford: isFord,
+          wmi_meaning: dec.wmi_meaning,
+          model_year: dec.model_year,
+          inferred: dec.inferred,
+          platform_slug: dec.platform_slug
+        };
+      }
+    }
+
+    windows.slice(0, 12).forEach((w) => {
+      let illegalFixes = 0;
+      const baseChars = w.split('').map((c) => {
+        if (ILLEGAL_MAP[c]) {
+          illegalFixes++;
+          return ILLEGAL_MAP[c];
+        }
+        return c;
+      });
+      const base = baseChars.join('');
+      scoreAndRecord(base, illegalFixes, w);
+      if (maxEdits <= 0) return;
+
+      const mutPos = [];
+      for (let i = 0; i < 17; i++) {
+        if (CONFUSABLES[base[i]] && CONFUSABLES[base[i]].length > 1) mutPos.push(i);
+      }
+      mutPos.forEach((p1) => {
+        CONFUSABLES[base[p1]].slice(1).forEach((a1) => {
+          const c1 = base.slice(0, p1) + a1 + base.slice(p1 + 1);
+          scoreAndRecord(c1, illegalFixes + 1, w);
+        });
+      });
+
+      if (maxEdits >= 2 && mutPos.length <= 10) {
+        for (let i = 0; i < mutPos.length; i++) {
+          for (let j = i + 1; j < mutPos.length; j++) {
+            const p1 = mutPos[i];
+            const p2 = mutPos[j];
+            CONFUSABLES[base[p1]].slice(1).forEach((a1) => {
+              CONFUSABLES[base[p2]].slice(1).forEach((a2) => {
+                const c2 = base.slice(0, p1) + a1 + base.slice(p1 + 1, p2) + a2 + base.slice(p2 + 1);
+                scoreAndRecord(c2, illegalFixes + 2, w);
+              });
+            });
+          }
+        }
+      }
+    });
+
+    const ranked = Object.values(validMap).sort((a, b) => b.score - a.score || a.edits - b.edits || a.vin.localeCompare(b.vin));
+    return {
+      ok: ranked.length > 0,
+      best: ranked[0] || null,
+      candidates: ranked.slice(0, 8)
+    };
+  }
+
+  function buildCustomModEntry(params) {
+    const title = String(params.title || '').trim();
+    if (!title) throw new Error('Feature title is required');
+    const addr = parseAddress(params.address);
+    const stars = targetPositions(params.mask);
+    const hexClean = String(params.targetHex || '').replace(/\s+/g, '').toUpperCase();
+    if (!hexClean || !/^[0-9A-F]+$/.test(hexClean)) {
+      throw new Error('Target hex must contain 1+ hexadecimal digits (0-9, A-F)');
+    }
+    if (hexClean.length !== 1 && hexClean.length !== stars.length) {
+      throw new Error(`Mask has ${stars.length} '*' target nibble(s), but Target Hex has ${hexClean.length} digit(s)`);
+    }
+    const ops = stars.map((pos, idx) => ({
+      pos,
+      kind: 'set',
+      hex: hexClean.length === 1 ? hexClean[0] : hexClean[idx],
+      raw: hexClean.length === 1 ? hexClean[0] : hexClean[idx]
+    }));
+    const modName = String(params.module || addr.module).trim().toUpperCase();
+    const id = params.id || Date.now();
+    return {
+      id,
+      source_key: `custom:${id}`,
+      title,
+      raw_title: title,
+      category: params.category || 'Custom Spreadsheet Mod',
+      platform: params.platform || 'Custom',
+      platform_slug: params.platformSlug || 'f150',
+      model_years: `${params.modelYear || 2021}+`,
+      trim_claimed: 'All',
+      upstream_validated: 0,
+      source_sheet: 'Custom Spreadsheet Line',
+      source_url: 'https://forscan.org/forum/',
+      source_confidence: 'custom-spreadsheet',
+      is_custom: true,
+      notes: params.notes || '',
+      warnings: params.warnings || '',
+      forscan_menu: params.forscanMenu || '',
+      steps: [
+        {
+          module: modName,
+          address: addr.key,
+          mask: String(params.mask).trim(),
+          ops,
+          feature_name: title,
+          notes: params.notes || ''
+        }
+      ],
+      import_issues: [],
+      system: modName,
+      system_name: `${modName} Custom`,
+      tier: ['760', '730', '7E0', '7E7', '746', '716', '706'].includes(addr.module) ? 3 : 1,
+      tier_reason: 'User custom spreadsheet entry',
+      ev_status: 'ALL_ POWERTRAINS',
+      ev_reason: 'User custom entry',
+      popularity: 2,
+      popularity_reason: 'Custom spreadsheet line',
+      status: 'APPROVED',
+      wanted: 1,
+      verified_on_my_truck: 0,
+      user_notes: params.notes || ''
+    };
+  }
+
+  function adapterGuidance(modelYear, platformSlug) {
+    const yr = Number(modelYear) || 2023;
+    const slug = String(platformSlug || '').toLowerCase();
+    const msCan = yr <= 2020 || ['13g', '12g', '17_22', '11_16', '5g', 's550', 'fusion', 'focus'].some((k) => slug.includes(k));
+    const arch = yr <= 2014 || ['12g', '11_16', 'focus', 'fusion', 'explorer_5g'].some((k) => slug.includes(k))
+      ? 'CGEA 1.2 (HS-CAN 500k + MS-CAN 125k)'
+      : msCan
+      ? 'CGEA 1.3 (HS-CAN1/2 500k + MS-CAN 125k)'
+      : 'CGEA 1.3 / FNV2 (HS-CAN1/2/3/4 500k + CAN-FD)';
+    return {
+      architecture: arch,
+      ms_can_required: msCan,
+      hs_can_command: 'STP31',
+      ms_can_command: msCan ? 'STP33' : null,
+      note: msCan
+        ? '2011–2020 vehicles place DDM (740), PDM (741), HVAC (733), and TRM (791) on 125 kbaud MS-CAN (pins 3 & 11). OBDLink EX switches automatically via STP33.'
+        : '2021+ vehicles route all modules via Central Gateway (716 GWM) on 500 kbaud HS-CAN.'
+    };
   }
 
   function yearApplies(modelYearsStr, targetYear) {
@@ -761,7 +1136,6 @@
           if (linesMap[a.key]) return;
           const m = String(s.mask || '').trim();
           if (!m) return;
-          // Replace x/*/- with safe baseline zero nibbles (or non-target nibbles so READY shows up)
           const groups = m.split(/\s+/).map((g) =>
             g
               .split('')
@@ -802,8 +1176,16 @@
     parseAnyBackupFile,
     diffBackups,
     verifySession,
+    normalizeVin,
+    computeVinCheckDigit,
+    inferVehicleFromVin,
+    classifyPowertrain,
+    resolvePlatformSlug,
     decodeVinOffline,
     decodeVinOnline,
+    repairAndValidateVinCandidates,
+    buildCustomModEntry,
+    adapterGuidance,
     yearApplies,
     generateDemoAbtText
   };

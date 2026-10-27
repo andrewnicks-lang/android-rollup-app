@@ -118,9 +118,15 @@
   // Includes non-blocking timeout + in-memory Map fallback for file:// / restricted WebViews
   // ============================================================================
   const _memoryBlobFallback = new Map();
+  let _idbPromise = null;
+
+  function _normalizeMediaKey(mediaKey) {
+    return String(mediaKey || '').replace(/^(photo(?:_raw)?::[^:]+::[^:]+)::([123])$/, '$1::slot$2');
+  }
 
   function _openIdb() {
-    return new Promise((resolve) => {
+    if (_idbPromise) return _idbPromise;
+    _idbPromise = new Promise((resolve) => {
       if (!global.indexedDB) {
         resolve(null);
         return;
@@ -132,7 +138,7 @@
           resolve(val);
         }
       };
-      const timer = setTimeout(() => done(null), 450);
+      const timer = setTimeout(() => done(null), 350);
       try {
         const req = global.indexedDB.open(IDB_NAME, 1);
         req.onupgradeneeded = (ev) => {
@@ -158,13 +164,15 @@
         done(null);
       }
     });
+    return _idbPromise;
   }
 
   async function saveMediaBlob(mediaKey, payload) {
-    const scopedId = `${_userScopePrefix()}::${mediaKey}`;
+    const normKey = _normalizeMediaKey(mediaKey);
+    const scopedId = `${_userScopePrefix()}::${normKey}`;
     const recObj = {
       id: scopedId,
-      mediaKey,
+      mediaKey: normKey,
       updatedAt: new Date().toISOString(),
       payload
     };
@@ -184,7 +192,8 @@
   }
 
   async function loadMediaBlob(mediaKey) {
-    const scopedId = `${_userScopePrefix()}::${mediaKey}`;
+    const normKey = _normalizeMediaKey(mediaKey);
+    const scopedId = `${_userScopePrefix()}::${normKey}`;
     const db = await _openIdb();
     if (!db) {
       const mem = _memoryBlobFallback.get(scopedId);
@@ -214,7 +223,8 @@
   }
 
   async function deleteMediaBlob(mediaKey) {
-    const scopedId = `${_userScopePrefix()}::${mediaKey}`;
+    const normKey = _normalizeMediaKey(mediaKey);
+    const scopedId = `${_userScopePrefix()}::${normKey}`;
     _memoryBlobFallback.delete(scopedId);
     const db = await _openIdb();
     if (!db) return true;

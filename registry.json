@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T22:40:21.755404",
+    "updated_at": "2026-10-26T22:50:31.191465",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -110,7 +110,7 @@
     "apk_version": "1.1.0",
     "build_hash": "2b3112af07",
     "stamped_version": "1.0.6",
-    "ota_etag": "eb534f88e1"
+    "ota_etag": "078c444e8d"
   },
   "apps": [
     {
@@ -213,7 +213,7 @@
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.2.0",
+      "version": "3.2.1",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -238,13 +238,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "4297342b40",
-      "stamped_version": "3.2.0",
-      "updated_at": "2026-10-26T22:40:13.178011",
+      "build_hash": "93176e9687",
+      "stamped_version": "3.2.1",
+      "updated_at": "2026-10-26T22:50:18.712366",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "4297342b40",
-      "manual_updated_at": "2026-10-26T22:40:20.547155"
+      "manual_source_hash": "93176e9687",
+      "manual_updated_at": "2026-10-26T22:50:38.521545"
     },
     {
       "id": "field-snap",
@@ -375,13 +375,13 @@
     },
     {
       "id": "lightning-garage",
-      "title": "Lightning Garage",
-      "subtitle": "2023 F-150 Lightning ER Lariat \u2022 FORScan Menu, .abt/.ab Parser & VIN Companion",
-      "description": "100% Deterministic FORScan Mod Menu (59 F-150 recipes sorted by popularity & EV risk tier), ISO 3779 + NHTSA vPIC VIN Decoder (1FT6W1EV4PWG11434 Extended Range 131 kWh), .abt & Motorcraft .ab XML Importer/Differ, Live Nibble Mask & Checksum Engine, 87-Module Guide, and In-Cab Session Planner.",
+      "title": "Blue Oval Garage",
+      "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 Multi-Vehicle, VIN Scanner & As-Built Engine",
+      "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Multi-Vehicle Garage (pre-seeded with 2023 F-150 Lightning ER Lariat 1FT6W1EV4PWG11434), 183 Community Recipes across 6 Platforms + 21 Curated Spreadsheet/PDF Downloads + Custom Spreadsheet Line Builder, Hybrid VIN Barcode/Photo/OCR Scanner with ISO 3779 Modulo-11 Auto-Repair, .abt & Motorcraft .ab XML Importer/Differ, 87-Module Guide, and In-Cab Session Planner.",
       "icon": "\u26a1",
       "accent": "#38bdf8",
       "category": "Automotive & Telemetry",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "entry": "apps/lightning-garage/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -394,7 +394,7 @@
       "userConfigSchema": [
         {
           "key": "default_vin",
-          "label": "Default 17-Character Truck VIN",
+          "label": "Default 17-Character Vehicle VIN",
           "type": "text",
           "default": "1FT6W1EV4PWG11434",
           "defaultForAdmin": "1FT6W1EV4PWG11434"
@@ -408,19 +408,19 @@
         },
         {
           "key": "default_battery",
-          "label": "Default HV Battery Pack",
+          "label": "Default Battery Pack or Engine",
           "type": "text",
           "default": "Extended Range (131 kWh)",
           "defaultForAdmin": "Extended Range (131 kWh)"
         }
       ],
-      "build_hash": "f73f6f1732",
-      "stamped_version": "1.0.1",
-      "updated_at": "2026-10-26T22:40:13.178011",
+      "build_hash": "a36e508af6",
+      "stamped_version": "2.0.0",
+      "updated_at": "2026-10-26T22:50:00.931688",
       "manual_pdf": "manuals/lightning-garage_User_Manual.pdf",
       "manual_html": "manuals/lightning-garage_User_Manual.html",
-      "manual_source_hash": "f73f6f1732",
-      "manual_updated_at": "2026-10-26T22:40:29.765677"
+      "manual_source_hash": "a36e508af6",
+      "manual_updated_at": "2026-10-26T22:50:30.542616"
     }
   ]
 }

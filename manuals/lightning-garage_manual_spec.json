@@ -1,79 +1,79 @@
 {
   "app_id": "lightning-garage",
-  "title": "Lightning Garage",
-  "subtitle": "2023 F-150 Lightning ER Lariat \u2022 FORScan Menu, .abt/.ab Parser & VIN Companion",
-  "description": "100% Deterministic FORScan Mod Menu (59 F-150 recipes sorted by popularity & EV risk tier), ISO 3779 + NHTSA vPIC VIN Decoder (1FT6W1EV4PWG11434 Extended Range 131 kWh), .abt & Motorcraft .ab XML Importer/Differ, Live Nibble Mask & Checksum Engine, 87-Module Guide, and In-Cab Session Planner.",
+  "title": "Blue Oval Garage",
+  "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 Multi-Vehicle, VIN Scanner & As-Built Engine",
+  "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Multi-Vehicle Garage (pre-seeded with 2023 F-150 Lightning ER Lariat 1FT6W1EV4PWG11434), 183 Community Recipes across 6 Platforms + 21 Curated Spreadsheet/PDF Downloads + Custom Spreadsheet Line Builder, Hybrid VIN Barcode/Photo/OCR Scanner with ISO 3779 Modulo-11 Auto-Repair, .abt & Motorcraft .ab XML Importer/Differ, 87-Module Guide, and In-Cab Session Planner.",
   "icon": "\u26a1",
   "accent": "#38bdf8",
   "category": "Automotive & Telemetry",
-  "version": "1.0.1",
-  "build_hash": "f73f6f1732",
+  "version": "2.0.0",
+  "build_hash": "a36e508af6",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T22:40:13.178011",
-  "generated_at": "2026-10-26 22:40",
-  "tagline": "2023 F-150 Lightning ER Lariat FORScan Mod Menu, Deterministic As-Built .abt/.ab Parser & Checksum Companion",
+  "updated_at": "2026-10-26T22:50:00.931688",
+  "generated_at": "2026-10-26 22:50",
+  "tagline": "Blue Oval Garage v2.0 \u2014 2011\u20132026+ Ford & Lincoln Multi-Vehicle FORScan Companion, VIN Barcode/OCR Scanner & Deterministic As-Built Engine",
   "quickstart": [
     {
-      "step": "Verify Your Truck & VIN (`\u26a1 Truck & VIN`)",
-      "detail": "Launch Lightning Garage to view your pre-loaded 2023 F-150 Lightning ER Lariat (`1FT6W1EV4PWG11434`, 131 kWh Extended Range, 320 mi EPA). Tap `\ud83c\udf10 Verify w/ NHTSA vPIC` anytime to confirm factory BEV telemetry."
+      "step": "Select or Add Any 2011\u20132026+ Ford/Lincoln (`\ud83d\udd35 Garage & VIN`)",
+      "detail": "Your 2023 F-150 Lightning ER Lariat (`1FT6W1EV4PWG11434`, \u26a1 BEV) is pre-seeded as Vehicle #1. Tap `+ Add Vehicle` to add any 2011\u20132026+ Ford or Lincoln by typing a 17-char VIN or scanning the door-jamb B-pillar sticker / windshield VIN plate with the Hybrid Camera Barcode + OCR Scanner."
     },
     {
       "step": "Load a Baseline (`.abt` / `.ab` or `\ud83e\uddea Demo Baseline`)",
-      "detail": "Tap `\ud83d\udcc2 Import .abt / .ab File` to load your real FORScan `.abt` module backups or Ford Motorcraft `.ab` XML\u2014or tap `\ud83e\uddea Load Demo Baseline` to preview live nibble mask and checksum dry-runs immediately."
+      "detail": "Tap `\ud83d\udcc2 Import .abt / .ab File` to load your real FORScan `.abt` module backups or Ford Motorcraft `.ab` XML\u2014or tap `\ud83e\uddea Load Demo Baseline` to preview live nibble mask and checksum dry-runs immediately for the active vehicle."
     },
     {
-      "step": "Browse & Star Mods (`\ud83c\udf9b\ufe0f Mod Menu`)",
-      "detail": "Filter all 59 F-150 recipes by `\ud83d\udd25 Most Common (\u2605\u2605+)`, module (`726 BCM`, `7D0 APIM`, `720 IPC`, `740/741 DDM/PDM`), or Risk Tier (`T1 Cosmetic`, `T2 Behavior`, `T3 Locked`). Tap any card to inspect exact `BEFORE -> AFTER` hex bytes and recomputed checksums."
+      "step": "Browse 183 Recipes, 21 Master Spreadsheets & Custom Lines (`\ud83c\udf9b\ufe0f Mod Menu`)",
+      "detail": "Browse 183 verified recipes across 6 upstream platforms (`f150`, `super_duty`, `bronco`, `explorer`, `ranger_6g`, `mustang`), download 1-click `.xlsx`/`.pdf` community master spreadsheets (Livnitup, ZooDad, DanMc85) for all 21 platforms, or use `\u2795 Quick-Add Custom Spreadsheet Line` to enter any forum/spreadsheet hex mod with deterministic checksum dry-run."
     },
     {
       "step": "Run Your In-Cab FORScan Session (`\ud83d\udccb Session Plan`)",
-      "detail": "Open the `\ud83d\udccb Plan` tab in the truck cab with your OBDLink EX. Follow the 12V pre-flight checklist, verify every target module has a saved `.abt` backup, and copy or share your exact line-by-line write sheet."
+      "detail": "Open the `\ud83d\udccb Plan` tab in the vehicle cab with your OBDLink EX (`STP31` HS-CAN + automatic `STP33` 125 kbaud MS-CAN guidance for 2011\u20132020 CGEA 1.2/1.3 vehicles). Verify every target module has a saved `.abt` backup and copy/share your exact line-by-line write sheet."
     }
   ],
   "navigation_map": [
     {
-      "screen": "\u26a1 Truck & VIN",
-      "purpose": "Offline ISO 3779 + NHTSA vPIC VIN decoder, readiness KPIs, 1-tap Demo Baseline loader, and JSON Vault export/import."
+      "screen": "\ud83d\udd35 Garage & VIN",
+      "purpose": "Multi-vehicle garage switcher, Hybrid Camera Barcode/OCR VIN scanner with ISO 3779 Modulo-11 auto-repair, offline + NHTSA vPIC decoder, and JSON Vault export/import."
     },
     {
-      "screen": "\ud83c\udf9b\ufe0f Mod Menu (59 Recipes)",
-      "purpose": "Searchable FORScan mod catalog sorted by popularity and risk tier with live nibble-mask & checksum dry-run drawer."
+      "screen": "\ud83c\udf9b\ufe0f Mod Menu (183 Recipes + Custom)",
+      "purpose": "3-Layer FORScan catalog: 183 platform-filtered recipes, 21 curated community master spreadsheets (.xlsx/.pdf), and Quick-Add Custom Spreadsheet Line builder."
     },
     {
       "screen": "\ud83e\udde9 Modules (87 Addresses)",
-      "purpose": "Complete Ford control module directory (`726`, `7D0`, `720`, `706`, `7E7`, `746`, etc.) with EV notes, write-risk ratings, and backup evidence."
+      "purpose": "Complete Ford/Lincoln control module directory (`726`, `7D0`, `720`, `740/741`, `7E7`, `746`, etc.) with CGEA 1.2/1.3 MS-CAN (`STP33`) notes, write-risk ratings, and per-vehicle backup evidence."
     },
     {
       "screen": "\ud83d\udee1\ufe0f Backups & Factory .ab",
-      "purpose": "Pre-flight module backup coverage checker, `.abt`/`.ab` importer, Factory vs. Current byte drift differ, Motorcraft AsBuilt helper, and Checksum Calculator."
+      "purpose": "Per-vehicle module backup coverage checker, `.abt`/`.ab` importer, Factory vs. Current byte drift differ, Motorcraft AsBuilt helper, and Checksum Calculator."
     },
     {
       "screen": "\ud83d\udccb Session Plan",
-      "purpose": "Printable/shareable in-cab FORScan write sheet grouping required module backups and exact target hex lines."
+      "purpose": "Printable/shareable in-cab FORScan write sheet with CGEA 1.2/1.3 vs. FNV2 adapter guidance, required module backups, and exact target hex lines."
     }
   ],
   "deep_dive_features": [
     {
-      "title": "100% Deterministic Nibble Mask & Checksum Engine (`Code -> Never LLM`)",
-      "body": "Evaluates `set`, `bits`, and `offset` nibble operations across multi-step recipes with rolling same-address state compounding and recomputes exact Ford line checksums (`sum(header + data[:-1]) & 0xFF`)."
+      "title": "Hybrid VIN Barcode + Optical Confusable Auto-Repair (`Code -> Vision -> Code`)",
+      "body": "Combines native `BarcodeDetector` (Code 39 / DataMatrix door-jamb stickers with automatic 18th-char `'I'` guard stripping), Canvas CLAHE contrast enhancement, and a deterministic ISO 3779 Position 9 Modulo-11 repair engine that tests single- and double-character optical confusable substitutions (`O/Q/D -> 0`, `I/L -> 1`, `Z -> 2`, `S -> 5`, `G -> 6`, `B -> 8`) until the mathematical check digit passes."
     },
     {
-      "title": "3-Tier Safety Gating & EV Applicability Filtering",
-      "body": "Automatically locks Tier 3 safety/HV/powertrain/ADAS modules (`7E7 BECM`, `746 SOBDMC`, `760 ABS`, `730 PSCM`, `706 IPMA`) and flags `ICE_ONLY` gas-engine recipes so they cannot be accidentally scheduled on your Lightning."
+      "title": "Full 3-Layer Vehicle-Specific FORScan Catalog & Custom Mod Builder",
+      "body": "Layer 1 ships 183 structured recipes across F-150/Lightning, Super Duty, Bronco, Explorer/Aviator, Ranger 6G, and Mustang with dynamic powertrain gating (`ICE_ONLY` blocked on `BEV`, unlocked on `ICE_GAS`/`ICE_DIESEL`/`HEV`). Layer 2 provides 1-click `.xlsx`/`.pdf` community spreadsheets for 21 Ford/Lincoln platforms (2011\u20132026+). Layer 3 lets you add any custom spreadsheet line (`726-12-01`, `xxxx-**xx-xxxx`) with full nibble-mask and Modulo-256 checksum dry-runs."
     },
     {
-      "title": "Ford Motorcraft `.ab` XML & FORScan `.abt` Diffing",
-      "body": "Parses both plain-text FORScan `.abt` backups and official Ford Motorcraft `.ab` XML files directly on your phone, surfacing byte-by-byte factory drift and hardware part numbers (`F111`, `F113`, `F188`)."
+      "title": "100% Deterministic Nibble Mask, Checksum & Multi-Vehicle Isolation",
+      "body": "Evaluates `set`, `bits`, and `offset` nibble operations across multi-step recipes and recomputes exact Ford line checksums (`sum(header + data[:-1]) & 0xFF`). Every vehicle in your garage maintains isolated `.abt`/`.ab` backups, starred mods, custom lines, and session verification history."
     }
   ],
   "pro_tips": [
-    "Always save an untouched FORScan `.abt` backup of every target module before writing changes, and import the post-write `.abt` afterward to confirm exact byte matches.",
-    "Tap `\ud83d\udce4 Export Vault (.json)` on the Truck tab to back up your starred mods, personal notes, and imported `.abt`/`.ab` baselines across devices."
+    "When scanning a door-jamb barcode on Ford trucks, the deterministic normalizer automatically strips the leading `'I'` Code 39 guard character from 18-character barcode payloads.",
+    "For 2011\u20132020 CGEA 1.2/1.3 vehicles, modules `740 DDM`, `741 PDM`, `733 HVAC`, and `791 TRM` reside on the 125 kbaud MS-CAN bus\u2014use an electronic bus-switching cable like OBDLink EX (`STP33`)."
   ],
   "user_config_schema": [
     {
       "key": "default_vin",
-      "label": "Default 17-Character Truck VIN",
+      "label": "Default 17-Character Vehicle VIN",
       "type": "text",
       "default": "1FT6W1EV4PWG11434",
       "defaultForAdmin": "1FT6W1EV4PWG11434"
@@ -87,7 +87,7 @@
     },
     {
       "key": "default_battery",
-      "label": "Default HV Battery Pack",
+      "label": "Default Battery Pack or Engine",
       "type": "text",
       "default": "Extended Range (131 kWh)",
       "defaultForAdmin": "Extended Range (131 kWh)"
@@ -130,11 +130,11 @@
         "action": "RollupBridge && RollupBridge.manuals.open('lightning-garage')"
       },
       {
-        "label": "\u26a1 Truck & VIN",
+        "label": "\ud83d\ude98 Garage & VIN",
         "action": "switchTab('truck')"
       },
       {
-        "label": "\ud83c\udf9b\ufe0f Mod Menu (59)",
+        "label": "\ud83c\udf9b\ufe0f Mod Menu (183)",
         "action": "switchTab('mods')"
       },
       {
@@ -148,6 +148,10 @@
       {
         "label": "\ud83d\udccb Session Plan (0)",
         "action": "switchTab('plan')"
+      },
+      {
+        "label": "\ud83d\ude98 Garage/VIN",
+        "action": "switchTab('truck')"
       },
       {
         "label": "\ud83c\udf9b\ufe0f Mod Menu",
@@ -175,9 +179,16 @@
     "vault_secrets": [],
     "capabilities": [
       "Isolated Per-User Storage (RollupBridge)",
-      "Android Share Sheet & CSV/JSON Export"
+      "Mobile Camera / Multimodal Capture",
+      "Android Share Sheet & CSV/JSON Export",
+      "Encrypted On-Device Secret Vault"
     ],
     "recent_commits": [
+      {
+        "sha": "61ab551",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:40)"
+      },
       {
         "sha": "2721026",
         "date": "2026-10-26",
