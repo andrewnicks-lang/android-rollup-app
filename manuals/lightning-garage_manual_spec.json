@@ -6,11 +6,11 @@
   "icon": "\u26a1",
   "accent": "#38bdf8",
   "category": "Automotive & Telemetry",
-  "version": "1.0.0",
-  "build_hash": "6fed71f75e",
+  "version": "1.0.1",
+  "build_hash": "f73f6f1732",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T16:43:11.679912",
-  "generated_at": "2026-10-26 16:43",
+  "updated_at": "2026-10-26T22:40:13.178011",
+  "generated_at": "2026-10-26 22:40",
   "tagline": "2023 F-150 Lightning ER Lariat FORScan Mod Menu, Deterministic As-Built .abt/.ab Parser & Checksum Companion",
   "quickstart": [
     {
@@ -177,6 +177,22 @@
       "Isolated Per-User Storage (RollupBridge)",
       "Android Share Sheet & CSV/JSON Export"
     ],
-    "recent_commits": []
+    "recent_commits": [
+      {
+        "sha": "2721026",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:41)"
+      },
+      {
+        "sha": "14a7159",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:40)"
+      },
+      {
+        "sha": "c4e5aad",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:38)"
+      }
+    ]
   }
 }

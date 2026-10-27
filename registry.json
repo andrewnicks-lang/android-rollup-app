@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T22:33:42.533677",
+    "updated_at": "2026-10-26T22:40:21.755404",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -110,7 +110,7 @@
     "apk_version": "1.1.0",
     "build_hash": "2b3112af07",
     "stamped_version": "1.0.6",
-    "ota_etag": "11a1d075e3"
+    "ota_etag": "eb534f88e1"
   },
   "apps": [
     {
@@ -208,12 +208,12 @@
     {
       "id": "csc-site-discovery",
       "title": "CSC Site Discovery",
-      "subtitle": "Snap & Go v3.0: Photo-First Capture, Traffic-Light Tagging & Auto Rough Map",
-      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v2.0: <15s Quick Walk Single-Card Mode, Clone +1 Tag Incrementer, Global Hold-to-Talk 150Hz Mic Pill, 8x8 Local Tile CLAHE + Raw Color Toggle, Binary EXIF GPS/Compass, ASHRAE Ch. 38 + EPA A2L Serial/Model Decoder, BAS Thermistor/I-O Overlay, Pinch-Zoom Map + In-App Camera Step-Peak PDR Walk, Fail-Open Valve/Damper/VA Sizers, and .cscwalk.zip Packager.",
+      "subtitle": "Snap & Go v3.2: Stamped Unit Photos, Self-Contained Walk.zip & Office Wi-Fi Sync",
+      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.2: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload, Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, ASHRAE Ch. 38 + EPA A2L Decoder, and BAS Overlay Sizers.",
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.1.0",
+      "version": "3.2.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -238,13 +238,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "cd3a2299a1",
-      "stamped_version": "3.1.0",
-      "updated_at": "2026-10-26T19:57:52.259077",
+      "build_hash": "4297342b40",
+      "stamped_version": "3.2.0",
+      "updated_at": "2026-10-26T22:40:13.178011",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "cd3a2299a1",
-      "manual_updated_at": "2026-10-26T20:00:24.509679"
+      "manual_source_hash": "4297342b40",
+      "manual_updated_at": "2026-10-26T22:40:20.547155"
     },
     {
       "id": "field-snap",
@@ -381,7 +381,7 @@
       "icon": "\u26a1",
       "accent": "#38bdf8",
       "category": "Automotive & Telemetry",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "entry": "apps/lightning-garage/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -414,13 +414,13 @@
           "defaultForAdmin": "Extended Range (131 kWh)"
         }
       ],
-      "build_hash": "6fed71f75e",
-      "stamped_version": "1.0.0",
-      "updated_at": "2026-10-26T16:43:11.679912",
+      "build_hash": "f73f6f1732",
+      "stamped_version": "1.0.1",
+      "updated_at": "2026-10-26T22:40:13.178011",
       "manual_pdf": "manuals/lightning-garage_User_Manual.pdf",
       "manual_html": "manuals/lightning-garage_User_Manual.html",
-      "manual_source_hash": "6fed71f75e",
-      "manual_updated_at": "2026-10-26T16:43:12.968588"
+      "manual_source_hash": "f73f6f1732",
+      "manual_updated_at": "2026-10-26T22:40:29.765677"
     }
   ]
 }

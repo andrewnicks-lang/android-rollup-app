@@ -1211,13 +1211,45 @@ function estimateRoughLocationForUnit(st, prevSt = null) {
 }
 
 // ============================================================================
+// COLLISION-PROOF STATION & AUDIO ID ALLOCATORS (Fixes BUG-04: Post-Delete ID Collision)
+// ============================================================================
+function _nextStationId() {
+  let maxNum = 0;
+  for (const s of (state.stations || [])) {
+    const m = String(s.id || "").match(/(\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  }
+  const nextNum = maxNum + 1;
+  return {
+    num: nextNum,
+    id: `STN-${String(nextNum).padStart(2, "0")}`
+  };
+}
+
+function _nextAudioId() {
+  let maxNum = 0;
+  for (const a of (state.audioSegments || [])) {
+    const m = String(a.id || "").match(/(\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  }
+  const nextNum = maxNum + 1;
+  return `AUD-${String(nextNum).padStart(2, "0")}`;
+}
+
+// ============================================================================
 // PHOTO-ONLY FIRST -> "TAG & GO" 1-SCREEN CAPTURE FLOW
 // ============================================================================
 async function startSnapNewUnitWizard() {
   const prevSt = state.stations[state.stations.length - 1] || getActiveStation();
-  const newNum = state.stations.length + 1;
-  const padNum = String(newNum).padStart(2, "0");
-  const newId = `STN-${padNum}`;
+  const nextInfo = _nextStationId();
+  const newNum = nextInfo.num;
+  const newId = nextInfo.id;
   const defaultArch = state.activeFloorId === "FLR-ROOF" ? "RTU_AHU" : (prevSt ? prevSt.archetype : "RTU_AHU");
   const archObj = ARCHETYPES.find((a) => a.id === defaultArch) || ARCHETYPES[0];
 
@@ -1285,6 +1317,7 @@ function closeTagAndGoSheet() {
   if (modal) modal.style.display = "none";
   persistWalkState();
   renderAll(true);
+  checkOfficeWifiAutoSync();
 }
 
 async function saveAndSnapNextUnit() {
@@ -1294,6 +1327,7 @@ async function saveAndSnapNextUnit() {
 
 function setUnitCondition(condVal) {
   const st = getActiveStation();
+  if (!st) return;
   st.condition = condVal;
   persistWalkState();
   renderTagAndGoSheet(st);
@@ -1303,6 +1337,7 @@ function setUnitCondition(condVal) {
 
 function toggleQuickIssueTile(issueId) {
   const st = getActiveStation();
+  if (!st) return;
   if (!Array.isArray(st.quickIssues)) st.quickIssues = [];
   const issueObj = QUICK_ISSUE_CATALOG.find((x) => x.id === issueId);
   if (!issueObj) return;
@@ -1336,6 +1371,7 @@ function toggleQuickIssueTile(issueId) {
 
 function onTagGoNoteInput(val) {
   const st = getActiveStation();
+  if (!st) return;
   st.userNote = val;
   const loc = parseLocationFromVoiceJS(val);
   if (loc) {
@@ -1360,6 +1396,7 @@ function onTagGoNoteInput(val) {
 
 function renderTagAndGoSheet(st) {
   if (!st) st = getActiveStation();
+  if (!st) return;
   const unitIdx = state.stations.findIndex((x) => x.id === st.id) + 1;
   const badgeEl = document.getElementById("tgUnitBadge");
   if (badgeEl) badgeEl.textContent = `Unit #${unitIdx}`;
@@ -1453,6 +1490,27 @@ function renderTagAndGoSheet(st) {
     noteInp.value = st.userNote || st.tierDelta || "";
   }
 
+  // Render unit-linked voice notes with ▶️ Play buttons inside Tag & Go
+  const unitAudioEl = document.getElementById("tgUnitAudioList");
+  if (unitAudioEl) {
+    const unitSegs = (state.audioSegments || []).filter((a) => a.stationId === st.id);
+    if (unitSegs.length === 0) {
+      unitAudioEl.innerHTML = "";
+    } else {
+      unitAudioEl.innerHTML = unitSegs.map((seg) => `
+        <div class="audio-item-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;">
+          <div style="min-width:0;flex:1;font-size:11.5px;">
+            <strong>🎙️ ${escapeHtml(seg.id)} (${escapeHtml(seg.time || '')}):</strong>
+            <span>"${escapeHtml(seg.text)}"</span>
+          </div>
+          <button class="btn btn-secondary" style="padding:4px 9px;min-height:28px;font-size:11px;white-space:nowrap;" onclick="playAudioSegmentById('${seg.id}')">
+            ▶️ Play
+          </button>
+        </div>
+      `).join("");
+    }
+  }
+
   const archSel = document.getElementById("qwArchetypeSelect");
   if (archSel) {
     archSel.innerHTML = ARCHETYPES.map((a) => `
@@ -1472,13 +1530,15 @@ function renderTagAndGoSheet(st) {
 }
 
 // ============================================================================
-// CLEAN VISUAL UNIT FEED RENDERER (VIEW 1)
+// CLEAN VISUAL UNIT FEED RENDERER (VIEW 1) — PREFERS FULL-COLOR PHOTOS
 // ============================================================================
 async function preloadAllStationThumbnails() {
   allStationThumbs = {};
   for (const st of state.stations) {
-    const p2 = await window.CSCDiscoveryAdapter.loadMediaBlob(`photo::${state.sessionId}::${st.id}::slot2`);
-    const p1 = p2 ? null : await window.CSCDiscoveryAdapter.loadMediaBlob(`photo::${state.sessionId}::${st.id}::slot1`);
+    const raw2 = await window.CSCDiscoveryAdapter.loadMediaBlob(`photo_raw::${state.sessionId}::${st.id}::slot2`);
+    const p2 = raw2 || await window.CSCDiscoveryAdapter.loadMediaBlob(`photo::${state.sessionId}::${st.id}::slot2`);
+    const raw1 = p2 ? null : await window.CSCDiscoveryAdapter.loadMediaBlob(`photo_raw::${state.sessionId}::${st.id}::slot1`);
+    const p1 = p2 ? null : (raw1 || await window.CSCDiscoveryAdapter.loadMediaBlob(`photo::${state.sessionId}::${st.id}::slot1`));
     if (p2 || p1) allStationThumbs[st.id] = p2 || p1;
   }
 }
@@ -1516,7 +1576,7 @@ function renderUnitFeed() {
     const stStatus = computeStationStatus(st);
     const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
     const mdl = decodeModelDeterministic(st.mfg, st.model);
-    const thumb = allStationThumbs[st.id] || (st.id === state.activeStationId ? (cachedSlotPhotos[2] || cachedSlotPhotos[1]) : null);
+    const thumb = allStationThumbs[st.id] || (st.id === state.activeStationId ? (cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1]) : null);
 
     const specParts = [];
     if (st.mfg) specParts.push(st.mfg);
@@ -1566,6 +1626,50 @@ function renderUnitFeed() {
   }).join("");
 }
 
+let activeAudioPlayer = null;
+async function playAudioSegmentById(segId) {
+  const seg = (state.audioSegments || []).find((a) => a.id === segId);
+  if (!seg) return;
+
+  if (activeAudioPlayer) {
+    try {
+      activeAudioPlayer.pause();
+      activeAudioPlayer = null;
+    } catch (e) {}
+  }
+
+  let dataUrl = cachedAudioUrls[segId];
+  if (!dataUrl) {
+    dataUrl = await window.CSCDiscoveryAdapter.loadMediaBlob(`audio::${state.sessionId}::${segId}`);
+    if (dataUrl) cachedAudioUrls[segId] = dataUrl;
+  }
+
+  if (dataUrl && typeof dataUrl === "string" && dataUrl.startsWith("data:audio")) {
+    try {
+      const player = new Audio(dataUrl);
+      activeAudioPlayer = player;
+      await player.play();
+      showBannerToast(`🔊 <strong>Playing ${escapeHtml(segId)} (${escapeHtml(seg.stationId)}):</strong> "${escapeHtml(seg.text.slice(0, 70))}"`);
+      return;
+    } catch (e) {
+      console.warn("Audio playback fallback:", e);
+    }
+  }
+
+  // Fallback for demo/transcript-only segments without a binary .webm recording
+  if ("speechSynthesis" in window && seg.text) {
+    try {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(seg.text);
+      utt.rate = 1.04;
+      window.speechSynthesis.speak(utt);
+      showBannerToast(`🔊 <strong>Reading Transcript (${escapeHtml(segId)}):</strong> "${escapeHtml(seg.text.slice(0, 70))}"`);
+      return;
+    } catch (e) {}
+  }
+  showBannerToast(`📝 <strong>Voice Transcript (${escapeHtml(segId)}):</strong> "${escapeHtml(seg.text)}"`);
+}
+
 function renderRecentAudioFeed() {
   const countEl = document.getElementById("audioCountBadge");
   if (countEl) countEl.textContent = String((state.audioSegments || []).length);
@@ -1574,23 +1678,25 @@ function renderRecentAudioFeed() {
 
   const listEl = document.getElementById("recentAudioFeedList");
   if (!listEl) return;
-  const segs = (state.audioSegments || []).slice(0, 4);
+  const segs = (state.audioSegments || []).slice(0, 6);
   if (segs.length === 0) {
     listEl.innerHTML = `<div style="font-size:11.5px;color:var(--text-muted);">Hold <strong>🎙️ Hold to Talk</strong> anytime to record a voice note &amp; auto-tag location.</div>`;
     return;
   }
   listEl.innerHTML = segs.map((seg) => `
     <div class="audio-item-row">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
-        <strong>${escapeHtml(seg.stationId)} • ${escapeHtml(seg.speaker || 'Field Tech')}</strong>
-        <span>${escapeHtml(seg.time)}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);">
+        <strong>${escapeHtml(seg.stationId || 'SITE-GENERAL')} • ${escapeHtml(seg.speaker || 'Field Tech')}</strong>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span>${escapeHtml(seg.time)}</span>
+          <button class="btn btn-secondary" style="padding:2px 8px;min-height:24px;font-size:10.5px;" onclick="playAudioSegmentById('${seg.id}')">▶️ Play</button>
+        </div>
       </div>
-      <div style="margin-top:2px;">"${escapeHtml(seg.text)}"</div>
+      <div style="margin-top:3px;">"${escapeHtml(seg.text)}"</div>
       ${seg.insight ? `<div style="margin-top:2px;font-size:11px;color:var(--accent-teal);font-weight:700;">↳ ${escapeHtml(seg.insight)}</div>` : ""}
     </div>
   `).join("");
 }
-
 
 function _autoIncrementEquipmentTag(tagStr) {
   const raw = (tagStr || "Unit #1").trim();
@@ -1611,8 +1717,8 @@ function cloneActiveStation() {
     startSnapNewUnitWizard();
     return;
   }
-  const newNum = state.stations.length + 1;
-  const newId = `STN-${String(newNum).padStart(2, "0")}`;
+  const nextInfo = _nextStationId();
+  const newId = nextInfo.id;
   const nextTag = _autoIncrementEquipmentTag(src.tag);
   const arch = ARCHETYPES.find((a) => a.id === src.archetype) || ARCHETYPES[0];
 
@@ -2033,12 +2139,17 @@ function selectStation(stationId) {
   renderStationStrip();
 }
 
-function deleteUnitById(stationId, fromSheet = false) {
+async function deleteUnitById(stationId, fromSheet = false) {
   const target = state.stations.find((s) => s.id === stationId) || getActiveStation();
   if (!target) return;
   const label = target.tag || target.id;
-  state.stations = state.stations.filter((x) => x.id !== target.id);
-  delete allStationThumbs[target.id];
+  const targetId = target.id;
+  state.stations = state.stations.filter((x) => x.id !== targetId);
+  delete allStationThumbs[targetId];
+  for (const sl of [1, 2, 3]) {
+    await window.CSCDiscoveryAdapter.deleteMediaBlob(`photo::${state.sessionId}::${targetId}::slot${sl}`);
+    await window.CSCDiscoveryAdapter.deleteMediaBlob(`photo_raw::${state.sessionId}::${targetId}::slot${sl}`);
+  }
   state.activeStationId = state.stations[0] ? state.stations[0].id : "";
   persistWalkState();
   if (fromSheet) {
@@ -2082,6 +2193,7 @@ function confirmStartOverWalk() {
 // ============================================================================
 function syncQuickWalkInputs() {
   const st = getActiveStation();
+  if (!st) return;
   const getVal = (id, fallback) => {
     const el = document.getElementById(id);
     return el ? el.value : fallback;
@@ -2099,6 +2211,7 @@ function syncQuickWalkInputs() {
 
 function syncQuickWalkLegacy() {
   const st = getActiveStation();
+  if (!st) return;
   const el = document.getElementById("qwLegacyInput");
   if (el) st.legacyCtrl = el.value;
   const matched = matchLegacyControllerObjJS(st.legacyCtrl);
@@ -2111,6 +2224,7 @@ function syncQuickWalkLegacy() {
 
 function changeStationArchetype(newArchId) {
   const st = getActiveStation();
+  if (!st) return;
   st.archetype = newArchId;
   const arch = ARCHETYPES.find((a) => a.id === newArchId);
   if (arch) st.alcTarget = arch.default_alc;
@@ -2121,6 +2235,7 @@ function changeStationArchetype(newArchId) {
 
 function setChecklistOptionIndex(itemId, optIdx) {
   const st = getActiveStation();
+  if (!st) return;
   const arch = ARCHETYPES.find((a) => a.id === st.archetype) || ARCHETYPES[0];
   const item = arch.items.find((i) => i.id === itemId);
   if (!item || item.opts[optIdx] === undefined) return;
@@ -2150,33 +2265,87 @@ function _recommendAlcFromIoJS(st) {
 }
 
 // ============================================================================
-// CAMERA CAPTURE, 8x8 CLAHE, BINARY EXIF & AUTO-OCR
+// CAMERA CAPTURE, 8x8 CLAHE, BINARY EXIF, WATERMARK STAMP & AUTO-OCR
 // ============================================================================
 async function loadActiveStationBurstPhotos() {
   const st = getActiveStation();
   cachedSlotPhotos = { 1: null, 2: null, 3: null };
   cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
   if (!st) return;
-  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
   for (const slot of [1, 2, 3]) {
     const key = `photo::${state.sessionId}::${st.id}::slot${slot}`;
     const rawKey = `photo_raw::${state.sessionId}::${st.id}::slot${slot}`;
-    cachedSlotPhotos[slot] = await window.CSCDiscoveryAdapter.loadMediaBlob(key);
-    cachedRawSlotPhotos[slot] = await window.CSCDiscoveryAdapter.loadMediaBlob(rawKey);
+    const loadedMain = await window.CSCDiscoveryAdapter.loadMediaBlob(key);
+    const loadedRaw = await window.CSCDiscoveryAdapter.loadMediaBlob(rawKey);
+    cachedRawSlotPhotos[slot] = loadedRaw || loadedMain;
+    const isClahe = Boolean(st.burstMeta && st.burstMeta[slot] && st.burstMeta[slot].claheEnhanced);
+    cachedSlotPhotos[slot] = isClahe ? (loadedMain || loadedRaw) : (loadedRaw || loadedMain);
   }
-  if (cachedSlotPhotos[2] || cachedSlotPhotos[1]) {
-    allStationThumbs[st.id] = cachedSlotPhotos[2] || cachedSlotPhotos[1];
+  if (cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1]) {
+    allStationThumbs[st.id] = cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1];
   }
 }
 
-function _buildSortedFilename(st, slot) {
-  const slotLabels = { 1: "01_Context", 2: "02_Nameplate", 3: "03_SubComponent" };
-  const cleanTag = (st.tag || st.id).split("(")[0].trim().replace(/[^a-zA-Z0-9_-]/g, "");
-  return `${state.jobNumber}_${st.floorId}_${cleanTag}_${slotLabels[slot]}.jpg`;
+function _buildSortedFilename(st, slot, suffixTag = "") {
+  const slotLabels = { 1: "01_WideContext", 2: "02_Nameplate", 3: "03_SubComponent" };
+  const unitIdx = Math.max(1, (state.stations || []).findIndex((x) => x.id === st.id) + 1);
+  const unitPrefix = `Unit${String(unitIdx).padStart(2, "0")}_${st.id}`;
+  const cleanTag = (st.tag || st.id).split("(")[0].trim().replace(/[^a-zA-Z0-9_-]/g, "") || st.id;
+  const stStatus = computeStationStatus(st);
+  const condStr = stStatus.cond.toUpperCase();
+  const sfx = suffixTag ? `_${suffixTag}` : "";
+  return `${state.jobNumber}_${unitPrefix}_${cleanTag}_${st.floorId}_${condStr}_${slotLabels[slot] || "Photo"}${sfx}.jpg`;
+}
+
+function buildUnitStampMeta(st, slot) {
+  const unitIdx = Math.max(1, (state.stations || []).findIndex((x) => x.id === st.id) + 1);
+  const stStatus = computeStationStatus(st);
+  const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
+  const mdl = decodeModelDeterministic(st.mfg, st.model);
+  const flrObj = (state.floors || []).find((f) => f.id === st.floorId);
+  const slotNames = { 1: "WIDE / CONTEXT SHOT", 2: "NAMEPLATE & SPECS", 3: "CONTROLLER / SUB-COMPONENT" };
+
+  const issueLabels = (st.quickIssues || [])
+    .map((id) => QUICK_ISSUE_CATALOG.find((x) => x.id === id)?.label)
+    .filter(Boolean);
+
+  const unitVoices = (state.audioSegments || [])
+    .filter((a) => a.stationId === st.id)
+    .map((a) => a.text)
+    .filter(Boolean);
+
+  const bMeta = (st.burstMeta && st.burstMeta[slot]) || {};
+  return {
+    jobNumber: state.jobNumber || "CSC-26-WALK",
+    projectName: state.projectName || "CSC Site Discovery",
+    unitNumber: unitIdx,
+    stationId: st.id,
+    tag: st.tag || `Unit #${unitIdx}`,
+    slotLabel: slotNames[slot] || "FIELD PHOTO",
+    condition: stStatus.cond,
+    floorId: st.floorId,
+    floorName: flrObj ? flrObj.name : st.floorId,
+    location: st.room || st.autoLocationBreadcrumb || st.floorId,
+    gpsText: st.gpsLat && st.gpsLon ? `${st.gpsLat}, ${st.gpsLon}` : "",
+    mfg: st.mfg || "",
+    model: st.model || "",
+    serial: st.serial || "",
+    decodedYear: dec.year,
+    ageYears: dec.age,
+    eolRisk: dec.eol,
+    capacity: mdl.capacity || "",
+    elec: st.elec || "",
+    alcTarget: st.alcTarget || "",
+    quickIssues: issueLabels,
+    fieldNote: st.userNote || st.tierDelta || "",
+    voiceTranscript: unitVoices.join(" | "),
+    capturedAt: bMeta.capturedAt || new Date().toISOString().slice(0, 16).replace("T", " ")
+  };
 }
 
 async function captureStationBurstSlot(slot, autoRunOcr = true) {
   const st = getActiveStation();
+  if (!st) return;
   const img = await window.CSCDiscoveryAdapter.captureImage({ maxDim: 1500, quality: 0.87 });
   if (!img || !img.dataUrl) {
     renderTagAndGoSheet(st);
@@ -2189,7 +2358,7 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
   await window.CSCDiscoveryAdapter.saveMediaBlob(rawKey, img.dataUrl);
   cachedSlotPhotos[slot] = img.dataUrl;
   cachedRawSlotPhotos[slot] = img.dataUrl;
-  allStationThumbs[st.id] = cachedSlotPhotos[2] || cachedSlotPhotos[1];
+  allStationThumbs[st.id] = cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1];
 
   if (img.exif) {
     if (img.exif.gpsLat !== null && img.exif.gpsLon !== null) {
@@ -2223,6 +2392,7 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
 
 async function toggleClaheOnSlot(slot) {
   const st = getActiveStation();
+  if (!st) return;
   const curUrl = cachedSlotPhotos[slot];
   if (!curUrl) return;
   if (!st.burstMeta) st.burstMeta = {};
@@ -2247,26 +2417,42 @@ async function toggleClaheOnSlot(slot) {
     await window.CSCDiscoveryAdapter.saveMediaBlob(key, enhanced);
     showBannerToast("🔦 Enhanced weathered metal plate contrast (8x8 CLAHE).");
   }
-  allStationThumbs[st.id] = cachedSlotPhotos[2] || cachedSlotPhotos[1];
+  allStationThumbs[st.id] = cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1];
   persistWalkState();
   renderTagAndGoSheet(st);
   renderUnitFeed();
 }
 
+let activeZoomSlot = 2;
 function openPhotoZoomModal(slot) {
-  const src = cachedSlotPhotos[slot];
+  activeZoomSlot = slot || 2;
+  const src = cachedSlotPhotos[activeZoomSlot] || cachedRawSlotPhotos[activeZoomSlot];
   if (!src) return;
   const st = getActiveStation();
   const modal = document.getElementById("photoZoomModal");
-  document.getElementById("zoomModalTitle").textContent = `${st.tag || st.id} — Field Photo`;
+  document.getElementById("zoomModalTitle").textContent = `${st ? (st.tag || st.id) : 'Unit'} — Field Photo`;
   document.getElementById("zoomModalImg").src = src;
   modal.style.display = "flex";
 }
 
+async function previewStampedPhotoInLightbox() {
+  const st = getActiveStation();
+  if (!st) return;
+  const rawSrc = cachedRawSlotPhotos[activeZoomSlot] || cachedSlotPhotos[activeZoomSlot];
+  if (!rawSrc) return;
+  const stampMeta = buildUnitStampMeta(st, activeZoomSlot);
+  const stampedUrl = await window.CSCDiscoveryAdapter.renderStampedFieldPhotoDataUrl(rawSrc, stampMeta);
+  const imgEl = document.getElementById("zoomModalImg");
+  if (imgEl) imgEl.src = stampedUrl;
+  const titleEl = document.getElementById("zoomModalTitle");
+  if (titleEl) titleEl.textContent = `${st.tag || st.id} — Watermarked Field Evidence JPEG`;
+}
+
 async function runLiveVisionOcrOnSlot2(silentIfNoKey = false) {
   const st = getActiveStation();
-  const imgDataUrl = cachedSlotPhotos[2] || cachedSlotPhotos[1];
-  if (!imgDataUrl) return;
+  if (!st) return;
+  const rawBase = cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1];
+  if (!rawBase) return;
 
   const apiKey = window.CSCDiscoveryAdapter.getSecretKey("gemini_api_key");
   if (!apiKey) {
@@ -2280,7 +2466,9 @@ async function runLiveVisionOcrOnSlot2(silentIfNoKey = false) {
   if (banner) banner.innerHTML = "⏳ <strong>Reading Nameplate in Background...</strong> (You can keep tagging &amp; hit Save anytime)";
 
   try {
-    const base64Data = imgDataUrl.split(",")[1];
+    // Use CLAHE enhanced buffer strictly for OCR accuracy while keeping full-color photo for human display/export
+    const ocrImgUrl = await window.CSCDiscoveryAdapter.enhanceStampedPlateDataUrl(rawBase);
+    const base64Data = ocrImgUrl.split(",")[1];
     const prompt = `Extract HVAC or BAS equipment nameplate fields from this image as strict JSON with keys:
       {"equipment_type": "RTU_AHU"|"VFD_STARTER"|"HYDRONIC_VALVE_PUMP"|"CHILLER_BOILER_PLANT"|"VAV_TERMINAL"|"BAS_TCP_PANEL", "manufacturer": string, "model_number": string, "serial_number": string, "electrical": string, "legacy_controller": string, "confidence": number, "ambiguous_note": string}.`;
 
@@ -2335,7 +2523,7 @@ async function runLiveVisionOcrOnSlot2(silentIfNoKey = false) {
 }
 
 // ============================================================================
-// HOLD-TO-TALK 150HZ FILTERED VOICE RECORDER + AUTO LOCATION PARSER
+// HOLD-TO-TALK 150HZ FILTERED VOICE RECORDER + 0-UNIT SITE-WIDE SAFETY
 // ============================================================================
 function toggleVerbalConsent(checked) {
   state.verbalConsentLogged = Boolean(checked);
@@ -2438,29 +2626,33 @@ async function toggleWalkTalkMic() {
         const reader = new FileReader();
         reader.onloadend = async () => {
           const dataUrl = reader.result;
-          const st = getActiveStation();
-          const segId = `AUD-${String(state.audioSegments.length + 1).padStart(2, "0")}`;
+          // Fixes BUG-05: Safe fallback when recording site-wide voice note at 0 units!
+          const activeSt = getActiveStation();
+          const stId = activeSt ? activeSt.id : "SITE-GENERAL";
+          const stTag = activeSt ? (activeSt.tag || activeSt.id) : "Site-Wide Walk Note";
+          const segId = _nextAudioId();
           await window.CSCDiscoveryAdapter.saveMediaBlob(`audio::${state.sessionId}::${segId}`, dataUrl);
           cachedAudioUrls[segId] = dataUrl;
 
           const tgNoteEl = document.getElementById("tgQuickNoteInput");
-          const spoken = liveSpeechBuffer.trim() || (tgNoteEl ? tgNoteEl.value.trim() : "");
-          const finalTranscript = spoken || `Voice clip (${Math.round(blob.size / 1024)} KB) saved for ${st.tag}`;
+          const spoken = liveSpeechBuffer.trim() || (activeSt && tgNoteEl ? tgNoteEl.value.trim() : "");
+          const finalTranscript = spoken || `Voice clip (${Math.max(1, Math.round(blob.size / 1024))} KB) saved for ${stTag}`;
 
-          if (spoken) {
+          if (spoken && activeSt) {
             onTagGoNoteInput(spoken);
           }
 
           const rfiHits = extractRfiTriggersJS(finalTranscript);
           const locParsed = parseLocationFromVoiceJS(finalTranscript);
           const locMsg = locParsed && locParsed.locationLabel ? `📍 Auto-Located: ${locParsed.locationLabel}` : "";
-          const insightText = [locMsg, ...rfiHits].filter(Boolean).join(" | ") || `Saved to ${st.tag}`;
+          const insightText = [locMsg, ...rfiHits].filter(Boolean).join(" | ") || `Saved to ${stTag}`;
 
           state.audioSegments.unshift({
             id: segId,
             time: new Date().toTimeString().slice(0, 8),
             speaker: window.CSCDiscoveryAdapter.getActiveUser().name,
-            stationId: st.id,
+            stationId: stId,
+            stationTag: stTag,
             bookmarked: true,
             hasAudioBlob: true,
             text: finalTranscript,
@@ -2468,11 +2660,11 @@ async function toggleWalkTalkMic() {
           });
           liveSpeechBuffer = "";
           persistWalkState();
-          renderTagAndGoSheet(st);
+          if (activeSt) renderTagAndGoSheet(activeSt);
           renderUnitFeed();
           renderRecentAudioFeed();
           renderInteractiveMap();
-          showBannerToast(`🎙️ <strong>Voice Note Saved:</strong> ${escapeHtml(insightText)}`);
+          showBannerToast(`🎙️ <strong>Voice Note Saved (${escapeHtml(segId)}):</strong> ${escapeHtml(insightText)}`);
         };
         reader.readAsDataURL(blob);
       };
@@ -2527,8 +2719,241 @@ async function toggleWalkTalkMic() {
 }
 
 // ============================================================================
-// SESSION MANAGER, .CSCWALK.ZIP PACKAGER/UNPACKER & EXPORT BRIDGE
+// ON-PHONE SAVED WALKS VAULT (`walk_vault_v1`) — NEVER LOSE A PRIOR WALK!
 // ============================================================================
+function getSavedWalksVault() {
+  const list = window.CSCDiscoveryAdapter.readState("walk_vault_v1", []);
+  return Array.isArray(list) ? list : [];
+}
+
+function archiveCurrentWalkToVault(manualNotify = false) {
+  if (!state) return false;
+  const hasUnits = Array.isArray(state.stations) && state.stations.length > 0;
+  const hasAudio = Array.isArray(state.audioSegments) && state.audioSegments.length > 0;
+  if (!hasUnits && !hasAudio) {
+    if (manualNotify) showBannerToast("⚠️ Current walk has 0 units and 0 voice notes.", true);
+    return false;
+  }
+
+  const vault = getSavedWalksVault().filter((v) => v.sessionId !== state.sessionId);
+  const snapshot = JSON.parse(JSON.stringify(state));
+  vault.unshift({
+    sessionId: snapshot.sessionId,
+    jobNumber: snapshot.jobNumber || "CSC-26-WALK",
+    projectName: snapshot.projectName || "Field Walk",
+    unitCount: (snapshot.stations || []).length,
+    audioCount: (snapshot.audioSegments || []).length,
+    savedAt: new Date().toISOString(),
+    stateSnapshot: snapshot
+  });
+  const trimmed = vault.slice(0, 12);
+  window.CSCDiscoveryAdapter.writeState("walk_vault_v1", trimmed);
+  renderSavedWalksVaultList();
+  if (manualNotify) {
+    showBannerToast(`📚 <strong>Saved "${escapeHtml(snapshot.projectName)}" (${snapshot.stations.length} units) to On-Phone Vault!</strong>`);
+  }
+  return true;
+}
+
+async function restoreWalkFromVault(sessionId) {
+  const vault = getSavedWalksVault();
+  const entry = vault.find((v) => v.sessionId === sessionId);
+  if (!entry || !entry.stateSnapshot) return;
+  archiveCurrentWalkToVault(false);
+  state = _migrateLoadedState(JSON.parse(JSON.stringify(entry.stateSnapshot)));
+  persistWalkState();
+  renderSavedWalksVaultList();
+  await renderAll(false);
+  showBannerToast(`🔄 <strong>Restored Walk:</strong> ${escapeHtml(state.projectName)} (${state.stations.length} units)!`);
+}
+
+function deleteWalkFromVault(sessionId) {
+  const vault = getSavedWalksVault().filter((v) => v.sessionId !== sessionId);
+  window.CSCDiscoveryAdapter.writeState("walk_vault_v1", vault);
+  renderSavedWalksVaultList();
+}
+
+function renderSavedWalksVaultList() {
+  const box = document.getElementById("savedWalksVaultList");
+  if (!box) return;
+  const vault = getSavedWalksVault();
+  if (vault.length === 0) {
+    box.innerHTML = `<div style="font-size:11px;color:var(--text-muted);">No archived walks yet. Any walk is automatically saved here before Starting Over.</div>`;
+    return;
+  }
+  box.innerHTML = vault.map((v) => {
+    const dt = (v.savedAt || "").slice(0, 16).replace("T", " ");
+    const isCurrent = state && v.sessionId === state.sessionId;
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;background:var(--bg-panel);padding:6px 8px;border-radius:6px;font-size:11px;">
+        <div style="min-width:0;flex:1;">
+          <strong>${escapeHtml(v.jobNumber)} • ${escapeHtml(v.projectName)}</strong>
+          <div style="color:var(--text-muted);font-size:10px;">${v.unitCount} units • ${v.audioCount} voice notes • ${escapeHtml(dt)}${isCurrent ? ' (Active)' : ''}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-secondary" style="padding:3px 7px;min-height:24px;font-size:10.5px;" onclick="restoreWalkFromVault('${escapeHtml(v.sessionId)}')">📂 Open</button>
+          <button class="btn btn-danger" style="padding:3px 6px;min-height:24px;font-size:10.5px;" onclick="deleteWalkFromVault('${escapeHtml(v.sessionId)}')">✕</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ============================================================================
+// OFFICE WI-FI DIRECT UPLOAD TO DESKTOP PC ($0 LOCAL LAN DROP + AUTO-QUEUE)
+// ============================================================================
+function getOfficeWifiConfig() {
+  const defOrigin = (window.location.protocol.startsWith("http") && /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.|localhost|127\.0\.0\.1)/.test(window.location.hostname))
+    ? window.location.origin
+    : "";
+  const saved = window.CSCDiscoveryAdapter.readState("office_wifi_config_v1", null) || {};
+  return {
+    url: (saved.url !== undefined ? saved.url : defOrigin).replace(/\/+$/, ""),
+    autoUpload: Boolean(saved.autoUpload),
+    lastSyncedSessionId: saved.lastSyncedSessionId || "",
+    lastSyncedAt: saved.lastSyncedAt || ""
+  };
+}
+
+function saveOfficeWifiSettings() {
+  const urlEl = document.getElementById("officeWifiUrlInput");
+  const autoEl = document.getElementById("autoOfficeWifiCheck");
+  const cur = getOfficeWifiConfig();
+  const nextCfg = {
+    url: urlEl ? urlEl.value.trim().replace(/\/+$/, "") : cur.url,
+    autoUpload: autoEl ? Boolean(autoEl.checked) : cur.autoUpload,
+    lastSyncedSessionId: cur.lastSyncedSessionId,
+    lastSyncedAt: cur.lastSyncedAt
+  };
+  window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", nextCfg);
+  updateWifiSyncBadgesUI();
+  if (nextCfg.autoUpload && nextCfg.url) {
+    checkOfficeWifiAutoSync();
+  }
+}
+
+function updateWifiSyncBadgesUI(statusText = null, isOk = false) {
+  const cfg = getOfficeWifiConfig();
+  const pill = document.getElementById("wifiSyncHeaderPill");
+  const modalBadge = document.getElementById("wifiDropStatusBadge");
+  const label = statusText || (cfg.lastSyncedAt && cfg.lastSyncedSessionId === (state && state.sessionId)
+    ? `🟢 PC Synced (${cfg.lastSyncedAt.slice(11, 16)})`
+    : (cfg.autoUpload ? "📶 Auto-WiFi Queue On" : "📦 Local Vault Ready"));
+  if (pill) {
+    pill.textContent = label;
+    pill.style.color = isOk ? "#34d399" : "var(--accent-teal)";
+  }
+  if (modalBadge) {
+    modalBadge.textContent = label;
+    modalBadge.style.color = isOk ? "#34d399" : "var(--text-muted)";
+  }
+}
+
+async function pushWalkToOfficeWifiServer(silentAuto = false) {
+  saveOfficeWifiSettings();
+  const cfg = getOfficeWifiConfig();
+  if (!cfg.url) {
+    if (!silentAuto) {
+      showBannerToast("⚠️ Enter your Desktop PC Office Wi-Fi URL first (run <code>Start_Office_WiFi_Drop_Server.bat</code> on your PC to see its IP).", true);
+    }
+    return { ok: false, reason: "missing_url" };
+  }
+
+  try {
+    updateWifiSyncBadgesUI("⏳ Probing Office Wi-Fi...", false);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2400);
+    const pingResp = await fetch(`${cfg.url}/api/wifi-drop/ping`, {
+      method: "GET",
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    if (!pingResp.ok) throw new Error(`Ping HTTP ${pingResp.status}`);
+
+    if (!silentAuto) {
+      showBannerToast("📡 <strong>Connected to Office PC!</strong> Stamping unit photos &amp; uploading walk package...");
+    }
+
+    const pkg = await buildCompleteWalkZipPackage();
+    const ab = await pkg.zipBlob.arrayBuffer();
+    const zipB64 = window.CSCDiscoveryAdapter.uint8ArrayToBase64(new Uint8Array(ab));
+
+    const upResp = await fetch(`${cfg.url}/api/wifi-drop/upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: pkg.filename,
+        jobNumber: state.jobNumber,
+        projectName: state.projectName,
+        sessionId: state.sessionId,
+        unitCount: (state.stations || []).length,
+        zipBase64: zipB64
+      })
+    });
+    if (!upResp.ok) throw new Error(`Upload HTTP ${upResp.status}`);
+    const resJson = await upResp.json();
+
+    cfg.lastSyncedSessionId = state.sessionId;
+    cfg.lastSyncedAt = new Date().toISOString();
+    window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", cfg);
+    updateWifiSyncBadgesUI("🟢 Synced to Office PC!", true);
+    showBannerToast(`✅ <strong>Pushed to Office PC over Wi-Fi!</strong> Unpacked photos &amp; compiled PDF/Excel/Word dossier in <code>${escapeHtml(resJson.dest_folder || 'output')}</code>.`);
+    return { ok: true, response: resJson };
+  } catch (err) {
+    if (cfg.autoUpload) {
+      updateWifiSyncBadgesUI("📶 Queued for Office Wi-Fi", false);
+    } else {
+      updateWifiSyncBadgesUI("⚠️ PC Offline / Away", false);
+    }
+    if (!silentAuto) {
+      showBannerToast(`📶 <strong>Office PC Not Reachable Yet (${escapeHtml(err.message)}):</strong> Walk is safely saved on phone — enable Auto-Upload or use <strong>💾 Download Walk.zip</strong>!`, true);
+    }
+    return { ok: false, reason: err.message };
+  }
+}
+
+let _wifiCheckInFlight = false;
+async function checkOfficeWifiAutoSync() {
+  if (_wifiCheckInFlight) return;
+  const cfg = getOfficeWifiConfig();
+  if (!cfg.autoUpload || !cfg.url || !state || !state.stations || state.stations.length === 0) return;
+  _wifiCheckInFlight = true;
+  try {
+    await pushWalkToOfficeWifiServer(true);
+  } finally {
+    _wifiCheckInFlight = false;
+  }
+}
+
+// ============================================================================
+// SESSION MANAGER, SELF-CONTAINED .CSCWALK.ZIP BUILDER & STAMPED PHOTO SHARER
+// ============================================================================
+let _pendingSharePayload = null;
+
+function _queuePendingNativeShare(files, title, text, bannerMsg) {
+  _pendingSharePayload = { files, title, text };
+  const box = document.getElementById("pendingNativeShareBox");
+  const txt = document.getElementById("pendingNativeShareText");
+  if (txt) txt.textContent = bannerMsg || `✅ ${files.length} file(s) stamped & ready for 1-tap Share!`;
+  if (box) box.style.display = "block";
+}
+
+async function triggerPendingNativeShareNow() {
+  if (!_pendingSharePayload) return;
+  const { files, title, text } = _pendingSharePayload;
+  const res = await window.CSCDiscoveryAdapter.shareFilesNative(files, title, text);
+  if (res.ok) {
+    const box = document.getElementById("pendingNativeShareBox");
+    if (box) box.style.display = "none";
+    _pendingSharePayload = null;
+  } else if (res.channel !== "cancelled") {
+    // Fallback download if browser doesn't support multi-file share
+    for (const f of files) {
+      await window.CSCDiscoveryAdapter.saveOrShareBlob(f.name, f.type || "application/octet-stream", f, null);
+    }
+  }
+}
+
 function openSessionManagerModal() {
   document.getElementById("newWalkProjectInput").value = state.projectName || "";
   document.getElementById("newWalkJobInput").value = state.jobNumber || "";
@@ -2539,6 +2964,15 @@ function openSessionManagerModal() {
   if (cloudEl) cloudEl.checked = Boolean(state.cloudSpeechOptIn);
   const rfiEl = document.getElementById("rfi11ModalCheck");
   if (rfiEl) rfiEl.checked = Boolean(state.rfi23011TempConditioningFlag);
+
+  const wifiCfg = getOfficeWifiConfig();
+  const wifiUrlEl = document.getElementById("officeWifiUrlInput");
+  if (wifiUrlEl) wifiUrlEl.value = wifiCfg.url || "";
+  const wifiAutoEl = document.getElementById("autoOfficeWifiCheck");
+  if (wifiAutoEl) wifiAutoEl.checked = Boolean(wifiCfg.autoUpload);
+
+  updateWifiSyncBadgesUI();
+  renderSavedWalksVaultList();
   document.getElementById("sessionModal").style.display = "flex";
 }
 
@@ -2553,13 +2987,16 @@ function saveVaultAndProjectMeta() {
   state.siteAddress = document.getElementById("newWalkAddressInput").value.trim();
   const keyVal = document.getElementById("geminiApiKeyInput").value.trim();
   window.CSCDiscoveryAdapter.setSecretKey("gemini_api_key", keyVal);
+  saveOfficeWifiSettings();
   persistWalkState();
   renderHeaderMeta();
   closeSessionManagerModal();
-  showBannerToast("💾 <strong>Job Info &amp; Settings Saved!</strong>");
+  showBannerToast("💾 <strong>Job Info, Office Wi-Fi &amp; Settings Saved!</strong>");
 }
 
 function startBlankSiteWalk(zeroUnits = true) {
+  archiveCurrentWalkToVault(false);
+
   const projEl = document.getElementById("newWalkProjectInput");
   const jobEl = document.getElementById("newWalkJobInput");
   const contEl = document.getElementById("newWalkContactInput");
@@ -2578,7 +3015,7 @@ function startBlankSiteWalk(zeroUnits = true) {
   cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
 
   state = _migrateLoadedState({
-    schemaVersion: "CSC-DISCOVERY-v3.1",
+    schemaVersion: "CSC-DISCOVERY-v3.2",
     sessionId: sid,
     projectName: proj,
     jobNumber: job,
@@ -2636,10 +3073,11 @@ function startBlankSiteWalk(zeroUnits = true) {
   persistWalkState();
   closeSessionManagerModal();
   renderAll(true);
-  showBannerToast(`🆕 <strong>Started Fresh Walk (0 Units):</strong> Tap <strong>📸 + SNAP NEW UNIT</strong> to capture Unit #1!`);
+  showBannerToast(`🆕 <strong>Started Fresh Walk (0 Units):</strong> Prior walk archived to 📚 Vault!`);
 }
 
 function resetToGoldenDemoWalk() {
+  archiveCurrentWalkToVault(false);
   pdrSteps = [];
   walkStepCounter = 0;
   stepCounterAtLastSnap = 0;
@@ -2648,110 +3086,11 @@ function resetToGoldenDemoWalk() {
   persistWalkState();
   closeSessionManagerModal();
   renderAll(false);
-  showBannerToast("🧪 <strong>Loaded Lee's Summit West Demo Walk!</strong>");
+  showBannerToast("🧪 <strong>Loaded Lee's Summit West Demo Walk!</strong> (Prior walk saved in 📚 Vault)");
 }
 
-async function exportFullWalkZipBundle() {
-  const enc = new TextEncoder();
-  const entries = [];
-  const manifestCopy = JSON.parse(JSON.stringify(state));
-  (manifestCopy.floors || []).forEach((f) => { delete f.custom_map_data_url; });
-
-  entries.push({
-    name: "manifest.json",
-    data: enc.encode(JSON.stringify(manifestCopy, null, 2))
-  });
-
-  const mediaRecords = await window.CSCDiscoveryAdapter.listSessionMediaEntries(state.sessionId);
-  for (const rec of mediaRecords) {
-    if (!rec.payload || typeof rec.payload !== "string") continue;
-    const mk = rec.mediaKey;
-    if (mk.startsWith(`floor_map::${state.sessionId}::`)) {
-      const flrId = mk.split("::")[2];
-      const ext = rec.payload.includes("image/png") ? "png" : "jpg";
-      entries.push({ name: `maps/${flrId}.${ext}`, data: window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload) });
-    } else if (mk.startsWith(`photo::${state.sessionId}::`)) {
-      const parts = mk.split("::");
-      const stId = parts[2];
-      const slotNum = parseInt((parts[3] || "slot2").replace("slot", ""), 10) || 2;
-      const stObj = state.stations.find((s) => s.id === stId);
-      const fname = stObj ? _buildSortedFilename(stObj, slotNum) : `${stId}_slot${slotNum}.jpg`;
-      entries.push({ name: `photos/${fname}`, data: window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload) });
-    } else if (mk.startsWith(`videokf::${state.sessionId}::`)) {
-      const kfId = mk.split("::")[2];
-      entries.push({ name: `keyframes/${kfId}.jpg`, data: window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload) });
-    } else if (mk.startsWith(`audio::${state.sessionId}::`)) {
-      const audId = mk.split("::")[2];
-      const ext = rec.payload.includes("audio/mp4") ? "m4a" : "webm";
-      entries.push({ name: `audio/${audId}.${ext}`, data: window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload) });
-    }
-  }
-
-  const zipBlob = window.CSCDiscoveryAdapter.buildCscWalkZipBlob(entries);
-  const outName = `${state.jobNumber}_Site_Discovery.cscwalk.zip`;
-  await window.CSCDiscoveryAdapter.saveOrShareBlob(
-    outName,
-    "application/zip",
-    zipBlob,
-    `CSC Site Discovery Bundle — ${state.jobNumber}`
-  );
-  showBannerToast(`📦 <strong>Exported <code>${escapeHtml(outName)}</code> (${entries.length} files)!</strong>`);
-}
-
-async function importWalkBundleFile(inputEl) {
-  const file = inputEl.files && inputEl.files[0];
-  if (!file) return;
-  try {
-    if (file.name.toLowerCase().endsWith(".zip")) {
-      const ab = await file.arrayBuffer();
-      const parsed = await window.CSCDiscoveryAdapter.parseCscWalkZipBuffer(ab);
-      if (!parsed.manifest) throw new Error("No manifest.json inside .zip");
-      state = _migrateLoadedState(parsed.manifest);
-
-      for (const [relPath, bytes] of Object.entries(parsed.files)) {
-        const low = relPath.toLowerCase();
-        if (low.startsWith("maps/") && (low.endsWith(".jpg") || low.endsWith(".png"))) {
-          const flrId = relPath.split("/").pop().replace(/\.(jpg|png)$/i, "");
-          const mime = low.endsWith(".png") ? "image/png" : "image/jpeg";
-          const durl = `data:${mime};base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
-          await window.CSCDiscoveryAdapter.saveMediaBlob(`floor_map::${state.sessionId}::${flrId}`, durl);
-          const flrObj = state.floors.find((f) => f.id === flrId);
-          if (flrObj) flrObj.hasCustomMap = true;
-        } else if (low.startsWith("audio/")) {
-          const audId = relPath.split("/").pop().replace(/\.[a-z0-9]+$/i, "");
-          const durl = `data:audio/webm;base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
-          await window.CSCDiscoveryAdapter.saveMediaBlob(`audio::${state.sessionId}::${audId}`, durl);
-        }
-      }
-    } else {
-      const txt = await file.text();
-      const rawObj = JSON.parse(txt);
-      state = _migrateLoadedState(rawObj);
-      for (const flr of state.floors || []) {
-        if (flr.custom_map_data_url) {
-          await window.CSCDiscoveryAdapter.saveMediaBlob(`floor_map::${state.sessionId}::${flr.id}`, flr.custom_map_data_url);
-          flr.hasCustomMap = true;
-        }
-      }
-    }
-
-    persistWalkState();
-    closeSessionManagerModal();
-    await renderAll(false);
-    showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(file.name)}):</strong> ${state.stations.length} units loaded!`);
-  } catch (err) {
-    showBannerToast(`⚠️ Import Error: ${escapeHtml(err.message)}`, true);
-  } finally {
-    inputEl.value = "";
-  }
-}
-
-async function exportScheduleCsv() {
-  if (!state.stations || state.stations.length === 0) {
-    showBannerToast("⚠️ No equipment units to export yet — snap Unit #1 first!", true);
-    return;
-  }
-  const rows = state.stations.map((st, idx) => {
+function buildEquipmentScheduleCsvText() {
+  const rows = (state.stations || []).map((st, idx) => {
     const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
     const mdl = decodeModelDeterministic(st.mfg, st.model);
     const stStatus = computeStationStatus(st);
@@ -2781,15 +3120,386 @@ async function exportScheduleCsv() {
       EOL_Risk: dec.eol ? "YES" : "NO",
       LegacyController: st.legacyCtrl,
       RecommendedALC: st.alcTarget,
-      FieldNotes: st.tierDelta
+      FieldNotes: st.userNote || st.tierDelta || ""
     };
   });
-
+  if (rows.length === 0) {
+    return "JobNumber,UnitNumber,StationID,EquipmentTag,Condition,QuickIssues,Archetype,Floor,EstimatedLocation,Manufacturer,Model,Serial,RecommendedALC,FieldNotes\n";
+  }
   const headers = Object.keys(rows[0]);
-  const csv = [
+  return [
     headers.join(","),
     ...rows.map((r) => headers.map((h) => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(","))
   ].join("\n");
+}
+
+function buildFieldNotesMarkdownText() {
+  const lines = [
+    `# CSC Field Site Discovery & Voice Notes Summary — ${state.projectName || "Field Walk"}`,
+    `- **CSC Job #:** ${state.jobNumber || "CSC-26-NEW"}`,
+    `- **Session ID:** ${state.sessionId}`,
+    `- **Site Contact:** ${state.siteContact || "None Logged"}`,
+    `- **Site Address:** ${state.siteAddress || "Field Geotagged"}`,
+    `- **Safety Verification:** Mandatory NFPA 70E & OSHA 1910.147 Lockout/Tagout (LOTO) Verified`,
+    "",
+    `## 1. Equipment Units (${(state.stations || []).length})`
+  ];
+
+  (state.stations || []).forEach((st, idx) => {
+    const stStatus = computeStationStatus(st);
+    const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
+    const mdl = decodeModelDeterministic(st.mfg, st.model);
+    lines.push(
+      `### Unit #${idx + 1}: ${st.tag || st.id} [${stStatus.cond.toUpperCase()}]`,
+      `- **Floor / Location:** ${st.floorId} — ${st.room || st.autoLocationBreadcrumb || ""}`,
+      `- **Make / Model / Serial:** ${st.mfg || "N/A"} / ${st.model || "N/A"} / ${st.serial || "N/A"} (${dec.year ? `Built ${dec.year}, ${dec.age} yrs` : "Year N/A"} | ${mdl.capacity || "Cap N/A"})`,
+      `- **ALC Target:** ${st.alcTarget || ""}`,
+      `- **Field Issues / Notes:** ${st.userNote || st.tierDelta || "None"}`,
+      ""
+    );
+  });
+
+  lines.push(`## 2. Site Voice Notes & Transcripts (${(state.audioSegments || []).length})`);
+  (state.audioSegments || []).forEach((seg) => {
+    lines.push(
+      `- **[${seg.id} | ${seg.time || ""} | Bound: ${seg.stationId || "SITE-GENERAL"} | ${seg.speaker || "Tech"}]:** "${seg.text || ""}"`,
+      `  - *Insight:* ${seg.insight || ""}`
+    );
+  });
+  return lines.join("\n");
+}
+
+function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
+  const rowsHtml = (state.stations || []).map((st, idx) => {
+    const stStatus = computeStationStatus(st);
+    const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
+    const mdl = decodeModelDeterministic(st.mfg, st.model);
+    const photos = stampedPhotosByStation[st.id] || [];
+    const imgHtml = photos.length
+      ? photos.map((p) => `<img src="${p.dataUrl}" alt="${escapeHtml(p.filename)}" style="width:100%;max-width:340px;border-radius:6px;border:1px solid #cbd5e1;margin-top:4px;"/>`).join("<br/>")
+      : `<em style="color:#64748b;">No photo captured</em>`;
+    return `
+      <tr>
+        <td><strong>Unit #${idx + 1} (${escapeHtml(st.id)})</strong><br/>${escapeHtml(st.tag || '')}<br/><small>${escapeHtml(st.floorId)} • ${escapeHtml(st.room || '')}</small></td>
+        <td><strong>${escapeHtml(stStatus.label)}</strong><br/><small>${escapeHtml((st.quickIssues || []).join(", "))}</small></td>
+        <td><strong>${escapeHtml(st.mfg || '')} ${escapeHtml(st.model || '')}</strong><br/>S/N: <code>${escapeHtml(st.serial || '')}</code><br/>Built: ${dec.year || 'N/A'} (${dec.age !== null ? dec.age + ' yrs' : 'N/A'})<br/>${escapeHtml(mdl.capacity || '')}</td>
+        <td><strong>ALC Target:</strong> ${escapeHtml(st.alcTarget || '')}<br/><small>${escapeHtml(st.userNote || st.tierDelta || '')}</small></td>
+        <td>${imgHtml}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const audioHtml = (state.audioSegments || []).map((seg) => `
+    <tr>
+      <td><strong>${escapeHtml(seg.id)}</strong> (${escapeHtml(seg.time || '')})</td>
+      <td><code>${escapeHtml(seg.stationId || 'SITE-GENERAL')}</code> • ${escapeHtml(seg.speaker || '')}</td>
+      <td>"${escapeHtml(seg.text || '')}"</td>
+      <td><strong>${escapeHtml(seg.insight || '')}</strong></td>
+    </tr>
+  `).join("");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>CSC Self-Contained Walk Summary — ${escapeHtml(state.jobNumber)} ${escapeHtml(state.projectName)}</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; background: #f8fafc; margin: 0; padding: 20px; font-size: 13px; }
+  .box { max-width: 1200px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .loto { background: #fef2f2; border-left: 6px solid #dc2626; padding: 10px 14px; color: #7f1d1d; font-weight: 700; margin-bottom: 14px; border-radius: 6px; }
+  .hdr { background: #0f172a; color: #fff; padding: 18px 22px; border-radius: 8px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+  th { background: #0f172a; color: #fff; text-align: left; padding: 8px; }
+  td { border-bottom: 1px solid #e2e8f0; padding: 8px; vertical-align: top; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="loto">⚡ MANDATORY NFPA 70E &amp; OSHA 1910.147 LOCKOUT/TAGOUT (LOTO) SAFETY BANNER: Verify zero energy state before opening live panels or manipulating jumpers. Hardwired safety loops (RFI-23-006 / RFI-23-007) must never be bypassed.</div>
+  <div class="hdr">
+    <h1 style="margin:0 0 6px 0;font-size:20px;">Control Service Company (CSC) — Self-Contained Field Walk Dossier (v3.2)</h1>
+    <div>Job: <strong>${escapeHtml(state.jobNumber)}</strong> | Project: <strong>${escapeHtml(state.projectName)}</strong> | Units: <strong>${(state.stations || []).length}</strong> | Voice Notes: <strong>${(state.audioSegments || []).length}</strong></div>
+  </div>
+  <h2>1. Equipment Schedule &amp; Watermarked Photo Evidence</h2>
+  <table>
+    <thead><tr><th>Unit &amp; Location</th><th>Condition &amp; Issues</th><th>Decoded Nameplate</th><th>ALC Target &amp; Notes</th><th>Stamped Field Evidence Photo</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <h2>2. Site Voice Notes &amp; Transcripts</h2>
+  <table>
+    <thead><tr><th>ID / Time</th><th>Unit / Speaker</th><th>Spoken Transcript</th><th>Extracted Insight</th></tr></thead>
+    <tbody>${audioHtml}</tbody>
+  </table>
+</div>
+</body>
+</html>`;
+}
+
+async function buildCompleteWalkZipPackage() {
+  const enc = new TextEncoder();
+  const entries = [];
+  const manifestCopy = JSON.parse(JSON.stringify(state));
+  manifestCopy.schemaVersion = "CSC-DISCOVERY-v3.2";
+  manifestCopy.stationPhotoFiles = {};
+  (manifestCopy.floors || []).forEach((f) => { delete f.custom_map_data_url; });
+
+  const mediaRecords = await window.CSCDiscoveryAdapter.listSessionMediaEntries(state.sessionId);
+  const rawPhotoMap = {};
+  const fallbackPhotoMap = {};
+
+  for (const rec of mediaRecords) {
+    if (!rec.payload || typeof rec.payload !== "string") continue;
+    const mk = rec.mediaKey;
+    if (mk.startsWith(`floor_map::${state.sessionId}::`)) {
+      const flrId = mk.split("::")[2];
+      const ext = rec.payload.includes("image/png") ? "png" : "jpg";
+      const bytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload);
+      entries.push({ name: `05_Floor_Maps/${flrId}.${ext}`, data: bytes });
+      entries.push({ name: `maps/${flrId}.${ext}`, data: bytes });
+    } else if (mk.startsWith(`photo_raw::${state.sessionId}::`)) {
+      const parts = mk.split("::");
+      const stId = parts[2];
+      const slotNum = parseInt((parts[3] || "slot2").replace("slot", ""), 10) || 2;
+      rawPhotoMap[`${stId}::${slotNum}`] = rec.payload;
+    } else if (mk.startsWith(`photo::${state.sessionId}::`)) {
+      const parts = mk.split("::");
+      const stId = parts[2];
+      const slotNum = parseInt((parts[3] || "slot2").replace("slot", ""), 10) || 2;
+      fallbackPhotoMap[`${stId}::${slotNum}`] = rec.payload;
+    } else if (mk.startsWith(`videokf::${state.sessionId}::`)) {
+      const kfId = mk.split("::")[2];
+      entries.push({ name: `04_Video_Keyframes/${kfId}.jpg`, data: window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload) });
+    } else if (mk.startsWith(`audio::${state.sessionId}::`)) {
+      const audId = mk.split("::")[2];
+      const segObj = (state.audioSegments || []).find((a) => a.id === audId);
+      const stPrefix = segObj && segObj.stationId ? `${segObj.stationId}_` : "";
+      const ext = rec.payload.includes("audio/mp4") ? "m4a" : "webm";
+      const audBytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload);
+      entries.push({ name: `03_Voice_Notes/${stPrefix}${audId}.${ext}`, data: audBytes });
+      entries.push({ name: `audio/${audId}.${ext}`, data: audBytes });
+    }
+  }
+
+  // Process all unit photos in station order: prefer full-color `photo_raw::` fallback `photo::`
+  const allKeys = new Set([...Object.keys(rawPhotoMap), ...Object.keys(fallbackPhotoMap)]);
+  const stampedPhotosByStation = {};
+  const stampedFileObjects = [];
+
+  for (const compositeKey of allKeys) {
+    const [stId, slotStr] = compositeKey.split("::");
+    const slotNum = parseInt(slotStr, 10) || 2;
+    const colorDataUrl = rawPhotoMap[compositeKey] || fallbackPhotoMap[compositeKey];
+    if (!colorDataUrl) continue;
+
+    const stObj = (state.stations || []).find((s) => s.id === stId) || { id: stId, tag: stId, floorId: "FLR-01", condition: "good" };
+    const rawFname = _buildSortedFilename(stObj, slotNum, "RAW");
+    const stampedFname = _buildSortedFilename(stObj, slotNum, "STAMPED");
+
+    const stampMeta = buildUnitStampMeta(stObj, slotNum);
+    const stampedDataUrl = await window.CSCDiscoveryAdapter.renderStampedFieldPhotoDataUrl(colorDataUrl, stampMeta);
+
+    const rawBytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(colorDataUrl);
+    const stampedBytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(stampedDataUrl);
+
+    entries.push({ name: `01_Stamped_Photos/${stampedFname}`, data: stampedBytes });
+    entries.push({ name: `02_Raw_Photos/${rawFname}`, data: rawBytes });
+    entries.push({ name: `photos/${stampedFname}`, data: stampedBytes });
+
+    if (!manifestCopy.stationPhotoFiles[stId]) manifestCopy.stationPhotoFiles[stId] = {};
+    manifestCopy.stationPhotoFiles[stId][slotNum] = {
+      stamped: `01_Stamped_Photos/${stampedFname}`,
+      raw: `02_Raw_Photos/${rawFname}`,
+      legacy: `photos/${stampedFname}`
+    };
+
+    if (!stampedPhotosByStation[stId]) stampedPhotosByStation[stId] = [];
+    stampedPhotosByStation[stId].push({ slot: slotNum, filename: stampedFname, dataUrl: stampedDataUrl });
+
+    if (typeof File !== "undefined") {
+      stampedFileObjects.push(new File([stampedBytes], stampedFname, { type: "image/jpeg" }));
+    }
+  }
+
+  // Self-contained root summary files inside the zip!
+  const summaryHtml = buildStandaloneWalkSummaryHtml(stampedPhotosByStation);
+  const csvText = buildEquipmentScheduleCsvText();
+  const mdText = buildFieldNotesMarkdownText();
+
+  entries.unshift(
+    { name: "00_READ_ME_WALK_SUMMARY.html", data: enc.encode(summaryHtml) },
+    { name: "01_Equipment_Schedule.csv", data: enc.encode(csvText) },
+    { name: "02_Field_Notes_and_Transcripts.md", data: enc.encode(mdText) },
+    { name: "manifest.json", data: enc.encode(JSON.stringify(manifestCopy, null, 2)) }
+  );
+
+  const zipBlob = window.CSCDiscoveryAdapter.buildCscWalkZipBlob(entries);
+  const cleanJob = (state.jobNumber || "CSC-WALK").replace(/[^a-zA-Z0-9_-]/g, "");
+  const filename = `${cleanJob}_Site_Discovery.cscwalk.zip`;
+  return { zipBlob, filename, entriesCount: entries.length, stampedFileObjects };
+}
+
+async function exportFullWalkZipBundle(preferShare = false) {
+  showBannerToast("⏳ <strong>Building Complete Walk.zip &amp; Watermarking Unit Photos...</strong>");
+  const pkg = await buildCompleteWalkZipPackage();
+
+  if (preferShare && typeof File !== "undefined") {
+    const zipFile = new File([pkg.zipBlob], pkg.filename, { type: "application/zip" });
+    const directRes = await window.CSCDiscoveryAdapter.shareFilesNative(
+      [zipFile],
+      `CSC Site Discovery — ${state.jobNumber}`,
+      `${state.projectName} (${state.stations.length} units)`
+    );
+    if (directRes.ok) {
+      showBannerToast(`📤 <strong>Shared <code>${escapeHtml(pkg.filename)}</code>!</strong>`);
+      return;
+    }
+    _queuePendingNativeShare(
+      [zipFile],
+      `CSC Site Discovery — ${state.jobNumber}`,
+      `${state.projectName} (${state.stations.length} units)`,
+      `✅ ${pkg.filename} (${pkg.entriesCount} files incl. Stamped Photos & Summary HTML) ready to Share:`
+    );
+  }
+
+  await window.CSCDiscoveryAdapter.saveOrShareBlob(
+    pkg.filename,
+    "application/zip",
+    pkg.zipBlob,
+    preferShare ? `CSC Site Discovery Bundle — ${state.jobNumber}` : null
+  );
+  showBannerToast(`📦 <strong>Saved Self-Contained <code>${escapeHtml(pkg.filename)}</code> (${pkg.entriesCount} files)!</strong>`);
+}
+
+async function shareStampedUnitPhotos() {
+  showBannerToast("🏷️ <strong>Watermarking Unit Photos with CSC Field Evidence Banner...</strong>");
+  const pkg = await buildCompleteWalkZipPackage();
+  if (!pkg.stampedFileObjects || pkg.stampedFileObjects.length === 0) {
+    showBannerToast("⚠️ No unit photos captured yet — snap a unit photo first, or export Walk.zip!", true);
+    return;
+  }
+
+  const directRes = await window.CSCDiscoveryAdapter.shareFilesNative(
+    pkg.stampedFileObjects,
+    `CSC Stamped Field Photos — ${state.jobNumber}`,
+    `${pkg.stampedFileObjects.length} Watermarked Unit Photo(s) for ${state.projectName}`
+  );
+  if (directRes.ok) {
+    showBannerToast(`📸 <strong>Shared ${pkg.stampedFileObjects.length} Watermarked Photo(s)!</strong>`);
+    return;
+  }
+
+  _queuePendingNativeShare(
+    pkg.stampedFileObjects,
+    `CSC Stamped Field Photos — ${state.jobNumber}`,
+    `${pkg.stampedFileObjects.length} Watermarked Unit Photo(s)`,
+    `✅ ${pkg.stampedFileObjects.length} Watermarked Unit Photo(s) ready — tap below to Share or Save:`
+  );
+
+  // Also download them directly if on Desktop / non-share browser
+  for (const f of pkg.stampedFileObjects) {
+    await window.CSCDiscoveryAdapter.saveOrShareBlob(f.name, "image/jpeg", f, null);
+  }
+  showBannerToast(`🏷️ <strong>Generated ${pkg.stampedFileObjects.length} Watermarked Unit Photo(s)!</strong>`);
+}
+
+async function importWalkBundleFile(inputEl) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  try {
+    archiveCurrentWalkToVault(false);
+    if (file.name.toLowerCase().endsWith(".zip")) {
+      const ab = await file.arrayBuffer();
+      const parsed = await window.CSCDiscoveryAdapter.parseCscWalkZipBuffer(ab);
+      if (!parsed.manifest) throw new Error("No manifest.json inside .zip");
+      state = _migrateLoadedState(parsed.manifest);
+
+      let restoredPhotosCount = 0;
+      for (const [relPath, bytes] of Object.entries(parsed.files)) {
+        const low = relPath.toLowerCase();
+        if ((low.startsWith("maps/") || low.startsWith("05_floor_maps/")) && (low.endsWith(".jpg") || low.endsWith(".png"))) {
+          const flrId = relPath.split("/").pop().replace(/\.(jpg|png)$/i, "");
+          const mime = low.endsWith(".png") ? "image/png" : "image/jpeg";
+          const durl = `data:${mime};base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
+          await window.CSCDiscoveryAdapter.saveMediaBlob(`floor_map::${state.sessionId}::${flrId}`, durl);
+          const flrObj = state.floors.find((f) => f.id === flrId);
+          if (flrObj) flrObj.hasCustomMap = true;
+        } else if (low.startsWith("audio/") || low.startsWith("03_voice_notes/")) {
+          const fname = relPath.split("/").pop().replace(/\.[a-z0-9]+$/i, "");
+          const mAud = fname.match(/(AUD-\d+)/i);
+          const audId = mAud ? mAud[1].toUpperCase() : fname;
+          const durl = `data:audio/webm;base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
+          await window.CSCDiscoveryAdapter.saveMediaBlob(`audio::${state.sessionId}::${audId}`, durl);
+          cachedAudioUrls[audId] = durl;
+        } else if (
+          (low.startsWith("02_raw_photos/") || low.startsWith("photos/") || low.startsWith("01_stamped_photos/")) &&
+          (low.endsWith(".jpg") || low.endsWith(".jpeg") || low.endsWith(".png"))
+        ) {
+          // Fixes BUG-07: Restore 100% of unit photos back into IndexedDB on .cscwalk.zip import!
+          const isStampedFolder = low.startsWith("01_stamped_photos/");
+          const fname = relPath.split("/").pop();
+          let matchedStId = null;
+          let matchedSlot = 2;
+
+          const mStn = fname.match(/(STN-\d+)/i);
+          if (mStn) {
+            matchedStId = mStn[1].toUpperCase();
+          } else {
+            for (const st of (state.stations || [])) {
+              const cleanTag = (st.tag || st.id).split("(")[0].trim().replace(/[^a-zA-Z0-9_-]/g, "");
+              if (cleanTag && fname.includes(cleanTag)) {
+                matchedStId = st.id;
+                break;
+              }
+            }
+          }
+
+          if (/01_Context|01_WideContext|slot1/i.test(fname)) matchedSlot = 1;
+          else if (/03_SubComponent|slot3/i.test(fname)) matchedSlot = 3;
+          else matchedSlot = 2;
+
+          if (matchedStId) {
+            const mime = low.endsWith(".png") ? "image/png" : "image/jpeg";
+            const durl = `data:${mime};base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
+            const key = `photo::${state.sessionId}::${matchedStId}::slot${matchedSlot}`;
+            const rawKey = `photo_raw::${state.sessionId}::${matchedStId}::slot${matchedSlot}`;
+            if (!isStampedFolder || !(await window.CSCDiscoveryAdapter.loadMediaBlob(rawKey))) {
+              await window.CSCDiscoveryAdapter.saveMediaBlob(key, durl);
+              await window.CSCDiscoveryAdapter.saveMediaBlob(rawKey, durl);
+              restoredPhotosCount++;
+            }
+          }
+        }
+      }
+      showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(file.name)}):</strong> ${state.stations.length} units &amp; ${restoredPhotosCount} photo(s) restored!`);
+    } else {
+      const txt = await file.text();
+      const rawObj = JSON.parse(txt);
+      state = _migrateLoadedState(rawObj);
+      for (const flr of state.floors || []) {
+        if (flr.custom_map_data_url) {
+          await window.CSCDiscoveryAdapter.saveMediaBlob(`floor_map::${state.sessionId}::${flr.id}`, flr.custom_map_data_url);
+          flr.hasCustomMap = true;
+        }
+      }
+      showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(file.name)}):</strong> ${state.stations.length} units loaded!`);
+    }
+
+    persistWalkState();
+    closeSessionManagerModal();
+    await renderAll(false);
+  } catch (err) {
+    showBannerToast(`⚠️ Import Error: ${escapeHtml(err.message)}`, true);
+  } finally {
+    inputEl.value = "";
+  }
+}
+
+async function exportScheduleCsv() {
+  if (!state.stations || state.stations.length === 0) {
+    showBannerToast("⚠️ No equipment units to export yet — snap Unit #1 first!", true);
+    return;
+  }
+  const csv = buildEquipmentScheduleCsvText();
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   await window.CSCDiscoveryAdapter.saveOrShareBlob(
     `${state.jobNumber}_Equipment_Discovery.csv`,
@@ -2815,6 +3525,7 @@ function toggleSunlightMode() {
 
 async function renderAll(skipAsyncMedia = false) {
   renderHeaderMeta();
+  updateWifiSyncBadgesUI();
   renderUnitFeed();
   renderRecentAudioFeed();
   renderFloorTabs();
@@ -2832,9 +3543,19 @@ async function renderAll(skipAsyncMedia = false) {
 
 window.openSessionManagerModal = openSessionManagerModal;
 
+window.addEventListener("online", () => {
+  checkOfficeWifiAutoSync();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    checkOfficeWifiAutoSync();
+  }
+});
+
 window.addEventListener("DOMContentLoaded", () => {
   loadInitialWalkState();
   startAutoBackgroundSensors();
   renderAll(false);
   openQuickStartModal();
+  setTimeout(() => checkOfficeWifiAutoSync(), 1800);
 });

@@ -1,8 +1,8 @@
 {
-  "name": "CSC Field Snap & Go v3.0 — Site Discovery Companion",
+  "name": "CSC Field Snap & Go v3.2 — Site Discovery Companion",
   "short_name": "CSC Snap & Go",
-  "version": "3.1.0",
-  "description": "Zero-Typing Photo-First Field Discovery Companion (Snap -> Tag & Go, Auto-GPS/Step/Voice Rough Location, Hold-to-Talk Mic, .cscwalk.zip) for Control Service Company (CSC)",
+  "version": "3.2.0",
+  "description": "Zero-Typing Photo-First Field Discovery Companion v3.2 (Burned-In Stamped Photos, Self-Contained Walk.zip, Office Wi-Fi Direct Drop, Saved Walks Vault) for Control Service Company (CSC)",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#090e1a",

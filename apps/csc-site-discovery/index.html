@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1120" />
-  <title>CSC Field Snap &amp; Go v3.1 — Site Discovery Companion</title>
+  <title>CSC Field Snap &amp; Go v3.2 — Site Discovery Companion</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./css/field_ui.css?v=31" />
+  <link rel="stylesheet" href="./css/field_ui.css?v=32" />
 </head>
 <body>
 
@@ -23,12 +23,12 @@
 
   <!-- Ultra-Clean 1-Line Top Bar -->
   <header class="clean-header">
-    <div class="job-header-left" onclick="openSessionManagerModal()" title="Tap to rename job or export walk">
+    <div class="job-header-left" onclick="openSessionManagerModal()" title="Tap to rename job, sync over Office Wi-Fi, or dump walk.zip">
       <div class="job-title-main">
         <span id="jobHeaderTitle">Lee's Summit West Walk</span>
-        <span class="version-mini-chip">v3.1</span>
+        <span class="version-mini-chip">v3.2</span>
       </div>
-      <div class="job-title-sub" id="jobHeaderSub">CSC-26-4182 • 6 Units • Tap for Job/Export</div>
+      <div class="job-title-sub" id="jobHeaderSub">CSC-26-4182 • 6 Units • Tap for Walk.zip / Office Wi-Fi Sync</div>
     </div>
 
     <div class="header-right-actions">
@@ -41,15 +41,17 @@
           🗺️ Map
         </button>
       </div>
+      <button class="icon-btn" onclick="openSessionManagerModal()" title="Dump Walk.zip, Stamped Photos &amp; Office Wi-Fi Sync" style="background:rgba(13,148,136,0.22);border-color:var(--accent-teal);">📦</button>
       <button class="icon-btn" onclick="openQuickStartModal()" title="Quick Start &amp; Version Info">❓</button>
-      <button class="icon-btn" onclick="openSessionManagerModal()" title="Export &amp; Job Menu">⚙️</button>
+      <button class="icon-btn" onclick="openSessionManagerModal()" title="Job Setup &amp; Vault Menu">⚙️</button>
     </div>
   </header>
 
-  <!-- Subtle Background Telemetry Bar (Auto-GPS + Compass + Step Counter) -->
+  <!-- Subtle Background Telemetry Bar (Auto-GPS + Compass + Step Counter + Office Wi-Fi Status) -->
   <div class="auto-telemetry-strip">
     <span id="liveSensorReadout">📡 Auto-Location: GPS + Step/Compass Active</span>
     <div style="display:flex;gap:6px;align-items:center;">
+      <span id="wifiSyncHeaderPill" class="telemetry-mini-pill" onclick="openSessionManagerModal()" style="cursor:pointer;" title="Office Wi-Fi &amp; Walk.zip Sync Status">📦 Local Vault Ready</span>
       <span id="stepBreadcrumbBadge" class="telemetry-mini-pill">👣 0 steps</span>
       <button id="sensorLockBtn" class="telemetry-mini-btn" onclick="toggleLiveSensors()">📍 GPS</button>
     </div>
@@ -63,18 +65,21 @@
   <!-- ==================================================================== -->
   <main id="feedMainView" class="feed-container">
 
-    <!-- Quick Filter & Top Action Pills (Including Visible Start Over / Clear!) -->
+    <!-- Quick Filter & Top Action Pills (Including Dump Walk, Clone +1 & Start Over) -->
     <div class="feed-filter-bar">
       <div style="display:flex;gap:5px;overflow-x:auto;">
         <button id="fltAllBtn" class="filter-chip active" onclick="setFeedFilter('all')">All</button>
         <button id="fltIssueBtn" class="filter-chip" onclick="setFeedFilter('issues')">🔴 Issues</button>
         <button id="fltGoodBtn" class="filter-chip" onclick="setFeedFilter('good')">🟢 Good</button>
       </div>
-      <div style="display:flex;gap:5px;">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="filter-chip" style="background:rgba(13,148,136,0.2);color:#2dd4bf;border-color:rgba(45,212,191,0.45);" onclick="openSessionManagerModal()" title="Download Walk.zip, Share Stamped Photos or Push over Office Wi-Fi">
+          📦 Dump Walk
+        </button>
         <button class="filter-chip clone-chip" onclick="cloneActiveStation()" title="Duplicate last unit (+1)">
           📋 +1 Clone
         </button>
-        <button class="filter-chip reset-chip" onclick="confirmStartOverWalk()" title="Clear all units and start a fresh walk">
+        <button class="filter-chip reset-chip" onclick="confirmStartOverWalk()" title="Archives current walk to Vault and starts a fresh walk">
           🔄 Start Over
         </button>
       </div>
@@ -168,7 +173,7 @@
     <div class="quickstart-card" onclick="event.stopPropagation()">
       <div class="qs-top-row">
         <div>
-          <span class="qs-version-pill">CSC Snap &amp; Go v3.1.0</span>
+          <span class="qs-version-pill">CSC Snap &amp; Go v3.2.0</span>
           <h3 style="margin:4px 0 0 0;font-size:16px;">⚡ 3-Step Field Quick Start</h3>
         </div>
         <button class="icon-btn" onclick="closeQuickStartModal()" title="Close">✕</button>
@@ -185,7 +190,7 @@
         </div>
         <div class="qs-step-item">
           <span class="qs-num">3</span>
-          <div><strong>Speak &amp; Go:</strong> Hold <code>🎙️ Hold to Talk</code> to say the floor/room/issue (auto-maps rough location), then hit <strong>Save</strong>!</div>
+          <div><strong>Speak &amp; Dump Walk:</strong> Hold <code>🎙️ Hold to Talk</code> to record notes, then tap <code>📦 Dump Walk</code> for <strong>Stamped Photos</strong>, <strong>Self-Contained Walk.zip</strong>, or <strong>Office Wi-Fi Auto-Upload</strong>!</div>
         </div>
       </div>
 
@@ -265,7 +270,7 @@
         <div id="tgQuickIssueGrid" class="quick-issue-grid"></div>
       </div>
 
-      <!-- STEP 4: Big Voice Note & Location Bar -->
+      <!-- STEP 4: Big Voice Note & Location Bar + Unit Audio Playback -->
       <div class="tg-section">
         <div class="tg-label">3. Voice Note &amp; Location (Say Floor / Room / Issue)</div>
         <div class="tg-voice-box">
@@ -280,6 +285,7 @@
                  class="tg-note-input"
                  oninput="onTagGoNoteInput(this.value)"
                  placeholder="Or tap here to type a quick note / room (optional)..." />
+          <div id="tgUnitAudioList" style="display:flex;flex-direction:column;gap:5px;"></div>
         </div>
       </div>
 
@@ -332,58 +338,116 @@
   </div>
 
   <!-- ==================================================================== -->
-  <!-- PHOTO ZOOM LIGHTBOX MODAL                                            -->
+  <!-- PHOTO ZOOM LIGHTBOX MODAL (NOW WITH STAMPED PREVIEW TOGGLE!)         -->
   <!-- ==================================================================== -->
   <div id="photoZoomModal" class="modal-backdrop" style="display:none;" onclick="this.style.display='none'">
     <div class="modal-card" style="max-width:780px;" onclick="event.stopPropagation()">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
         <h3 id="zoomModalTitle" style="margin:0;font-size:14px;color:var(--accent-teal);">Captured Photo</h3>
-        <button class="btn btn-secondary" style="padding:4px 10px;min-height:30px;" onclick="document.getElementById('photoZoomModal').style.display='none'">✕ Close</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary" style="padding:4px 10px;min-height:30px;font-size:11.5px;" onclick="previewStampedPhotoInLightbox()">🏷️ Preview Watermark</button>
+          <button class="btn btn-secondary" style="padding:4px 10px;min-height:30px;" onclick="document.getElementById('photoZoomModal').style.display='none'">✕ Close</button>
+        </div>
       </div>
       <img id="zoomModalImg" src="" alt="Zoomed Field Photo" style="width:100%;max-height:74vh;object-fit:contain;border-radius:8px;border:1px solid var(--border-col);background:#020617;" />
     </div>
   </div>
 
   <!-- ==================================================================== -->
-  <!-- EXPORT, IMPORT & JOB SETUP MODAL                                     -->
+  <!-- EXPORT, OFFICE WI-FI DIRECT SYNC, WALK.ZIP & SAVED WALKS VAULT MODAL -->
   <!-- ==================================================================== -->
   <div id="sessionModal" class="modal-backdrop" style="display:none;" onclick="closeSessionManagerModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 style="margin:0;color:var(--accent-teal);">⚙️ Job Info, Start Over &amp; Export</h3>
+        <h3 style="margin:0;color:var(--accent-teal);">📦 Dump Walk.zip, Office Wi-Fi Sync &amp; Job Setup</h3>
         <button class="btn btn-secondary" style="padding:4px 10px;min-height:30px;" onclick="closeSessionManagerModal()">✕</button>
       </div>
 
-      <!-- Start Over / Reset Bar right at top of menu too! -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <button class="btn btn-amber" style="min-height:42px;" onclick="startBlankSiteWalk(true)">
-          🆕 Start Blank Walk (0 Units)
-        </button>
-        <button class="btn btn-secondary" style="min-height:42px;" onclick="resetToGoldenDemoWalk()">
-          🧪 Load KC Demo Walk
+      <!-- Synchronous 1-Tap Native Share Ready Box (Prevents Android Gesture Expiry!) -->
+      <div id="pendingNativeShareBox" style="display:none;background:rgba(16,185,129,0.18);border:1.5px solid #10b981;border-radius:8px;padding:10px;margin-bottom:10px;">
+        <div id="pendingNativeShareText" style="font-size:12px;font-weight:800;color:#6ee7b7;margin-bottom:6px;">
+          ✅ Package Stamped &amp; Ready to Share!
+        </div>
+        <button class="btn" style="width:100%;min-height:42px;background:#059669;" onclick="triggerPendingNativeShareNow()">
+          📲 Tap to Open Phone Share Sheet (Teams / Email / Quick Share / OneDrive)
         </button>
       </div>
 
-      <!-- Primary Export Actions -->
-      <div style="background:var(--bg-main);padding:10px;border-radius:8px;border:1px solid var(--border-col);margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:800;color:var(--accent-teal);margin-bottom:8px;">
-          📦 Export Walk to Desktop Python Processor
+      <!-- SECTION 1: HYBRID SELECTABLE EXPORT (WALK.ZIP + STAMPED PHOTOS, NO GOOGLE LOCK-IN) -->
+      <div style="background:var(--bg-main);padding:11px;border-radius:9px;border:1.5px solid var(--accent-teal);margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-size:12.5px;font-weight:900;color:var(--accent-teal);">
+            1️⃣ Self-Contained Walk.zip &amp; Watermarked Photos ($0 • Works Anywhere)
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">
+          Every photo in <code>01_Stamped_Photos/</code> has a burned-in <strong>CSC Field Evidence Banner</strong> (Job #, Unit #, Condition, Floor/Room, Make/Model/Year &amp; Notes), plus <code>00_READ_ME_WALK_SUMMARY.html</code> and <code>01_Equipment_Schedule.csv</code> inside the zip!
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="btn btn-blue" style="min-height:42px;font-size:12.5px;" onclick="exportFullWalkZipBundle()">
-            📦 Export .cscwalk.zip
+          <button class="btn" style="min-height:44px;font-size:12.5px;font-weight:800;" onclick="exportFullWalkZipBundle(false)">
+            💾 Download Walk.zip
           </button>
-          <button class="btn btn-secondary" style="min-height:42px;font-size:12.5px;" onclick="exportScheduleCsv()">
-            📊 Export CSV List
+          <button class="btn btn-blue" style="min-height:44px;font-size:12.5px;font-weight:800;" onclick="exportFullWalkZipBundle(true)">
+            📤 Share Walk.zip
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <button class="btn btn-amber" style="min-height:40px;font-size:12px;" onclick="shareStampedUnitPhotos()">
+            🏷️ Share/Save Stamped Photos
+          </button>
+          <button class="btn btn-secondary" style="min-height:40px;font-size:12px;" onclick="exportScheduleCsv()">
+            📊 Export CSV Schedule
           </button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button class="btn btn-secondary" style="flex:1;" onclick="downloadSessionJson()">📄 Export JSON</button>
-          <label class="btn btn-secondary" style="flex:1;cursor:pointer;">
+          <button class="btn btn-secondary" style="flex:1;font-size:11.5px;" onclick="downloadSessionJson()">📄 Export JSON</button>
+          <label class="btn btn-secondary" style="flex:1;cursor:pointer;font-size:11.5px;">
             📂 Load Walk (.zip/.json)
             <input type="file" accept=".json,.zip,.cscwalk.zip" style="display:none;" onchange="importWalkBundleFile(this)" />
           </label>
         </div>
+      </div>
+
+      <!-- SECTION 2: OFFICE WI-FI DIRECT UPLOAD TO DESKTOP PC ($0 LOCAL LAN SYNC) -->
+      <div style="background:var(--bg-main);padding:11px;border-radius:9px;border:1px solid var(--border-col);margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:12.5px;font-weight:800;color:#60a5fa;">
+            2️⃣ 📶 Office Wi-Fi Direct Upload to Desktop PC ($0 LAN Drop)
+          </div>
+          <span id="wifiDropStatusBadge" style="font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--bg-panel);color:var(--text-muted);">
+            Standby
+          </span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:7px;">
+          Run <code>Start_Office_WiFi_Drop_Server.bat</code> on your PC. When your phone joins Office Wi-Fi, it pushes the complete <code>.cscwalk.zip</code> straight to your Job Folder and compiles the PDF/Excel/Word dossier automatically!
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px;">
+          <input id="officeWifiUrlInput" type="text" placeholder="http://192.168.1.50:8765 (PC Office Wi-Fi Drop URL)" style="flex:1;background:var(--bg-panel);color:var(--text-main);border:1px solid var(--border-col);border-radius:6px;padding:7px 9px;font-size:12px;" onchange="saveOfficeWifiSettings()" />
+          <button class="btn btn-blue" style="min-height:36px;padding:6px 11px;font-size:12px;white-space:nowrap;" onclick="pushWalkToOfficeWifiServer(false)">
+            📡 Push to PC Now
+          </button>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;cursor:pointer;color:var(--text-main);">
+          <input id="autoOfficeWifiCheck" type="checkbox" onchange="saveOfficeWifiSettings()" />
+          <strong>Auto-Upload When on Office Wi-Fi</strong> (queues walk in field &amp; auto-pushes when PC is reachable)
+        </label>
+      </div>
+
+      <!-- SECTION 3: START OVER & ON-PHONE SAVED WALKS VAULT (NEVER LOSE A WALK!) -->
+      <div style="background:var(--bg-main);padding:10px;border-radius:9px;border:1px solid var(--border-col);margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+          <strong style="font-size:12px;color:var(--accent-amber);">📚 Saved Walks Vault &amp; Start Over</strong>
+          <button class="btn btn-secondary" style="padding:3px 8px;min-height:26px;font-size:11px;" onclick="archiveCurrentWalkToVault(true)">+ Save Snapshot</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <button class="btn btn-amber" style="min-height:38px;font-size:12px;" onclick="startBlankSiteWalk(true)">
+            🆕 Start Blank Walk (0 Units)
+          </button>
+          <button class="btn btn-secondary" style="min-height:38px;font-size:12px;" onclick="resetToGoldenDemoWalk()">
+            🧪 Load KC Demo Walk
+          </button>
+        </div>
+        <div id="savedWalksVaultList" style="display:flex;flex-direction:column;gap:5px;max-height:130px;overflow-y:auto;"></div>
       </div>
 
       <div class="field-grid">
@@ -435,7 +499,7 @@
 
   <!-- RollupOS Multi-User Bridge & Local IndexedDB Hardware Adapter -->
   <script src="../../bridge/rollup-bridge.js"></script>
-  <script src="./js/discovery_storage_adapter.js?v=31"></script>
-  <script src="./js/app.js?v=31"></script>
+  <script src="./js/discovery_storage_adapter.js?v=32"></script>
+  <script src="./js/app.js?v=32"></script>
 </body>
 </html>

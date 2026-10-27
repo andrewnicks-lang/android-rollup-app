@@ -1,16 +1,16 @@
 {
   "app_id": "csc-site-discovery",
   "title": "CSC Site Discovery",
-  "subtitle": "Snap & Go v3.0: Photo-First Capture, Traffic-Light Tagging & Auto Rough Map",
-  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v2.0: <15s Quick Walk Single-Card Mode, Clone +1 Tag Incrementer, Global Hold-to-Talk 150Hz Mic Pill, 8x8 Local Tile CLAHE + Raw Color Toggle, Binary EXIF GPS/Compass, ASHRAE Ch. 38 + EPA A2L Serial/Model Decoder, BAS Thermistor/I-O Overlay, Pinch-Zoom Map + In-App Camera Step-Peak PDR Walk, Fail-Open Valve/Damper/VA Sizers, and .cscwalk.zip Packager.",
+  "subtitle": "Snap & Go v3.2: Stamped Unit Photos, Self-Contained Walk.zip & Office Wi-Fi Sync",
+  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.2: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload, Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, ASHRAE Ch. 38 + EPA A2L Decoder, and BAS Overlay Sizers.",
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "3.1.0",
-  "build_hash": "cd3a2299a1",
+  "version": "3.2.0",
+  "build_hash": "4297342b40",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T19:57:52.259077",
-  "generated_at": "2026-10-26 20:00",
+  "updated_at": "2026-10-26T22:40:13.178011",
+  "generated_at": "2026-10-26 22:40",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -92,7 +92,10 @@
     "apps/csc-site-discovery/js/discovery_storage_adapter.js",
     "apps/csc-site-discovery/js/app.js"
   ],
-  "newly_added_buttons": [],
+  "newly_added_buttons": [
+    "\ud83d\udce6",
+    "\ud83d\udce6 Dump Walk"
+  ],
   "ai_release_note": null,
   "inspected": {
     "app_id": "csc-site-discovery",
@@ -109,7 +112,7 @@
     "headings": [
       "\u26a1 3-Step Field Quick Start",
       "Captured Photo",
-      "\u2699\ufe0f Job Info, Start Over & Export"
+      "\ud83d\udce6 Dump Walk.zip, Office Wi-Fi Sync & Job Setup"
     ],
     "buttons": [
       {
@@ -119,6 +122,10 @@
       {
         "label": "\ud83d\uddfa\ufe0f Map",
         "action": "switchMainView('map')"
+      },
+      {
+        "label": "\ud83d\udce6",
+        "action": "openSessionManagerModal()"
       },
       {
         "label": "\u2753",
@@ -143,6 +150,10 @@
       {
         "label": "\ud83d\udfe2 Good",
         "action": "setFeedFilter('good')"
+      },
+      {
+        "label": "\ud83d\udce6 Dump Walk",
+        "action": "openSessionManagerModal()"
       },
       {
         "label": "\ud83d\udccb +1 Clone",
@@ -175,14 +186,6 @@
       {
         "label": "\u2796",
         "action": "zoomMap(0.74)"
-      },
-      {
-        "label": "\u27f2",
-        "action": "resetMapZoom()"
-      },
-      {
-        "label": "\ud83d\udccd Move Pin",
-        "action": "toggleMapInteractionMode()"
       }
     ],
     "modals": [
@@ -202,11 +205,11 @@
       "Model #",
       "Serial #",
       "Symbio, DX-9100, Pneumatic...",
+      "http://192.168.1.50:8765 (PC Office Wi-Fi Drop URL)",
       "e.g. Lee's Summit West HS",
       "e.g. CSC-26-4182",
       "e.g. Danny Miller (Chief Eng)",
-      "Lee's Summit, MO",
-      "AIzaSy... (Saved in RollupOS Vault; leave blank for offline queue)"
+      "Lee's Summit, MO"
     ],
     "storage_keys": [],
     "vault_secrets": [],

@@ -115,90 +115,157 @@
 
   // ============================================================================
   // IndexedDB Binary / High-Res Image & Audio Store (bypasses 5MB localStorage)
+  // Includes non-blocking timeout + in-memory Map fallback for file:// / restricted WebViews
   // ============================================================================
+  const _memoryBlobFallback = new Map();
+
   function _openIdb() {
     return new Promise((resolve) => {
       if (!global.indexedDB) {
         resolve(null);
         return;
       }
-      const req = global.indexedDB.open(IDB_NAME, 1);
-      req.onupgradeneeded = (ev) => {
-        const db = ev.target.result;
-        if (!db.objectStoreNames.contains(IDB_STORE)) {
-          db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+      let settled = false;
+      const done = (val) => {
+        if (!settled) {
+          settled = true;
+          resolve(val);
         }
       };
-      req.onsuccess = (ev) => resolve(ev.target.result);
-      req.onerror = () => resolve(null);
+      const timer = setTimeout(() => done(null), 450);
+      try {
+        const req = global.indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (ev) => {
+          const db = ev.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = (ev) => {
+          clearTimeout(timer);
+          done(ev.target.result);
+        };
+        req.onerror = () => {
+          clearTimeout(timer);
+          done(null);
+        };
+        req.onblocked = () => {
+          clearTimeout(timer);
+          done(null);
+        };
+      } catch (e) {
+        clearTimeout(timer);
+        done(null);
+      }
     });
   }
 
   async function saveMediaBlob(mediaKey, payload) {
     const scopedId = `${_userScopePrefix()}::${mediaKey}`;
+    const recObj = {
+      id: scopedId,
+      mediaKey,
+      updatedAt: new Date().toISOString(),
+      payload
+    };
+    _memoryBlobFallback.set(scopedId, recObj);
     const db = await _openIdb();
-    if (!db) return false;
+    if (!db) return true;
     return new Promise((resolve) => {
-      const tx = db.transaction(IDB_STORE, 'readwrite');
-      tx.objectStore(IDB_STORE).put({
-        id: scopedId,
-        mediaKey,
-        updatedAt: new Date().toISOString(),
-        payload
-      });
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
+      try {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(recObj);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(true);
+      } catch (e) {
+        resolve(true);
+      }
     });
   }
 
   async function loadMediaBlob(mediaKey) {
     const scopedId = `${_userScopePrefix()}::${mediaKey}`;
     const db = await _openIdb();
-    if (!db) return null;
+    if (!db) {
+      const mem = _memoryBlobFallback.get(scopedId);
+      return mem ? mem.payload : null;
+    }
     return new Promise((resolve) => {
-      const tx = db.transaction(IDB_STORE, 'readonly');
-      const req = tx.objectStore(IDB_STORE).get(scopedId);
-      req.onsuccess = () => resolve(req.result ? req.result.payload : null);
-      req.onerror = () => resolve(null);
+      try {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(scopedId);
+        req.onsuccess = () => {
+          if (req.result && req.result.payload !== undefined) {
+            resolve(req.result.payload);
+          } else {
+            const mem = _memoryBlobFallback.get(scopedId);
+            resolve(mem ? mem.payload : null);
+          }
+        };
+        req.onerror = () => {
+          const mem = _memoryBlobFallback.get(scopedId);
+          resolve(mem ? mem.payload : null);
+        };
+      } catch (e) {
+        const mem = _memoryBlobFallback.get(scopedId);
+        resolve(mem ? mem.payload : null);
+      }
     });
   }
 
   async function deleteMediaBlob(mediaKey) {
     const scopedId = `${_userScopePrefix()}::${mediaKey}`;
+    _memoryBlobFallback.delete(scopedId);
     const db = await _openIdb();
-    if (!db) return false;
+    if (!db) return true;
     return new Promise((resolve) => {
-      const tx = db.transaction(IDB_STORE, 'readwrite');
-      tx.objectStore(IDB_STORE).delete(scopedId);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => resolve(false);
+      try {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(scopedId);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(true);
+      } catch (e) {
+        resolve(true);
+      }
     });
   }
 
   async function listSessionMediaEntries(sessionId) {
     const prefix = `${_userScopePrefix()}::`;
     const db = await _openIdb();
-    if (!db) return [];
+    const merged = new Map();
+    for (const [k, rec] of _memoryBlobFallback.entries()) {
+      if (k.startsWith(prefix)) {
+        const mKey = k.slice(prefix.length);
+        if (!sessionId || mKey.includes(`::${sessionId}::`)) {
+          merged.set(mKey, { mediaKey: mKey, payload: rec.payload, updatedAt: rec.updatedAt });
+        }
+      }
+    }
+    if (!db) return Array.from(merged.values());
     return new Promise((resolve) => {
-      const out = [];
-      const tx = db.transaction(IDB_STORE, 'readonly');
-      const req = tx.objectStore(IDB_STORE).openCursor();
-      req.onsuccess = (ev) => {
-        const cursor = ev.target.result;
-        if (!cursor) {
-          resolve(out);
-          return;
-        }
-        const rec = cursor.value;
-        if (rec && typeof rec.id === 'string' && rec.id.startsWith(prefix)) {
-          const mKey = rec.id.slice(prefix.length);
-          if (!sessionId || mKey.includes(`::${sessionId}::`)) {
-            out.push({ mediaKey: mKey, payload: rec.payload, updatedAt: rec.updatedAt });
+      try {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).openCursor();
+        req.onsuccess = (ev) => {
+          const cursor = ev.target.result;
+          if (!cursor) {
+            resolve(Array.from(merged.values()));
+            return;
           }
-        }
-        cursor.continue();
-      };
-      req.onerror = () => resolve(out);
+          const rec = cursor.value;
+          if (rec && typeof rec.id === 'string' && rec.id.startsWith(prefix)) {
+            const mKey = rec.id.slice(prefix.length);
+            if (!sessionId || mKey.includes(`::${sessionId}::`)) {
+              merged.set(mKey, { mediaKey: mKey, payload: rec.payload, updatedAt: rec.updatedAt });
+            }
+          }
+          cursor.continue();
+        };
+        req.onerror = () => resolve(Array.from(merged.values()));
+      } catch (e) {
+        resolve(Array.from(merged.values()));
+      }
     });
   }
 
@@ -734,15 +801,184 @@
   }
 
   // ============================================================================
+  // v3.2.0: Burned-In CSC Field Evidence Watermark Renderer (<canvas>)
+  // Stamps Job #, Unit #/Tag, Condition Pill, Location, Decoded Nameplate Specs,
+  // ALC Target, Quick Issues & Voice Notes onto the bottom of full-color photos.
+  // ============================================================================
+  function _wrapCanvasText(ctx, text, maxWidth) {
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    const lines = [];
+    let current = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const test = current + ' ' + words[i];
+      if (ctx.measureText(test).width <= maxWidth) {
+        current = test;
+      } else {
+        lines.push(current);
+        current = words[i];
+      }
+    }
+    lines.push(current);
+    return lines;
+  }
+
+  function renderStampedFieldPhotoDataUrl(sourceDataUrl, stampMeta = {}) {
+    return new Promise((resolve) => {
+      if (!sourceDataUrl || typeof sourceDataUrl !== 'string') {
+        resolve(sourceDataUrl);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        const w = Math.max(640, img.width || 1200);
+        const h = Math.max(480, img.height || 900);
+        const scale = w / 1200;
+        const padX = Math.round(22 * scale);
+        const padY = Math.round(16 * scale);
+        const fontMain = Math.max(15, Math.round(21 * scale));
+        const fontSub = Math.max(13, Math.round(17 * scale));
+        const fontSmall = Math.max(12, Math.round(15 * scale));
+        const lineHeight = Math.round(fontSub * 1.38);
+
+        const jobNum = stampMeta.jobNumber || 'CSC-26-WALK';
+        const projName = stampMeta.projectName || 'CSC Site Discovery';
+        const unitLabel = stampMeta.unitNumber ? `Unit #${stampMeta.unitNumber}` : (stampMeta.stationId || 'UNIT');
+        const eqTag = stampMeta.tag || unitLabel;
+        const slotName = stampMeta.slotLabel || 'FIELD PHOTO';
+        const condRaw = String(stampMeta.condition || 'good').toUpperCase();
+        const condColors = {
+          GOOD: { bg: '#059669', border: '#34d399', text: '🟢 GOOD — OVERLAY READY' },
+          CAUTION: { bg: '#d97706', border: '#fbbf24', text: '🟡 CAUTION — VERIFY / REPAIR' },
+          REPLACE: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED' }
+        };
+        const condStyle = condColors[condRaw] || condColors.GOOD;
+
+        const locLine = `📍 ${stampMeta.floorName || stampMeta.floorId || 'Floor 1'} • ${stampMeta.location || 'Field Pin'}${stampMeta.gpsText ? ' (' + stampMeta.gpsText + ')' : ''}`;
+        const specParts = [];
+        if (stampMeta.mfg || stampMeta.model) specParts.push(`Make/Model: ${[stampMeta.mfg, stampMeta.model].filter(Boolean).join(' ')}`);
+        if (stampMeta.serial) specParts.push(`S/N: ${stampMeta.serial}`);
+        if (stampMeta.decodedYear) specParts.push(`Built: ${stampMeta.decodedYear} (${stampMeta.ageYears} yr${stampMeta.eolRisk ? ' ⚠️ EOL' : ''})`);
+        if (stampMeta.capacity) specParts.push(`Cap: ${stampMeta.capacity}`);
+        if (stampMeta.elec) specParts.push(`Elec: ${stampMeta.elec}`);
+        const specLine = specParts.length ? `⚙️ ${specParts.join('  |  ')}` : '⚙️ Specs: Pending Nameplate Decode / Manual Review';
+
+        const alcLine = stampMeta.alcTarget ? `🎛️ ALC WebCTRL Target: ${stampMeta.alcTarget}` : '';
+        const notesRaw = [
+          ...(Array.isArray(stampMeta.quickIssues) && stampMeta.quickIssues.length ? [`Issues: ${stampMeta.quickIssues.join(', ')}`] : []),
+          stampMeta.fieldNote ? `Notes: ${stampMeta.fieldNote}` : '',
+          stampMeta.voiceTranscript ? `🎙️ "${stampMeta.voiceTranscript}"` : ''
+        ].filter(Boolean).join('  •  ');
+
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const maxTextW = w - padX * 2;
+        const wrappedSpec = _wrapCanvasText(tempCtx, specLine, maxTextW).slice(0, 2);
+        const wrappedNotes = notesRaw ? _wrapCanvasText(tempCtx, notesRaw, maxTextW).slice(0, 2) : [];
+
+        const totalLines = 2 + wrappedSpec.length + (alcLine ? 1 : 0) + wrappedNotes.length;
+        const bannerH = padY * 2 + Math.round(fontMain * 1.55) + totalLines * lineHeight + Math.round(10 * scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h + bannerH;
+        const ctx = canvas.getContext('2d');
+
+        // 1. Draw original full-color photo at top
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // 2. Top-left subtle unit badge overlay on the photo corner
+        const topChipH = Math.round(36 * scale);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.86)';
+        ctx.fillRect(0, 0, w, topChipH);
+        ctx.fillStyle = '#2dd4bf';
+        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        ctx.fillText(`🧭 CONTROL SERVICE COMPANY (CSC)  •  ${jobNum}  •  ${projName}`, padX, Math.round(topChipH * 0.68));
+        const tsStr = stampMeta.capturedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
+        const tsWidth = ctx.measureText(tsStr).width;
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(tsStr, w - padX - tsWidth, Math.round(topChipH * 0.68));
+
+        // 3. Draw high-contrast footer banner below the photo (never covers up equipment details!)
+        const by = h;
+        ctx.fillStyle = '#090e1a';
+        ctx.fillRect(0, by, w, bannerH);
+
+        // Accent top border bar in Condition color
+        ctx.fillStyle = condStyle.border;
+        ctx.fillRect(0, by, w, Math.max(4, Math.round(5 * scale)));
+
+        let curY = by + padY + fontMain;
+
+        // Row 1: Unit # + Tag + Slot Label on left, Condition Pill on right
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
+        const titleStr = `${unitLabel}: ${eqTag}  [${slotName}]`;
+        ctx.fillText(titleStr, padX, curY);
+
+        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const condTxt = condStyle.text;
+        const pillW = ctx.measureText(condTxt).width + Math.round(24 * scale);
+        const pillH = Math.round(fontMain * 1.35);
+        const pillX = w - padX - pillW;
+        const pillY = curY - Math.round(fontMain * 0.92);
+        ctx.fillStyle = condStyle.bg;
+        ctx.fillRect(pillX, pillY, pillW, pillH);
+        ctx.strokeStyle = condStyle.border;
+        ctx.lineWidth = Math.max(1.5, 2 * scale);
+        ctx.strokeRect(pillX, pillY, pillW, pillH);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(condTxt, pillX + Math.round(12 * scale), curY - Math.round(fontMain * 0.08));
+
+        // Row 2: Floor & Location
+        curY += Math.round(lineHeight * 1.1);
+        ctx.fillStyle = '#5eead4';
+        ctx.font = `700 ${fontSub}px "Segoe UI", Arial, sans-serif`;
+        ctx.fillText(locLine, padX, curY);
+
+        // Row 3+: Decoded Nameplate Specs
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        for (const sl of wrappedSpec) {
+          curY += lineHeight;
+          ctx.fillText(sl, padX, curY);
+        }
+
+        // Row 4: ALC Target
+        if (alcLine) {
+          curY += lineHeight;
+          ctx.fillStyle = '#93c5fd';
+          ctx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+          ctx.fillText(alcLine, padX, curY);
+        }
+
+        // Row 5+: Field Issues & Voice Notes
+        if (wrappedNotes.length) {
+          ctx.fillStyle = '#fde68a';
+          ctx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+          for (const nl of wrappedNotes) {
+            curY += lineHeight;
+            ctx.fillText(nl, padX, curY);
+          }
+        }
+
+        resolve(canvas.toDataURL('image/jpeg', 0.90));
+      };
+      img.onerror = () => resolve(sourceDataUrl);
+      img.src = sourceDataUrl;
+    });
+  }
+
+  // ============================================================================
   // Native Android APK (`window.RollupNative`), Web Share & Browser Download Bridge
   // ============================================================================
   async function saveOrShareBlob(filename, mimeType, blob, shareTitle) {
-    const ab = await blob.arrayBuffer();
-    const b64 = uint8ArrayToBase64(new Uint8Array(ab));
-
     // 1. Inside RollupOS Android WebView APK -> Direct Kotlin MediaStore/Downloads + Share!
     if (hasRollupNative()) {
       try {
+        const ab = await blob.arrayBuffer();
+        const b64 = uint8ArrayToBase64(new Uint8Array(ab));
         global.RollupNative.saveBase64File(filename, mimeType, b64);
         return { ok: true, channel: 'RollupNative.saveBase64File' };
       } catch (e) {
@@ -759,12 +995,17 @@
           return { ok: true, channel: 'navigator.share(files)' };
         }
       } catch (e) {
-        // Fall through to standard download if user cancels share sheet
+        if (e && e.name === 'AbortError') {
+          return { ok: false, channel: 'cancelled' };
+        }
+        // Fall through to standard download if share fails due to gesture timeout
       }
     }
 
     // 3. RollupBridge.files base64 helper if present
     if (hasRollupBridge() && global.RollupBridge.files && typeof global.RollupBridge.files.downloadBase64 === 'function') {
+      const ab = await blob.arrayBuffer();
+      const b64 = uint8ArrayToBase64(new Uint8Array(ab));
       global.RollupBridge.files.downloadBase64(filename, b64, mimeType);
       return { ok: true, channel: 'RollupBridge.files.downloadBase64' };
     }
@@ -781,6 +1022,24 @@
       URL.revokeObjectURL(url);
     }, 1500);
     return { ok: true, channel: 'anchor-download' };
+  }
+
+  async function shareFilesNative(filesArray, title, text) {
+    if (!filesArray || !filesArray.length) return { ok: false, reason: 'no_files' };
+    if (navigator.canShare && typeof File !== 'undefined') {
+      try {
+        if (navigator.canShare({ files: filesArray })) {
+          await navigator.share({ title: title || 'CSC Field Discovery', text: text || '', files: filesArray });
+          return { ok: true, channel: 'navigator.share(files)' };
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') {
+          return { ok: false, channel: 'cancelled' };
+        }
+        return { ok: false, reason: e.message || 'share_error' };
+      }
+    }
+    return { ok: false, reason: 'web_share_unsupported' };
   }
 
   async function shareOrExport(title, text, filename, jsonObj) {
@@ -800,7 +1059,7 @@
         appId: APP_ID,
         visibility: 'restricted',
         bottomOffset: '18px',
-        settingsLabel: 'Walk / API Vault',
+        settingsLabel: 'Walk / Sync Hub',
         onOpenSettings: () => {
           if (typeof global.openSessionManagerModal === 'function') {
             global.openSessionManagerModal();
@@ -826,12 +1085,14 @@
     extractJpegExifFromArrayBuffer,
     captureImage,
     enhanceStampedPlateDataUrl,
+    renderStampedFieldPhotoDataUrl,
     computeCanvasLaplacianSharpness,
     dataUrlToUint8Array,
     uint8ArrayToBase64,
     buildCscWalkZipBlob,
     parseCscWalkZipBuffer,
     saveOrShareBlob,
+    shareFilesNative,
     shareOrExport
   };
 })(window);
