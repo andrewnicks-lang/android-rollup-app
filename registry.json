@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.7",
-    "updated_at": "2026-10-27T01:50:17.819775",
+    "version": "1.0.8",
+    "updated_at": "2026-10-27T02:18:52.299156",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -108,9 +108,9 @@
       ]
     },
     "apk_version": "1.2.0",
-    "build_hash": "f28c5595e3",
-    "stamped_version": "1.0.7",
-    "ota_etag": "7a0042821e"
+    "build_hash": "d5702ac023",
+    "stamped_version": "1.0.8",
+    "ota_etag": "641cfc9106"
   },
   "apps": [
     {
@@ -381,7 +381,7 @@
       "icon": "\u26a1",
       "accent": "#38bdf8",
       "category": "Automotive & Telemetry",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "entry": "apps/lightning-garage/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -414,13 +414,13 @@
           "defaultForAdmin": "Extended Range (131 kWh)"
         }
       ],
-      "build_hash": "be18c93500",
-      "stamped_version": "2.1.0",
-      "updated_at": "2026-10-27T01:43:28.061342",
+      "build_hash": "9b769fbc89",
+      "stamped_version": "2.1.1",
+      "updated_at": "2026-10-27T02:18:52.299156",
       "manual_pdf": "manuals/lightning-garage_User_Manual.pdf",
       "manual_html": "manuals/lightning-garage_User_Manual.html",
-      "manual_source_hash": "be18c93500",
-      "manual_updated_at": "2026-10-27T01:50:19.204483"
+      "manual_source_hash": "9b769fbc89",
+      "manual_updated_at": "2026-10-27T02:18:54.734384"
     }
   ]
 }

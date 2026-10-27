@@ -656,6 +656,26 @@
       return false;
     },
 
+    shareBase64File(filename, base64Data, mimeType = 'application/octet-stream', title = '') {
+      const clean = String(base64Data || '').includes(',') ? String(base64Data).split(',')[1] : String(base64Data || '');
+      if (global.RollupNative && typeof global.RollupNative.shareBase64File === 'function') {
+        return global.RollupNative.shareBase64File(filename, mimeType, clean, title || filename);
+      }
+      if (navigator.share && typeof File === 'function') {
+        try {
+          const bin = atob(clean);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const fileObj = new File([bytes], filename, { type: mimeType });
+          if (!navigator.canShare || navigator.canShare({ files: [fileObj] })) {
+            navigator.share({ title: title || filename, files: [fileObj] }).catch(() => {});
+            return true;
+          }
+        } catch (e) {}
+      }
+      return this.downloadBase64(filename, clean, mimeType);
+    },
+
     shareTextFile(filename, content, mimeType = 'text/plain;charset=utf-8', title = '') {
       if (global.RollupNative && typeof global.RollupNative.shareBase64File === 'function') {
         const bytes = new TextEncoder().encode(String(content ?? ''));
@@ -677,6 +697,9 @@
   let _webSerialPendingRead = null;
   const _BAUD_CANDIDATES = [115200, 500000, 38400, 2000000, 230400];
   const _BAUD_OK_RE = /(ELM|STN|OBD|VLINKER|OK|\?)/i;
+  const _PENDING_78_RE = /(?:^|[\r\n])\s*7F\s*[0-9A-F]{2}\s*78\s*(?=[\r\n])/gi;
+  const _P2_STAR_EXTEND_MS = 5500;
+  const _P2_STAR_MAX_TOTAL_MS = 15000;
 
   const usbSerial = {
     isNativeApk() {
@@ -747,12 +770,17 @@
 
       if (this.isNativeApk()) {
         const listed = this.listDevices();
-        const firstDev = (listed.devices && listed.devices[0]) || null;
+        const devList = Array.isArray(listed.devices) ? listed.devices : [];
+        const firstDev = devList[0] || null;
         if (!firstDev) {
           return { ok: false, error: 'No USB-C OTG OBD adapter found. Plug in OBDLink EX or Vgate vLinker FS.' };
         }
-        const targetId = options.deviceId != null ? Number(options.deviceId) : firstDev.deviceId;
-        if (!firstDev.hasPermission) {
+        const targetDev =
+          options.deviceId != null
+            ? devList.find((d) => Number(d.deviceId) === Number(options.deviceId)) || firstDev
+            : firstDev;
+        const targetId = targetDev.deviceId;
+        if (!targetDev.hasPermission) {
           const perm = await this.requestPermission(targetId);
           if (!perm.granted) {
             return { ok: false, error: perm.error || 'Android USB permission was not granted.' };
@@ -844,7 +872,11 @@
         const cmd = String(command || '').trim();
         await _webSerialWriter.write(new TextEncoder().encode(cmd + '\r'));
         let buf = '';
-        const deadline = Date.now() + Number(timeoutMs || 1500);
+        const startMs = Date.now();
+        const baseWaitMs = Math.max(50, Number(timeoutMs || 1500));
+        let deadline = startMs + baseWaitMs;
+        const maxDeadline = startMs + Math.max(baseWaitMs, _P2_STAR_MAX_TOTAL_MS);
+        let seenPending78 = 0;
         while (Date.now() < deadline) {
           if (!_webSerialPendingRead) {
             _webSerialPendingRead = _webSerialReader.read().then(
@@ -867,11 +899,17 @@
           if (res && res.value) {
             buf += new TextDecoder().decode(res.value);
             if (buf.includes('>')) break;
+            const matches = buf.match(_PENDING_78_RE);
+            const pendingCnt = matches ? matches.length : 0;
+            if (pendingCnt > seenPending78) {
+              seenPending78 = pendingCnt;
+              deadline = Math.min(maxDeadline, Math.max(deadline, Date.now() + _P2_STAR_EXTEND_MS));
+            }
           }
           if (res && res.done) break;
         }
         const lines = buf
-          .replace(/>/g, '')
+          .split('>')[0]
           .split(/\r?\n|\r/)
           .map((s) => s.trim())
           .filter(Boolean);

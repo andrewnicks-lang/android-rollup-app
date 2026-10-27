@@ -1,8 +1,8 @@
 {
   "name": "Blue Oval Garage — Ford & Lincoln FORScan Companion (2011–2026+)",
   "short_name": "Blue Oval Garage",
-  "version": "2.0.0",
-  "description": "Offline-First 2011–2026+ Ford & Lincoln FORScan Companion: Multi-Vehicle Garage, 183 Community Recipes + 21 Platform Spreadsheets + Custom Spreadsheet Line Builder, Hybrid VIN Barcode/Photo/OCR Scanner, Deterministic As-Built .abt/.ab Parser & Checksum Engine, and Session Planner",
+  "version": "2.1.1",
+  "description": "Offline-First 2011–2026+ Ford & Lincoln FORScan Companion: Native USB-C Read-Only As-Built Snapshot & 12V ATRV Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Stale Pre-OTA F188 Guard, Offline .abt & Vault .zip Export, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, and 183 Community Recipes.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#070b14",

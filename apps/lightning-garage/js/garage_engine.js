@@ -1353,12 +1353,16 @@
   }
 
   // --- 8. FORScan 'Load All' .abt Exporter + F188 Stale Guard + USB-C OTG UDS Engine ---
-  function exportAbtText(linesMap, options = {}) {
-    const fmt = options.fmt || 'encoded';
+  function exportAbtText(linesMap, options = {}, headerCommentsArg = null) {
+    const opts =
+      typeof options === 'string'
+        ? { fmt: options, headerComments: Array.isArray(headerCommentsArg) ? headerCommentsArg : [] }
+        : options || {};
+    const fmt = opts.fmt || 'encoded';
     if (!['encoded', 'dashed', 'legacy'].includes(fmt)) {
       throw new Error(`Unsupported .abt export format: ${fmt}`);
     }
-    const modWant = options.moduleFilter ? String(options.moduleFilter).trim().toUpperCase() : null;
+    const modWant = opts.moduleFilter ? String(opts.moduleFilter).trim().toUpperCase() : null;
     const items = [];
     Object.keys(linesMap || {}).forEach((k) => {
       const parts = String(k).trim().toUpperCase().split('-');
@@ -1373,7 +1377,8 @@
 
     items.sort((a, b) => (a.mod !== b.mod ? a.mod.localeCompare(b.mod) : a.blk !== b.blk ? a.blk - b.blk : a.ln - b.ln));
     const out = [];
-    (options.headerComments || []).forEach((c) => {
+    const hdrs = opts.headerComments || (Array.isArray(headerCommentsArg) ? headerCommentsArg : []);
+    hdrs.forEach((c) => {
       const clean = String(c).replace(/[\r\n]+/g, ' ').trim();
       out.push(clean.startsWith(';') ? clean : `; ${clean}`);
     });
@@ -1398,7 +1403,7 @@
         out.push(`${it.mod}${b2}${l2}${compactPay}`);
       }
     });
-    const sep = options.crlf !== false ? '\r\n' : '\n';
+    const sep = opts.crlf !== false ? '\r\n' : '\n';
     return out.join(sep) + sep;
   }
 
@@ -1576,6 +1581,7 @@
     for (let i = 0; i < arr.length; i++) {
       const u = String(arr[i] || '').toUpperCase().trim();
       if (!u || u === 'OK' || /^(SEARCHING|ELM|STN|OBDLINK)/.test(u)) continue;
+      if (u.includes('NO DATA') && lastPending78 !== null && data.length === 0 && expectedLen === null) continue;
       if (/(NO DATA|CAN ERROR|UNABLE|BUS|STOPPED|ERROR|\?|BUFFER FULL)/.test(u)) return null;
       const m = /^([0-9A-F]):\s*(.*)$/.exec(u);
       const body = m ? m[2].trim() : u;
@@ -1864,7 +1870,7 @@
           if (didMap[didHex]) {
             emptyRun = 0;
           } else {
-            if (Object.keys(didMap).length === 0 && !keepAlive && [0x33, 0x7e, 0x7f].includes(res.nrc)) {
+            if (Object.keys(didMap).length === 0 && !keepAlive && [0x22, 0x33, 0x7e, 0x7f].includes(res.nrc)) {
               sessionDenied = true;
               break;
             }
@@ -2010,8 +2016,230 @@
     }
   }
 
+  // --- 9. Deterministic Zero-Dependency PKZIP Archive Builder (Offline Vault .zip Export) ---
+  const _CRC32_TABLE = (() => {
+    const tbl = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1 ? (0xedb88320 ^ (c >>> 1)) >>> 0 : c >>> 1;
+      }
+      tbl[i] = c >>> 0;
+    }
+    return tbl;
+  })();
+
+  function crc32Bytes(u8) {
+    let c = 0xffffffff;
+    for (let i = 0; i < u8.length; i++) {
+      c = (_CRC32_TABLE[(c ^ u8[i]) & 0xff] ^ (c >>> 8)) >>> 0;
+    }
+    return (c ^ 0xffffffff) >>> 0;
+  }
+
+  function _utf8Encode(str) {
+    const s = String(str ?? '');
+    if (typeof TextEncoder === 'function') return new TextEncoder().encode(s);
+    const out = [];
+    for (let i = 0; i < s.length; i++) {
+      const code = s.charCodeAt(i);
+      if (code < 0x80) {
+        out.push(code);
+      } else if (code < 0x800) {
+        out.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+      } else {
+        out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+      }
+    }
+    return new Uint8Array(out);
+  }
+
+  const _B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  function bytesToBase64(u8) {
+    let out = '';
+    const len = u8.length;
+    for (let i = 0; i < len; i += 3) {
+      const b0 = u8[i];
+      const b1 = i + 1 < len ? u8[i + 1] : 0;
+      const b2 = i + 2 < len ? u8[i + 2] : 0;
+      out += _B64_CHARS[b0 >> 2];
+      out += _B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+      out += i + 1 < len ? _B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+      out += i + 2 < len ? _B64_CHARS[b2 & 63] : '=';
+    }
+    return out;
+  }
+
+  function buildZipBytes(fileEntries) {
+    const entries = Array.isArray(fileEntries) ? fileEntries : [];
+    const now = new Date();
+    const dosTime = ((now.getHours() & 0x1f) << 11) | ((now.getMinutes() & 0x3f) << 5) | ((now.getSeconds() >> 1) & 0x1f);
+    const yr = Math.max(1980, now.getFullYear()) - 1980;
+    const dosDate = ((yr & 0x7f) << 9) | (((now.getMonth() + 1) & 0x0f) << 5) | (now.getDate() & 0x1f);
+
+    const prepared = entries.map((e) => {
+      const safePath = String(e.name || 'file.txt').replace(/^\/+/, '').replace(/\.\.+/g, '_');
+      const nameBytes = _utf8Encode(safePath);
+      const dataBytes = e.bytes instanceof Uint8Array ? e.bytes : _utf8Encode(e.content ?? '');
+      const crc = crc32Bytes(dataBytes);
+      return { nameBytes, dataBytes, crc };
+    });
+
+    let localSize = 0;
+    let cdSize = 0;
+    prepared.forEach((p) => {
+      localSize += 30 + p.nameBytes.length + p.dataBytes.length;
+      cdSize += 46 + p.nameBytes.length;
+    });
+
+    const total = localSize + cdSize + 22;
+    const out = new Uint8Array(total);
+    const dv = new DataView(out.buffer);
+
+    let pos = 0;
+    const offsets = [];
+    prepared.forEach((p) => {
+      offsets.push(pos);
+      dv.setUint32(pos, 0x04034b50, true);
+      dv.setUint16(pos + 4, 20, true);
+      dv.setUint16(pos + 6, 0x0800, true); // UTF-8 flag
+      dv.setUint16(pos + 8, 0, true); // STORE (0)
+      dv.setUint16(pos + 10, dosTime, true);
+      dv.setUint16(pos + 12, dosDate, true);
+      dv.setUint32(pos + 14, p.crc, true);
+      dv.setUint32(pos + 18, p.dataBytes.length, true);
+      dv.setUint32(pos + 22, p.dataBytes.length, true);
+      dv.setUint16(pos + 26, p.nameBytes.length, true);
+      dv.setUint16(pos + 28, 0, true);
+      out.set(p.nameBytes, pos + 30);
+      out.set(p.dataBytes, pos + 30 + p.nameBytes.length);
+      pos += 30 + p.nameBytes.length + p.dataBytes.length;
+    });
+
+    const cdOffset = pos;
+    prepared.forEach((p, idx) => {
+      dv.setUint32(pos, 0x02014b50, true);
+      dv.setUint16(pos + 4, 20, true);
+      dv.setUint16(pos + 6, 20, true);
+      dv.setUint16(pos + 8, 0x0800, true);
+      dv.setUint16(pos + 10, 0, true);
+      dv.setUint16(pos + 12, dosTime, true);
+      dv.setUint16(pos + 14, dosDate, true);
+      dv.setUint32(pos + 16, p.crc, true);
+      dv.setUint32(pos + 20, p.dataBytes.length, true);
+      dv.setUint32(pos + 24, p.dataBytes.length, true);
+      dv.setUint16(pos + 28, p.nameBytes.length, true);
+      dv.setUint16(pos + 30, 0, true);
+      dv.setUint16(pos + 32, 0, true);
+      dv.setUint16(pos + 34, 0, true);
+      dv.setUint16(pos + 36, 0, true);
+      dv.setUint32(pos + 38, 0, true);
+      dv.setUint32(pos + 42, offsets[idx], true);
+      out.set(p.nameBytes, pos + 46);
+      pos += 46 + p.nameBytes.length;
+    });
+
+    dv.setUint32(pos, 0x06054b50, true);
+    dv.setUint16(pos + 4, 0, true);
+    dv.setUint16(pos + 6, 0, true);
+    dv.setUint16(pos + 8, prepared.length, true);
+    dv.setUint16(pos + 10, prepared.length, true);
+    dv.setUint32(pos + 12, cdSize, true);
+    dv.setUint32(pos + 16, cdOffset, true);
+    dv.setUint16(pos + 20, 0, true);
+
+    return out;
+  }
+
+  function buildVaultZipArchive(options = {}) {
+    const backups = Array.isArray(options.backups) ? options.backups : [];
+    const vehicle = options.vehicle || {};
+    const handoff = options.handoff || null;
+    const includeSynthetic = Boolean(options.includeSynthetic);
+    const realList = backups.filter((b) => includeSynthetic || !b.is_synthetic);
+
+    const zipEntries = [];
+    const manifest = [];
+
+    realList.forEach((b, idx) => {
+      const isFactory = b.kind === 'FORD_AB' || b.kind === 'FORD_FACTORY';
+      const ext = isFactory ? '.ab' : '.abt';
+      const rawBase = String(b.filename || b.label || `backup_${idx + 1}`).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 60);
+      const num = String(idx + 1).padStart(3, '0');
+      let entryName = `${num}_${b.kind || 'FORSCAN_BACKUP'}_${rawBase}`;
+      if (!entryName.toLowerCase().endsWith(ext)) entryName += ext;
+      const text =
+        b.raw_text ||
+        exportAbtText(b.dict || {}, {
+          fmt: 'encoded',
+          headerComments: [`Exported from Blue Oval Garage (${b.label || entryName})`]
+        });
+      const digest = b.sha256 || sha256Hex(text);
+      zipEntries.push({ name: entryName, content: text });
+      manifest.push({
+        file: entryName,
+        label: b.label || b.filename || entryName,
+        kind: b.kind || 'FORSCAN_BACKUP',
+        vin: b.vin || vehicle.vin || null,
+        software_version: b.software_version || null,
+        modules: b.modules || [],
+        sha256: digest,
+        taken_at: b.taken_at || null
+      });
+    });
+
+    if (handoff && handoff.ok && Array.isArray(handoff.modules) && handoff.modules.length > 0) {
+      handoff.modules.forEach((m) => {
+        const stagePath = `FORScan_Staging/${m.filename}`;
+        zipEntries.push({ name: stagePath, content: m.abt_text || m.abt_encoded });
+        manifest.push({
+          file: stagePath,
+          label: `Modded FORScan Load-All (${m.module})`,
+          kind: 'MODDED_FORSCAN_STAGE',
+          vin: vehicle.vin || null,
+          software_version: m.live_f188 || m.baseline_f188 || null,
+          modules: [m.module],
+          sha256: sha256Hex(m.abt_text || m.abt_encoded || ''),
+          changed_lines: (m.changed_lines || []).length
+        });
+      });
+      if (handoff.checklist_text) {
+        zipEntries.push({ name: 'FORScan_Staging/SESSION_CHECKLIST.txt', content: handoff.checklist_text });
+      }
+    }
+
+    if (options.vaultSnapshot && typeof options.vaultSnapshot === 'object') {
+      zipEntries.push({
+        name: 'vault_snapshot.json',
+        content: JSON.stringify(options.vaultSnapshot, null, 2)
+      });
+    }
+
+    zipEntries.push({
+      name: 'MANIFEST.json',
+      content: JSON.stringify(manifest, null, 2)
+    });
+
+    const safeVin = String(vehicle.vin || 'GARAGE').replace(/[^A-Z0-9]/gi, '') || 'GARAGE';
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const filename = options.filename || `${safeVin}_BlueOvalGarage_Vault_${dateTag}.zip`;
+    const bytes = buildZipBytes(zipEntries);
+    return {
+      filename,
+      fileCount: zipEntries.length,
+      backupCount: realList.length,
+      manifest,
+      bytes,
+      base64: bytesToBase64(bytes)
+    };
+  }
+
   global.GarageEngine = {
     sha256Hex,
+    crc32Bytes,
+    bytesToBase64,
+    buildZipBytes,
+    buildVaultZipArchive,
     computeChecksum,
     checksumOk,
     withChecksum,

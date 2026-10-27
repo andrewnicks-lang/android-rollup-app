@@ -137,6 +137,31 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+
+        private val PENDING_78_LINE_REGEX = Regex(
+            "(?:^|[\\r\\n])\\s*7F\\s*[0-9A-F]{2}\\s*78\\s*(?=[\\r\\n])",
+            RegexOption.IGNORE_CASE
+        )
+        const val P2_STAR_EXTEND_MS = 5500L
+        const val P2_STAR_MAX_TOTAL_MS = 15000L
+
+        fun countPending78Frames(bufferText: String): Int =
+            PENDING_78_LINE_REGEX.findAll(bufferText).count()
+
+        fun extendDeadlineForPending78(
+            bufferText: String,
+            seenPendingCount: Int,
+            nowMs: Long,
+            currentDeadlineMs: Long,
+            maxDeadlineMs: Long
+        ): Pair<Int, Long> {
+            val cnt = countPending78Frames(bufferText)
+            return if (cnt > seenPendingCount) {
+                Pair(cnt, minOf(maxDeadlineMs, maxOf(currentDeadlineMs, nowMs + P2_STAR_EXTEND_MS)))
+            } else {
+                Pair(seenPendingCount, currentDeadlineMs)
+            }
+        }
     }
 
     private val usbReceiver = object : BroadcastReceiver() {
@@ -186,7 +211,11 @@ class MainActivity : ComponentActivity() {
 
         val sb = StringBuilder()
         val readBuf = ByteArray(512)
-        val deadline = System.currentTimeMillis() + waitMs.coerceIn(50, 8000)
+        val startMs = System.currentTimeMillis()
+        val baseWaitMs = waitMs.coerceIn(50, 8000).toLong()
+        var deadline = startMs + baseWaitMs
+        val maxDeadline = startMs + maxOf(baseWaitMs, P2_STAR_MAX_TOTAL_MS)
+        var seenPending78 = 0
         while (System.currentTimeMillis() < deadline) {
             val n = port.read(readBuf, 40)
             if (n > 0) {
@@ -194,10 +223,19 @@ class MainActivity : ComponentActivity() {
                 if (sb.indexOf(">") >= 0) {
                     break
                 }
+                val updated = extendDeadlineForPending78(
+                    sb.toString(),
+                    seenPending78,
+                    System.currentTimeMillis(),
+                    deadline,
+                    maxDeadline
+                )
+                seenPending78 = updated.first
+                deadline = updated.second
             }
         }
         return sb.toString()
-            .replace(">", "")
+            .substringBefore(">")
             .split('\r', '\n')
             .map { it.trim() }
             .filter { it.isNotEmpty() }
@@ -425,7 +463,10 @@ class MainActivity : ComponentActivity() {
         fun usbRequestPermission(deviceId: Int): String {
             return try {
                 val mgr = getSystemService(Context.USB_SERVICE) as UsbManager
-                val dev = mgr.deviceList.values.firstOrNull { it.deviceId == deviceId }
+                val serialDevs = UsbSerialProber.getDefaultProber().findAllDrivers(mgr).map { it.device }
+                val dev = serialDevs.firstOrNull { it.deviceId == deviceId }
+                    ?: mgr.deviceList.values.firstOrNull { it.deviceId == deviceId }
+                    ?: serialDevs.firstOrNull()
                     ?: mgr.deviceList.values.firstOrNull()
                     ?: return JSONObject().put("ok", false).put("error", "No USB serial adapter plugged into USB-C OTG").toString()
 

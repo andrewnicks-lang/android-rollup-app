@@ -507,25 +507,25 @@ CURATED_BASELINES: Dict[str, Dict[str, Any]] = {
                 "detail": "Browse 183 verified recipes across 6 upstream platforms (`f150`, `super_duty`, `bronco`, `explorer`, `ranger_6g`, `mustang`), download 1-click `.xlsx`/`.pdf` community master spreadsheets (Livnitup, ZooDad, DanMc85) for all 21 platforms, or use `➕ Quick-Add Custom Spreadsheet Line` to enter any forum/spreadsheet hex mod with deterministic checksum dry-run."
             },
             {
-                "step": "Export Modded `.abt` & Sync to Windows FORScan (`📋 Session Plan`)",
-                "detail": "Open the `📋 Plan` tab to generate both a line-by-line hex diff checklist and a pre-computed `G0`-encoded modded `.abt` file (guarded against stale pre-OTA `F188` firmware drift). Share/Download offline or scan the 15-minute Desktop QR PIN to stage modded `.abt` files directly into `Documents\\FORScan\\LightningGarage_Staging\\` for FORScan's `Load All` button."
+                "step": "Export Modded `.abt`, Offline `Vault .zip` & Sync to Windows FORScan (`📋 Session Plan`)",
+                "detail": "Open the `📋 Plan` tab to generate both a line-by-line hex diff checklist and a pre-computed `G0`-encoded modded `.abt` file (guarded against stale pre-OTA `F188` firmware drift). Save or Share a deterministic `Vault .zip` archive offline (`📦 Save Vault .zip` / `📤 Share Vault .zip`), or scan the 15-minute Desktop QR PIN to stage modded `.abt` files directly into `Documents\\FORScan\\LightningGarage_Staging\\` for FORScan's `Load All` button."
             }
         ],
         "navigation_map": [
-            {"screen": "🔵 Garage & VIN", "purpose": "Multi-vehicle garage switcher, Hybrid Camera Barcode/OCR VIN scanner with ISO 3779 Modulo-11 auto-repair, offline + NHTSA vPIC decoder, and JSON Vault export/import."},
+            {"screen": "🔵 Garage & VIN", "purpose": "Multi-vehicle garage switcher, Hybrid Camera Barcode/OCR VIN scanner with ISO 3779 Modulo-11 auto-repair, offline + NHTSA vPIC decoder, and JSON/ZIP Vault export/import."},
             {"screen": "🎛️ Mod Menu (183 Recipes + Custom)", "purpose": "3-Layer FORScan catalog: 183 platform-filtered recipes, 21 curated community master spreadsheets (.xlsx/.pdf), and Quick-Add Custom Spreadsheet Line builder."},
             {"screen": "🧩 Modules (87 Addresses)", "purpose": "Complete Ford/Lincoln control module directory (`726`, `7D0`, `720`, `740/741`, `7E7`, `746`, etc.) with CGEA 1.2/1.3 MS-CAN (`STP53` @ 125k) vs. Gen14 `DIAG2` (`STP53` @ 500k) notes, write-risk ratings, and per-vehicle backup evidence."},
-            {"screen": "🛡️ Backups & Live USB-C", "purpose": "Native USB-C OTG read-only OBD-II scanner (`ATRV >= 12.5V` gate, Quick Health / Targeted / Full Backup), time-boxed QR Phone-to-PC sync, `.abt`/`.ab` importer (`G0`-codec aware), and Factory drift differ."},
-            {"screen": "📋 Session Plan & Load-All Handoff", "purpose": "Generates both printable line-by-line FORScan checklists and `F188`-verified pre-computed modded `.abt` files ready for Windows `FORScan.exe` (`Load All` -> `Write`)."}
+            {"screen": "🛡️ Backups & Live USB-C", "purpose": "Native USB-C OTG read-only OBD-II scanner (`ATRV >= 12.5V` gate, Quick Health / Targeted / Full Backup), offline `Vault .zip` Save/Share, time-boxed QR Phone-to-PC sync, `.abt`/`.ab` importer (`G0`-codec aware), and Factory drift differ."},
+            {"screen": "📋 Session Plan & Load-All Handoff", "purpose": "Generates printable line-by-line FORScan checklists, `F188`-verified pre-computed modded `.abt` files, and multi-module `.zip` handoff bundles ready for Windows `FORScan.exe` (`Load All` -> `Write`)."}
         ],
         "deep_dive_features": [
             {
                 "title": "Native USB-C OTG Read-Only UDS Engine & Dual-Bus Switching",
-                "body": "Uses `usb-serial-for-android` with a compiled Kotlin byte-level allowlist (`0x22`, `0x19`, `0x3E`, parked-only `0x10 01/03`, and ISO-TP `STP33`/`STP53`—physically blocking `0x2E` writes, `0x27` security unlock, and raw non-ISO-TP `STP31`). Handles multi-baud negotiation, `ATS0`/`ATS1` ISO-TP slicing, transient `0x78` ResponsePending filtering, and `ATRV >= 12.5V` battery gating."
+                "body": "Uses `usb-serial-for-android` with a compiled Kotlin byte-level allowlist (`0x22`, `0x19`, `0x3E`, parked-only `0x10 01/03`, and ISO-TP `STP33`/`STP53`—physically blocking `0x2E` writes, `0x27` security unlock, and raw non-ISO-TP `STP31`). Handles multi-baud negotiation, `ATS0`/`ATS1` ISO-TP slicing, ISO 14229-2 P2* (`+5.5s`, `15s` cap) UART deadline extension on `0x78` ResponsePending frames, and `ATRV >= 12.5V` battery gating."
             },
             {
-                "title": "FORScan >= 2.3.23 `G0`-Codec Modded `.abt` Handoff & Stale Pre-OTA `F188` Guard",
-                "body": "Exports numerically sorted pure `;Block N` `G0`-encoded `.abt` files (`01 -> G1`, `101 -> M5`) for FORScan's `Load All` button while binding every baseline to its live `F188` software strategy so stale pre-OTA files cannot overwrite newly calibrated factory bytes."
+                "title": "FORScan >= 2.3.23 `G0`-Codec Modded `.abt` Handoff, Offline `Vault .zip` & Stale Pre-OTA `F188` Guard",
+                "body": "Exports numerically sorted pure `;Block N` `G0`-encoded `.abt` files (`01 -> G1`, `101 -> M5`) and zero-dependency IEEE 802.3 CRC-32 PKZIP `Vault .zip` bundles (`FORScan_Staging/*_MODDED.abt` + `SESSION_CHECKLIST.txt` + raw `.abt` backups) while binding every baseline to its live `F188` software strategy so stale pre-OTA files cannot overwrite newly calibrated factory bytes."
             },
             {
                 "title": "Hybrid VIN Barcode + Optical Confusable Auto-Repair & 183-Recipe Engine",

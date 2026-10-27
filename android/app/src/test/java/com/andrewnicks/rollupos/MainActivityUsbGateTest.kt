@@ -57,4 +57,45 @@ class MainActivityUsbGateTest {
         assertRejected("ATPP FF SV 00")
         assertRejected("ATZ\r2EDE0001")
     }
+
+    @Test
+    fun extendsReadDeadlineOnlyOnCompleteUdsResponsePending78Frames() {
+        // Incomplete line without CR/LF or normal multi-frame payload containing 7F..78 must NOT extend
+        assertEquals(0, MainActivity.countPending78Frames("7F2278"))
+        assertEquals(0, MainActivity.countPending78Frames("014\r0: 62 DE 00 7F 22 78\r"))
+
+        // First spaced or unspaced 7F <SID> 78 frame extends deadline by P2* (5500ms)
+        val (seen1, dl1) = MainActivity.extendDeadlineForPending78(
+            bufferText = "SEARCHING...\r7F 22 78\r",
+            seenPendingCount = 0,
+            nowMs = 1000L,
+            currentDeadlineMs = 2200L,
+            maxDeadlineMs = 16000L
+        )
+        assertEquals(1, seen1)
+        assertEquals(6500L, dl1)
+
+        // Re-evaluating the same single frame does NOT extend again
+        val (seenSame, dlSame) = MainActivity.extendDeadlineForPending78(
+            bufferText = "SEARCHING...\r7F 22 78\r",
+            seenPendingCount = seen1,
+            nowMs = 3000L,
+            currentDeadlineMs = dl1,
+            maxDeadlineMs = 16000L
+        )
+        assertEquals(1, seenSame)
+        assertEquals(6500L, dlSame)
+
+        // Second 7F2278 frame extends again, capped cleanly at maxDeadlineMs
+        val (seen2, dl2) = MainActivity.extendDeadlineForPending78(
+            bufferText = "SEARCHING...\r7F 22 78\r7F2278\r\n",
+            seenPendingCount = seen1,
+            nowMs = 12000L,
+            currentDeadlineMs = dl1,
+            maxDeadlineMs = 16000L
+        )
+        assertEquals(2, seen2)
+        assertEquals(16000L, dl2)
+    }
 }
+

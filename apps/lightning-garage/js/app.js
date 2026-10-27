@@ -2057,7 +2057,7 @@
     }
 
     const handoff = computeCurrentHandoff('encoded');
-    if (handoff.stale_blocked) {
+    if (fromPlanTab && (!handoff.ok || handoff.stale_blocked)) {
       showToast(handoff.error || 'Blocked by Stale Pre-OTA F188 Guard.', true);
       return;
     }
@@ -2073,7 +2073,7 @@
         raw_text: b.raw_text
       }));
 
-    const stagedAbt = handoff.ok
+    const stagedAbt = handoff.ok && !handoff.stale_blocked
       ? (handoff.modules || []).map((m) => ({
           filename: m.filename,
           content: m.abt_encoded,
@@ -2103,13 +2103,20 @@
         throw new Error(data.error || `PC Sync HTTP ${status}`);
       }
       const stagedNames = (data.staged_files || []).map((f) => f.filename).join(', ');
+      const f188SkipNote = handoff.stale_blocked
+        ? ' (⚠️ Modded .abt staging skipped due to F188 OTA strategy drift — raw backups & live scan synced)'
+        : '';
       state.pcSync.lastMessage = `✓ Synced ${data.imported_backups ? data.imported_backups.length : 0} backup(s), ${
         data.synced_mods || 0
       } mod selection(s), & staged ${
         data.staged_files ? data.staged_files.length : 0
-      } modded .abt file(s) to ${data.staging_dir || 'FORScan Staging'}${stagedNames ? ` (${stagedNames})` : ''}.`;
+      } modded .abt file(s) to ${data.staging_dir || 'FORScan Staging'}${stagedNames ? ` (${stagedNames})` : ''}${f188SkipNote}.`;
       state.pcSync.lastError = false;
-      showToast(`Staged ${(data.staged_files || []).length} modded .abt file(s) to PC FORScan folder!`);
+      showToast(
+        handoff.stale_blocked
+          ? 'Synced raw backups & live scan to PC (modded .abt skipped: F188 OTA drift).'
+          : `Staged ${(data.staged_files || []).length} modded .abt file(s) to PC FORScan folder!`
+      );
     } catch (err) {
       state.pcSync.lastError = true;
       state.pcSync.lastMessage = `Sync failed: ${err.message || err}`;
@@ -2240,6 +2247,90 @@
     RollupBridge.files.shareTextFile(item.filename, item.abt_text, 'text/plain;charset=utf-8', `FORScan Modded As-Built (${item.module})`);
   };
 
+  function _buildCurrentVaultZip(includeModdedHandoff = true) {
+    const handoff = includeModdedHandoff ? computeCurrentHandoff(state.abtExportFmt) : null;
+    const realCount = (state.backups || []).filter((b) => !b.is_synthetic).length;
+    return GarageEngine.buildVaultZipArchive({
+      backups: state.backups || [],
+      includeSynthetic: realCount === 0,
+      vehicle: state.profile || {},
+      handoff: handoff && handoff.ok && !handoff.stale_blocked ? handoff : null,
+      vaultSnapshot: {
+        app: APP_ID,
+        version: '2.1.0',
+        exported_at: new Date().toISOString(),
+        profile: state.profile,
+        modOverrides: state.modOverrides,
+        customMods: state.customMods,
+        changeLog: state.changeLog,
+        liveScans: state.liveScans
+      }
+    });
+  }
+
+  global.downloadVaultZip = function () {
+    if (!global.RollupBridge) return;
+    try {
+      const zip = _buildCurrentVaultZip(true);
+      RollupBridge.files.downloadBase64(zip.filename, zip.base64, 'application/zip');
+      showToast(`Saved ${zip.filename} (${zip.backupCount} backup(s) + MANIFEST.json)`);
+    } catch (err) {
+      showToast(`Vault .zip export failed: ${err.message || err}`, true);
+    }
+  };
+
+  global.shareVaultZip = function () {
+    if (!global.RollupBridge) return;
+    try {
+      const zip = _buildCurrentVaultZip(true);
+      RollupBridge.files.shareBase64File(
+        zip.filename,
+        zip.base64,
+        'application/zip',
+        `Blue Oval Garage Vault (${state.profile.vin || 'Backups'})`
+      );
+    } catch (err) {
+      showToast(`Vault .zip share failed: ${err.message || err}`, true);
+    }
+  };
+
+  global.downloadModdedHandoffZip = function () {
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    if (!handoff.ok || handoff.stale_blocked) {
+      showToast(handoff.error || 'Cannot export modded .abt bundle yet.', true);
+      return;
+    }
+    if (!global.RollupBridge) return;
+    const safeVin = String(state.profile.vin || 'GARAGE').replace(/[^A-Z0-9]/gi, '') || 'GARAGE';
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const zip = GarageEngine.buildVaultZipArchive({
+      backups: [],
+      vehicle: state.profile || {},
+      handoff,
+      filename: `${safeVin}_FORScan_LoadAll_${dateTag}.zip`
+    });
+    RollupBridge.files.downloadBase64(zip.filename, zip.base64, 'application/zip');
+    showToast(`Saved ${zip.filename} (${handoff.modules.length} modded .abt + checklist)`);
+  };
+
+  global.shareModdedHandoffZip = function () {
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    if (!handoff.ok || handoff.stale_blocked) {
+      showToast(handoff.error || 'Cannot share modded .abt bundle yet.', true);
+      return;
+    }
+    if (!global.RollupBridge) return;
+    const safeVin = String(state.profile.vin || 'GARAGE').replace(/[^A-Z0-9]/gi, '') || 'GARAGE';
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const zip = GarageEngine.buildVaultZipArchive({
+      backups: [],
+      vehicle: state.profile || {},
+      handoff,
+      filename: `${safeVin}_FORScan_LoadAll_${dateTag}.zip`
+    });
+    RollupBridge.files.shareBase64File(zip.filename, zip.base64, 'application/zip', `FORScan Load-All Bundle (${safeVin})`);
+  };
+
   // =========================================================================
   // TAB 4: BACKUPS, USB-C LIVE SNAPSHOT, PC SYNC & CHECKSUM TOOLS
   // =========================================================================
@@ -2326,8 +2417,9 @@
                   Modules: <strong>${escapeHtml((b.modules || []).join(', '))}</strong> • ${b.line_count || Object.keys(b.dict || {}).length} lines • SHA-256: <code>${escapeHtml(String(b.sha256 || '').slice(0, 10))}</code>
                 </div>
               </div>
-              <div style="display:flex;gap:5px;">
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
                 <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="downloadBackupFile(${idx})">⬇️ Save</button>
+                <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="shareBackupFile(${idx})">📤 Share</button>
                 <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteBackupAt(${idx})">🗑️</button>
               </div>
             </div>
@@ -2497,7 +2589,16 @@
 
       <!-- Imported Backups Vault -->
       <div class="card">
-        <h3 style="margin:0 0 4px 0;font-size:14px;color:#f8fafc;">🗄️ Imported Backups &amp; Factory Files (${state.backups.length})</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <div>
+            <h3 style="margin:0;font-size:14px;color:#f8fafc;">🗄️ Imported Backups &amp; Factory Files (${state.backups.length})</h3>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Offline-first: save or share individual <code>.abt</code> files or a complete checksummed <code>Vault.zip</code> (+ <code>MANIFEST.json</code>).</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-primary" style="font-size:11.5px;padding:5px 9px;" onclick="downloadVaultZip()" ${state.backups.length ? '' : 'disabled'}>📦 Save Vault .zip</button>
+            <button class="btn btn-secondary" style="font-size:11.5px;padding:5px 9px;" onclick="shareVaultZip()" ${state.backups.length ? '' : 'disabled'}>📤 Share Vault .zip</button>
+          </div>
+        </div>
         ${backupsListHtml}
       </div>
 
@@ -2595,6 +2696,19 @@
     }
   };
 
+  global.shareBackupFile = function (idx) {
+    const b = state.backups[idx];
+    if (!b || !global.RollupBridge) return;
+    const text =
+      b.raw_text ||
+      Object.keys(b.dict || {})
+        .sort()
+        .map((k) => `${k} ${b.dict[k]}`)
+        .join('\n');
+    const fname = b.filename || `${b.label || 'backup'}.${b.kind === 'FORD_AB' ? 'ab' : 'abt'}`;
+    RollupBridge.files.shareTextFile(fname, text, 'text/plain;charset=utf-8', `As-Built Backup (${fname})`);
+  };
+
   global.runChecksumCalc = function () {
     const addrStr = (document.getElementById('cs-addr') || {}).value || '';
     const payloadStr = (document.getElementById('cs-payload') || {}).value || '';
@@ -2688,8 +2802,10 @@
         ${warnHtml}
         ${modCards}
         <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-primary" onclick="downloadModdedHandoffZip()">📦 Save All .zip</button>
+          <button class="btn btn-secondary" onclick="shareModdedHandoffZip()">📤 Share All .zip</button>
           <button class="btn btn-blue" onclick="pushSyncToPc(true)">📡 1-Tap Stage .abt File(s) to PC FORScan Folder</button>
-          <span style="font-size:11px;color:#94a3b8;">Auto-writes into <code>Documents\\FORScan\\LightningGarage_Staging\\</code></span>
+          <span style="font-size:11px;color:#94a3b8;">Offline <code>.zip</code> (+ checklist) or Wi-Fi stage into <code>Documents\\FORScan\\LightningGarage_Staging\\</code></span>
         </div>
       `;
     }
