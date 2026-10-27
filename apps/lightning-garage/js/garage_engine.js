@@ -906,7 +906,8 @@
   const CONFUSABLES = {
     0: ['0', 'D', 'C', 'U'],
     D: ['D', '0'],
-    1: ['1', 'L', 'T', 'J'],
+    1: ['1', '7', 'L', 'T', 'J'],
+    7: ['7', '1'],
     L: ['L', '1'],
     2: ['2', 'Z'],
     Z: ['Z', '2'],
@@ -921,6 +922,27 @@
     U: ['U', 'V', '0'],
     V: ['V', 'U', 'Y']
   };
+
+  function looksLikeWmiPrefix(w) {
+    if (!w || w.length < 3) return false;
+    const p = w
+      .slice(0, 3)
+      .split('')
+      .map((c) => ILLEGAL_MAP[c] || c)
+      .join('');
+    if (WMI_MAP[p]) return true;
+    const a0s = CONFUSABLES[p[0]] || [p[0]];
+    const a1s = CONFUSABLES[p[1]] || [p[1]];
+    const a2s = CONFUSABLES[p[2]] || [p[2]];
+    for (let i = 0; i < a0s.length; i++) {
+      for (let j = 0; j < a1s.length; j++) {
+        for (let k = 0; k < a2s.length; k++) {
+          if (WMI_MAP[a0s[i] + a1s[j] + a2s[k]]) return true;
+        }
+      }
+    }
+    return false;
+  }
 
   function repairAndValidateVinCandidates(rawText, maxEdits = 2) {
     if (!rawText) return { ok: false, best: null, candidates: [] };
@@ -951,6 +973,8 @@
       }
     });
 
+    windows.sort((a, b) => (looksLikeWmiPrefix(a) ? 0 : 1) - (looksLikeWmiPrefix(b) ? 0 : 1));
+
     const validMap = {};
     function scoreAndRecord(cand, edits, orig) {
       if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(cand)) return;
@@ -974,7 +998,7 @@
       }
     }
 
-    windows.slice(0, 12).forEach((w) => {
+    windows.slice(0, 48).forEach((w) => {
       let illegalFixes = 0;
       const baseChars = w.split('').map((c) => {
         if (ILLEGAL_MAP[c]) {
@@ -998,7 +1022,7 @@
         });
       });
 
-      if (maxEdits >= 2 && mutPos.length <= 10) {
+      if (maxEdits >= 2 && mutPos.length <= 12) {
         for (let i = 0; i < mutPos.length; i++) {
           for (let j = i + 1; j < mutPos.length; j++) {
             const p1 = mutPos[i];

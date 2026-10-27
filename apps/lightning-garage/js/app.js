@@ -141,8 +141,10 @@
     } else {
       state.modOverrides = {};
       const upPlat = resolveUpstreamPlatform(state.profile.platform_slug);
+      const vehPt = String((state.profile && state.profile.powertrain) || 'BEV').toUpperCase();
       (BUNDLE.entries || []).forEach((e) => {
-        if ((e.platform_slug || 'f150') === upPlat && e.popularity >= 3 && e.tier <= 2 && e.ev_status !== 'ICE_ONLY') {
+        const iceBlocked = vehPt === 'BEV' && e.ev_status === 'ICE_ONLY';
+        if ((e.platform_slug || 'f150') === upPlat && e.popularity >= 3 && e.tier <= 2 && !iceBlocked) {
           state.modOverrides[e.id] = {
             status: 'APPROVED',
             wanted: 1,
@@ -493,10 +495,8 @@
           </p>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
             <button class="btn btn-primary" onclick="startLiveVinCamera()">🎥 Live Barcode Camera</button>
-            <label class="btn btn-blue" style="cursor:pointer;">
-              📸 Snap / Upload VIN Photo
-              <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleMobileVinPhoto(this.files[0])">
-            </label>
+            <button class="btn btn-blue" onclick="captureVinPhotoViaBridge()">📸 Snap / Upload VIN Photo</button>
+            <input id="mob-vin-file-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleMobileVinPhoto(this.files[0])">
             <button class="btn btn-secondary" onclick="runGeminiVisionVinFallback()">🤖 Gemini Vision Plate OCR</button>
           </div>
           <video id="mob-vin-video" playsinline muted style="display:none;width:100%;max-height:220px;border:2px solid #38bdf8;border-radius:8px;margin-bottom:6px;"></video>
@@ -811,6 +811,23 @@
     }
   };
 
+  global.captureVinPhotoViaBridge = async function () {
+    if (global.RollupBridge && RollupBridge.camera && typeof RollupBridge.camera.capturePhoto === 'function') {
+      try {
+        const photoRes = await RollupBridge.camera.capturePhoto({ quality: 0.9, facingMode: 'environment' });
+        if (photoRes && (photoRes.dataUrl || photoRes.base64)) {
+          const src = photoRes.dataUrl || `data:image/jpeg;base64,${photoRes.base64}`;
+          const resp = await fetch(src);
+          const blob = await resp.blob();
+          handleMobileVinPhoto(blob);
+          return;
+        }
+      } catch (_) {}
+    }
+    const inp = document.getElementById('mob-vin-file-input');
+    if (inp) inp.click();
+  };
+
   global.handleMobileVinPhoto = function (file) {
     if (!file) return;
     const st = document.getElementById('mob-scan-status');
@@ -899,7 +916,16 @@
       if (st) st.innerHTML = `<span style="color:#fbbf24;">Snap or upload a VIN plate photo first so the CLAHE canvas is populated.</span>`;
       return;
     }
-    const apiKey = global.RollupBridge && RollupBridge.vault && RollupBridge.vault.get('gemini_api_key');
+    let apiKey = global.RollupBridge && RollupBridge.vault && RollupBridge.vault.get('gemini_api_key');
+    if (!apiKey && typeof global.prompt === 'function') {
+      const entered = (global.prompt('Enter your Gemini API Key (optional — saved locally in RollupOS Key Vault):') || '').trim();
+      if (entered) {
+        apiKey = entered;
+        if (global.RollupBridge && RollupBridge.vault && typeof RollupBridge.vault.set === 'function') {
+          RollupBridge.vault.set('gemini_api_key', entered);
+        }
+      }
+    }
     if (!apiKey) {
       if (st) st.innerHTML = `<span style="color:#fbbf24;">No Gemini API key configured in RollupOS Key Vault — use the deterministic Modulo-11 Repair box above.</span>`;
       return;
@@ -2000,12 +2026,36 @@
 
   // --- Vault JSON Export / Import ---
   global.exportGarageVaultJson = function () {
+    saveModOverrides();
+    saveBackups();
+    saveCustomMods();
+    saveChangeLog();
+    const vehicleStates = {};
+    (state.vehicles || []).forEach((v) => {
+      const vid = v.id;
+      if (vid === state.activeVehicleId) {
+        vehicleStates[vid] = {
+          modOverrides: state.modOverrides,
+          backups: state.backups,
+          customMods: state.customMods,
+          changeLog: state.changeLog
+        };
+      } else if (global.RollupBridge) {
+        vehicleStates[vid] = {
+          modOverrides: RollupBridge.storage.get(getScopedKey(KEY_MOD_OVERRIDES, vid), {}, APP_ID) || {},
+          backups: RollupBridge.storage.get(getScopedKey(KEY_BACKUPS, vid), [], APP_ID) || [],
+          customMods: RollupBridge.storage.get(getScopedKey(KEY_CUSTOM_MODS, vid), [], APP_ID) || [],
+          changeLog: RollupBridge.storage.get(getScopedKey(KEY_CHANGE_LOG, vid), [], APP_ID) || []
+        };
+      }
+    });
     const payload = {
       app: APP_ID,
       version: '2.0.0',
       exported_at: new Date().toISOString(),
       activeVehicleId: state.activeVehicleId,
       vehicles: state.vehicles,
+      vehicleStates,
       profile: state.profile,
       modOverrides: state.modOverrides,
       backups: state.backups,
@@ -2014,7 +2064,7 @@
     };
     if (global.RollupBridge) {
       RollupBridge.files.exportJSON(`blue_oval_garage_vault_${state.profile.vin || 'export'}.json`, payload);
-      showToast('Exported Blue Oval Garage JSON Vault!');
+      showToast('Exported Blue Oval Garage JSON Vault (all vehicles)!');
     }
   };
 
@@ -2034,17 +2084,33 @@
           state.profile = { ...state.profile, ...data.profile };
           saveProfile();
         }
-        if (data.modOverrides) {
-          state.modOverrides = data.modOverrides;
-          saveModOverrides();
-        }
-        if (Array.isArray(data.backups)) {
-          state.backups = data.backups;
-          saveBackups();
-        }
-        if (Array.isArray(data.customMods)) {
-          state.customMods = data.customMods;
-          saveCustomMods();
+        if (data.vehicleStates && typeof data.vehicleStates === 'object' && global.RollupBridge) {
+          Object.entries(data.vehicleStates).forEach(([vidKey, vs]) => {
+            if (!vs || typeof vs !== 'object') return;
+            const vid = Number(vidKey) || vidKey;
+            if (vs.modOverrides) RollupBridge.storage.set(getScopedKey(KEY_MOD_OVERRIDES, vid), vs.modOverrides, APP_ID);
+            if (Array.isArray(vs.backups)) RollupBridge.storage.set(getScopedKey(KEY_BACKUPS, vid), vs.backups, APP_ID);
+            if (Array.isArray(vs.customMods)) RollupBridge.storage.set(getScopedKey(KEY_CUSTOM_MODS, vid), vs.customMods, APP_ID);
+            if (Array.isArray(vs.changeLog)) RollupBridge.storage.set(getScopedKey(KEY_CHANGE_LOG, vid), vs.changeLog, APP_ID);
+          });
+          loadScopedVehicleData(state.activeVehicleId);
+        } else {
+          if (data.modOverrides) {
+            state.modOverrides = data.modOverrides;
+            saveModOverrides();
+          }
+          if (Array.isArray(data.backups)) {
+            state.backups = data.backups;
+            saveBackups();
+          }
+          if (Array.isArray(data.customMods)) {
+            state.customMods = data.customMods;
+            saveCustomMods();
+          }
+          if (Array.isArray(data.changeLog)) {
+            state.changeLog = data.changeLog;
+            saveChangeLog();
+          }
         }
         renderActiveTab();
         showToast('Restored Blue Oval Garage Vault!');

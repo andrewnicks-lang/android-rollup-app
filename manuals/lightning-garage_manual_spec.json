@@ -6,11 +6,11 @@
   "icon": "\u26a1",
   "accent": "#38bdf8",
   "category": "Automotive & Telemetry",
-  "version": "2.0.0",
-  "build_hash": "a36e508af6",
+  "version": "2.0.1",
+  "build_hash": "7b8848bae0",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T22:50:00.931688",
-  "generated_at": "2026-10-26 22:50",
+  "updated_at": "2026-10-26T23:12:59.219159",
+  "generated_at": "2026-10-26 23:13",
   "tagline": "Blue Oval Garage v2.0 \u2014 2011\u20132026+ Ford & Lincoln Multi-Vehicle FORScan Companion, VIN Barcode/OCR Scanner & Deterministic As-Built Engine",
   "quickstart": [
     {
@@ -184,6 +184,11 @@
       "Encrypted On-Device Secret Vault"
     ],
     "recent_commits": [
+      {
+        "sha": "babdcfe",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:50)"
+      },
       {
         "sha": "61ab551",
         "date": "2026-10-26",

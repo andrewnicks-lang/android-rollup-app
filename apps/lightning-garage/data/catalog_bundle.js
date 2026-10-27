@@ -1219,98 +1219,114 @@ window.LIGHTNING_GARAGE_BUNDLE = {
   },
   "module_editorial": {
     "716": {
-      "does": "Central gateway: routes diagnostic and network traffic between the truck's CAN networks. Scan tools need it working to reach modules on other networks.",
+      "does": "Central gateway: routes diagnostic and network traffic between the vehicle's CAN networks. Scan tools need it working to reach modules on other networks.",
       "ev": "Central to the Lightning's mixed CAN / CAN-FD architecture.",
+      "ice": "Routes between HS-CAN1/2/3/4 on 2016+ CGEA 1.3 and FNV2 vehicles.",
       "risk": "high",
       "touch": "Do not write as-built here."
     },
     "726": {
-      "does": "Body control: exterior and interior lighting logic, door locks, key fob / passive entry, horn and chime behavior, wipers, power-point timers. The most commonly edited module.",
+      "does": "Body control (BCM): exterior and interior lighting logic, door locks, key fob / passive entry, horn and chime behavior, wipers, TPMS thresholds, power-point timers. The most commonly edited module.",
       "ev": "Same role as on gas F-150s; the Lightning adds charge-port and frunk functions elsewhere.",
+      "ice": "Hosts double-honk disable, Bambi mode, TPMS PSI thresholds, global windows, and auto start/stop settings.",
       "risk": "medium",
       "touch": "Most community mods live here; change one nibble at a time."
     },
     "7D0": {
       "does": "SYNC infotainment computer (APIM): touchscreen UI, camera view options, splash screen, climate bar layout, navigation settings.",
       "ev": "SYNC 4 on the Lightning also surfaces EV-specific screens.",
+      "ice": "SYNC 2 (2011\u20132015), SYNC 3 (2016\u20132020), or SYNC 4 (2021+): splash animations, climate icons, and camera views.",
       "risk": "medium",
       "touch": "A bad write can leave SYNC in a boot loop: keep a verified backup and the factory file."
     },
     "720": {
-      "does": "Instrument cluster: gauges, warning messages and chimes, unit/format options, cluster configuration.",
+      "does": "Instrument cluster (IPC): gauges, warning messages and chimes, unit/format options, cluster configuration.",
       "ev": "The Lightning's cluster shows EV range/power; many gas-engine cluster options do not apply.",
+      "ice": "Hosts digital coolant/trans temps above gauges, DPF % screen & OCR regen on Super Duty diesels, and chime toggles.",
       "risk": "medium",
-      "touch": "Chime and display options; avoid anything about drive or charge display unless proven on EVs."
+      "touch": "Chime and display options; verify year/powertrain compatibility before writing."
     },
     "706": {
-      "does": "Image Processing Module A: the windshield camera and ADAS vision (lane keeping, BlueCruise inputs, traffic sign recognition) and several camera-view settings.",
+      "does": "Image Processing Module A (IPMA): the windshield camera and ADAS vision (lane keeping, BlueCruise inputs, traffic sign recognition) and several camera-view settings.",
       "ev": "Linked to BlueCruise on equipped trucks.",
+      "ice": "Controls lane-keeping, adaptive high-beam / Glare-Free lighting, and 360 camera views on equipped vehicles.",
       "risk": "high",
-      "touch": "ADAS-related: treat as locked unless the exact recipe is verified on a Lightning."
+      "touch": "ADAS-related: treat as locked unless the exact recipe is verified on your platform."
     },
     "740": {
-      "does": "Driver door module: driver window, mirror, door lock and courtesy lighting functions; hosts several global-window and auto-fold-mirror settings.",
+      "does": "Driver door module (DDM): driver window, mirror, door lock and courtesy lighting functions; hosts several global-window and auto-fold-mirror settings.",
       "ev": "Same function as gas trucks.",
+      "ice": "On 2011\u20132020 CGEA 1.2/1.3 vehicles, DDM (740) sits on 125 kbaud MS-CAN (STP33).",
       "risk": "low",
       "touch": "Usually changed together with 741 (passenger door)."
     },
     "741": {
-      "does": "Passenger door module: passenger-side counterpart of the driver door module.",
+      "does": "Passenger door module (PDM): passenger-side counterpart of the driver door module.",
       "ev": "Same function as gas trucks.",
+      "ice": "On 2011\u20132020 CGEA 1.2/1.3 vehicles, PDM (741) sits on 125 kbaud MS-CAN (STP33).",
       "risk": "low",
       "touch": "Change together with 740 so both doors match."
     },
     "724": {
-      "does": "Steering column control module: turn signal and wiper stalks, steering-column switches (for example lane-change flash count).",
+      "does": "Steering column control module (SCCM): turn signal and wiper stalks, steering-column switches (for example lane-change flash count).",
       "ev": "Same function as gas trucks.",
+      "ice": "Controls turn-signal flash count, heated steering wheel button, and cruise control stalk switches.",
       "risk": "low",
       "touch": ""
     },
     "760": {
-      "does": "Anti-lock brake / stability control module; on EVs it also coordinates regenerative braking blending.",
+      "does": "Anti-lock brake / stability control module (ABS); on EVs it also coordinates regenerative braking blending.",
       "ev": "Brake blending makes this safety-critical.",
+      "ice": "Controls stability control and G.O.A.T. / Terrain / FX4 drive mode unlocks on Bronco and Maverick.",
       "risk": "critical",
       "touch": "Do not write as-built here."
     },
     "730": {
-      "does": "Power steering control (shown as EPS/PCSM in Ford's list because the address is shared with a seat module on other models).",
+      "does": "Power steering control (PSCM, shown as EPS/PCSM in Ford's list because the address is shared with a seat module on other models).",
       "ev": "Steering assist is safety-critical.",
+      "ice": "Electronic power-assisted steering (EPAS) calibration and pull-drift compensation.",
       "risk": "critical",
       "touch": "Do not write as-built here."
     },
     "7E7": {
-      "does": "In Ford's module list this address is 'Air Conditioning Control Module / Battery Energy Control Module'. On the Lightning the BECM supervises the high-voltage battery: state of charge, cell voltages, temperatures, contactors.",
+      "does": "In Ford's module list this address is 'Air Conditioning Control Module / Battery Energy Control Module'. On BEVs/PHEVs the BECM supervises the high-voltage battery: state of charge, cell voltages, temperatures, contactors.",
       "ev": "High-voltage battery management.",
+      "ice": "Not present as BECM on conventional ICE vehicles (used for ACCM or hybrid battery control on HEV/PHEV).",
       "risk": "critical",
       "touch": "Do not write as-built here. Reading is fine."
     },
     "746": {
-      "does": "DC-to-DC converter: charges the 12V battery from the high-voltage pack and powers the 12V system while the truck is awake.",
+      "does": "Secondary OBD Control Module C / DC-to-DC converter: charges the 12V battery from the high-voltage pack and powers the 12V system while the EV is awake.",
       "ev": "Key to the 12V behavior that matters during FORScan sessions.",
+      "ice": "EV/Hybrid-specific high-voltage DC-DC controller; conventional ICE vehicles use an alternator and BMS on 726.",
       "risk": "critical",
       "touch": "Do not write as-built here."
     },
     "7E0": {
-      "does": "Powertrain control module address. The community F-150 recipes use it for powertrain items; on the Lightning the equivalent role is split across EV-specific controllers, so confirm what actually answers here before relying on any recipe.",
-      "ev": "Role differs from the gas F-150.",
+      "does": "Powertrain control module (PCM) address. Controls engine and transmission calibration on ICE/Hybrid vehicles.",
+      "ev": "Role differs from the gas F-150 (split across EV controllers on BEVs).",
+      "ice": "Primary engine/transmission controller (EcoBoost, Coyote 5.0L, Power Stroke 6.7L). Locked against raw as-built writes.",
       "risk": "critical",
       "touch": "Powertrain: locked."
     },
     "727": {
-      "does": "Audio control module (radio/amplifier head functions).",
+      "does": "Audio control module (ACM: radio/amplifier head functions, active noise control / fake engine sound).",
       "ev": "",
+      "ice": "Hosts Fake Engine Noise (FENG / ESE) disable on EcoBoost F-150, Explorer ST, Mustang, and Bronco.",
       "risk": "low",
       "touch": "Sound options only."
     },
     "783": {
-      "does": "Audio digital signal processor (equalization and speaker channels).",
+      "does": "Audio digital signal processor (DSP: equalization and speaker channels).",
       "ev": "",
+      "ice": "",
       "risk": "low",
       "touch": ""
     },
     "733": {
       "does": "Climate control (HVAC) module.",
       "ev": "Heat-pump / battery-conditioning interplay on EVs.",
+      "ice": "Dual-zone / single-zone climate control; sits on 125 kbaud MS-CAN (STP33) on 2011\u20132020 vehicles.",
       "risk": "medium",
       "touch": ""
     }
