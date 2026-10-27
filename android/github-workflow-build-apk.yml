@@ -51,9 +51,9 @@ jobs:
               -dname "CN=RollupOS Hub, OU=Mobile, O=Andrew Nicks, L=Kansas City, ST=MO, C=US"
           fi
 
-      - name: Compile Signed Release APK
+      - name: Compile & Test Signed Release APK
         working-directory: android
-        run: gradle assembleRelease --no-daemon
+        run: gradle testDebugUnitTest assembleRelease --no-daemon
 
       - name: Copy RollupOS.apk
         run: |
@@ -66,18 +66,15 @@ jobs:
           name: RollupOS-APK
           path: RollupOS.apk
 
-      - name: Publish / Update GitHub Release (RollupOS.apk v1.1.0 + v1.0.0)
+      - name: Publish / Update GitHub Release (RollupOS.apk v1.2.0)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view v1.1.0 >/dev/null 2>&1; then
-            gh release upload v1.1.0 RollupOS.apk --clobber
+          if gh release view v1.2.0 >/dev/null 2>&1; then
+            gh release upload v1.2.0 RollupOS.apk --clobber
           else
-            gh release create v1.1.0 RollupOS.apk \
+            gh release create v1.2.0 RollupOS.apk \
               --latest \
-              --title "RollupOS Multi-User Android Hub v1.1.0 (Mic + GNSS + Camera Torch + Native File Export)" \
-              --notes "Upgraded Android WebView Host v1.1.0: Native RECORD_AUDIO (150Hz WebAudio Mic), ACCESS_FINE_LOCATION (GNSS), Sequential Camera/Torch Permissions, and RollupNative.saveBase64File (.cscwalk.zip, .csv, .json direct Downloads)."
-          fi
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            gh release upload v1.0.0 RollupOS.apk --clobber || true
+              --title "RollupOS Multi-User Android Hub v1.2.0 (USB-C OTG OBD-II Read-Only UDS Bridge + LAN Sync)" \
+              --notes "Upgraded Android WebView Host v1.2.0: USB-C OTG Serial (OBDLink EX / vLinker FS, FTDI 1ms latency, compiled read-only UDS & STN STP33/STP53 ISO-TP gate), PNA-safe private LAN FORScan Staging Sync, Mic, GNSS, Camera Torch, and Native File Export."
           fi

@@ -654,8 +654,286 @@
         return true;
       }
       return false;
+    },
+
+    shareTextFile(filename, content, mimeType = 'text/plain;charset=utf-8', title = '') {
+      if (global.RollupNative && typeof global.RollupNative.shareBase64File === 'function') {
+        const bytes = new TextEncoder().encode(String(content ?? ''));
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        return global.RollupNative.shareBase64File(filename, mimeType, btoa(binary), title || filename);
+      }
+      this.downloadText(filename, content, mimeType);
+      return true;
     }
   };
+
+  // USB-C OTG Serial Bridge (RollupOS Android Native UDS Read-Only Gate + Desktop WebSerial Fallback)
+  let _webSerialPort = null;
+  let _webSerialReader = null;
+  let _webSerialWriter = null;
+  let _webSerialPendingRead = null;
+  const _BAUD_CANDIDATES = [115200, 500000, 38400, 2000000, 230400];
+  const _BAUD_OK_RE = /(ELM|STN|OBD|VLINKER|OK|\?)/i;
+
+  const usbSerial = {
+    isNativeApk() {
+      return Boolean(global.RollupNative && typeof global.RollupNative.usbIsSupported === 'function');
+    },
+
+    isSupported() {
+      return this.isNativeApk() || Boolean(global.navigator && global.navigator.serial);
+    },
+
+    listDevices() {
+      if (this.isNativeApk()) {
+        try {
+          return JSON.parse(global.RollupNative.usbListDevices() || '{"ok":false,"devices":[]}');
+        } catch (e) {
+          return { ok: false, devices: [], error: String(e) };
+        }
+      }
+      return { ok: true, devices: [], webSerial: Boolean(global.navigator && global.navigator.serial) };
+    },
+
+    requestPermission(deviceId = -1) {
+      if (!this.isNativeApk()) {
+        return Promise.resolve({ ok: true, granted: true, webSerial: true });
+      }
+      return new Promise((resolve) => {
+        let settled = false;
+        const prev = global.__onRollupUsbPermission;
+        const timer = setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            global.__onRollupUsbPermission = prev;
+            resolve({ ok: false, granted: false, error: 'USB permission dialog timed out' });
+          }
+        }, 25000);
+
+        global.__onRollupUsbPermission = (granted, devId) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          global.__onRollupUsbPermission = prev;
+          resolve({ ok: Boolean(granted), granted: Boolean(granted), deviceId: devId });
+        };
+
+        try {
+          const res = JSON.parse(global.RollupNative.usbRequestPermission(Number(deviceId)) || '{}');
+          if (!res.pending) {
+            settled = true;
+            clearTimeout(timer);
+            global.__onRollupUsbPermission = prev;
+            resolve(res);
+          }
+        } catch (e) {
+          settled = true;
+          clearTimeout(timer);
+          global.__onRollupUsbPermission = prev;
+          resolve({ ok: false, granted: false, error: String(e) });
+        }
+      });
+    },
+
+    async requestAndConnect(options = {}) {
+      const primaryBaud = Number(options.baudRate || 115200);
+      const autoBaud = options.autoBaud !== false;
+      const candidates = autoBaud
+        ? [primaryBaud, ..._BAUD_CANDIDATES.filter((b) => b !== primaryBaud)]
+        : [primaryBaud];
+
+      if (this.isNativeApk()) {
+        const listed = this.listDevices();
+        const firstDev = (listed.devices && listed.devices[0]) || null;
+        if (!firstDev) {
+          return { ok: false, error: 'No USB-C OTG OBD adapter found. Plug in OBDLink EX or Vgate vLinker FS.' };
+        }
+        const targetId = options.deviceId != null ? Number(options.deviceId) : firstDev.deviceId;
+        if (!firstDev.hasPermission) {
+          const perm = await this.requestPermission(targetId);
+          if (!perm.granted) {
+            return { ok: false, error: perm.error || 'Android USB permission was not granted.' };
+          }
+        }
+        let firstConn = null;
+        for (let i = 0; i < candidates.length; i++) {
+          const cand = candidates[i];
+          try {
+            const connRes = JSON.parse(global.RollupNative.usbConnect(targetId, cand) || '{"ok":false}');
+            if (!connRes || !connRes.ok) {
+              if (i === 0) return connRes || { ok: false, error: 'USB connect failed' };
+              continue;
+            }
+            if (!firstConn) firstConn = connRes;
+            if (!autoBaud) return connRes;
+            const probe = await this.transact('ATI', 420, false);
+            if (probe && probe.ok && Array.isArray(probe.lines) && probe.lines.some((l) => _BAUD_OK_RE.test(l) && !l.includes('\uFFFD'))) {
+              return { ...connRes, baudRate: cand };
+            }
+          } catch (e) {
+            if (i === 0) return { ok: false, error: String(e) };
+          }
+        }
+        try {
+          return JSON.parse(global.RollupNative.usbConnect(targetId, primaryBaud) || '{"ok":false}');
+        } catch (e) {
+          return firstConn || { ok: false, error: String(e) };
+        }
+      }
+
+      if (global.navigator && global.navigator.serial) {
+        try {
+          await this.disconnect();
+          _webSerialPort = await global.navigator.serial.requestPort();
+          for (let i = 0; i < candidates.length; i++) {
+            const cand = candidates[i];
+            try {
+              if (_webSerialReader) { try { await _webSerialReader.cancel(); _webSerialReader.releaseLock(); } catch (e) {} _webSerialReader = null; }
+              if (_webSerialWriter) { try { _webSerialWriter.releaseLock(); } catch (e) {} _webSerialWriter = null; }
+              _webSerialPendingRead = null;
+              if (i > 0) { try { await _webSerialPort.close(); } catch (e) {} }
+              await _webSerialPort.open({ baudRate: cand });
+              _webSerialWriter = _webSerialPort.writable.getWriter();
+              _webSerialReader = _webSerialPort.readable.getReader();
+              if (!autoBaud) {
+                return { ok: true, productName: 'WebSerial OBD Adapter', driver: 'WebSerial', baudRate: cand, readOnlyHardwareGate: false };
+              }
+              const probe = await this.transact('ATI', 420, false);
+              if (probe && probe.ok && Array.isArray(probe.lines) && probe.lines.some((l) => _BAUD_OK_RE.test(l) && !l.includes('\uFFFD'))) {
+                return { ok: true, productName: 'WebSerial OBD Adapter', driver: 'WebSerial', baudRate: cand, readOnlyHardwareGate: false };
+              }
+            } catch (openErr) {
+              if (i === 0 && !autoBaud) throw openErr;
+            }
+          }
+          // Re-open at primaryBaud if adapter was silent during probe
+          if (_webSerialReader) { try { await _webSerialReader.cancel(); _webSerialReader.releaseLock(); } catch (e) {} _webSerialReader = null; }
+          if (_webSerialWriter) { try { _webSerialWriter.releaseLock(); } catch (e) {} _webSerialWriter = null; }
+          _webSerialPendingRead = null;
+          try { await _webSerialPort.close(); } catch (e) {}
+          await _webSerialPort.open({ baudRate: primaryBaud });
+          _webSerialWriter = _webSerialPort.writable.getWriter();
+          _webSerialReader = _webSerialPort.readable.getReader();
+          return { ok: true, productName: 'WebSerial OBD Adapter', driver: 'WebSerial', baudRate: primaryBaud, readOnlyHardwareGate: false };
+        } catch (e) {
+          await this.disconnect();
+          return { ok: false, error: e.message || String(e) };
+        }
+      }
+
+      return { ok: false, error: 'USB-C OTG requires RollupOS Android v1.2+ APK or Desktop Chrome/Edge WebSerial.' };
+    },
+
+    async transact(command, timeoutMs = 1500, parkedConfirmed = false) {
+      if (this.isNativeApk()) {
+        // Yield a macrotask so WebView progress UI paints smoothly between synchronous JavaBridge frames
+        await new Promise((r) => setTimeout(r, 0));
+        try {
+          return JSON.parse(
+            global.RollupNative.usbTransact(String(command || ''), Number(timeoutMs || 1500), Boolean(parkedConfirmed)) ||
+              '{"ok":false}'
+          );
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }
+      if (_webSerialPort && _webSerialWriter && _webSerialReader) {
+        const cmd = String(command || '').trim();
+        await _webSerialWriter.write(new TextEncoder().encode(cmd + '\r'));
+        let buf = '';
+        const deadline = Date.now() + Number(timeoutMs || 1500);
+        while (Date.now() < deadline) {
+          if (!_webSerialPendingRead) {
+            _webSerialPendingRead = _webSerialReader.read().then(
+              (r) => ({ done: Boolean(r && r.done), value: r ? r.value : null }),
+              (err) => ({ error: err })
+            );
+          }
+          const sliceMs = Math.max(10, Math.min(120, deadline - Date.now()));
+          const res = await Promise.race([
+            _webSerialPendingRead,
+            new Promise((r) => setTimeout(() => r({ timeout: true }), sliceMs))
+          ]);
+          if (res && res.timeout) {
+            continue;
+          }
+          _webSerialPendingRead = null;
+          if (res && res.error) {
+            return { ok: false, error: String(res.error) };
+          }
+          if (res && res.value) {
+            buf += new TextDecoder().decode(res.value);
+            if (buf.includes('>')) break;
+          }
+          if (res && res.done) break;
+        }
+        const lines = buf
+          .replace(/>/g, '')
+          .split(/\r?\n|\r/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        return { ok: true, blocked: false, lines };
+      }
+      return { ok: false, error: 'USB adapter not connected' };
+    },
+
+    async disconnect() {
+      if (this.isNativeApk()) {
+        try {
+          return JSON.parse(global.RollupNative.usbDisconnect() || '{"ok":true}');
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }
+      _webSerialPendingRead = null;
+      try { if (_webSerialReader) { await _webSerialReader.cancel(); _webSerialReader.releaseLock(); } } catch (e) {}
+      try { if (_webSerialWriter) { _webSerialWriter.releaseLock(); } } catch (e) {}
+      try { if (_webSerialPort) { await _webSerialPort.close(); } } catch (e) {}
+      _webSerialReader = null;
+      _webSerialWriter = null;
+      _webSerialPort = null;
+      return { ok: true };
+    },
+
+    setKeepScreenOn(keepOn) {
+      if (this.isNativeApk() && typeof global.RollupNative.usbSetKeepScreenOn === 'function') {
+        return global.RollupNative.usbSetKeepScreenOn(Boolean(keepOn));
+      }
+      return false;
+    }
+  };
+
+  async function lanSyncRequest(url, options = {}) {
+    const method = String(options.method || 'GET').toUpperCase();
+    const token = String(options.token || '');
+    const bodyStr = typeof options.body === 'string' ? options.body : options.body ? JSON.stringify(options.body) : '';
+    if (global.RollupNative && typeof global.RollupNative.lanSyncRequest === 'function') {
+      await new Promise((r) => setTimeout(r, 0));
+      const raw = global.RollupNative.lanSyncRequest(String(url), method, token, bodyStr);
+      const parsed = JSON.parse(raw || '{"ok":false}');
+      let data = {};
+      if (parsed.body) {
+        try { data = JSON.parse(parsed.body); } catch (e) {}
+      }
+      if (parsed.status === 0 && !parsed.ok) {
+        throw new Error(parsed.error || 'LAN Sync connection failed');
+      }
+      return { ok: Boolean(parsed.ok), status: Number(parsed.status || 0), data };
+    }
+    const headers = { ...(options.headers || {}) };
+    if (token) headers['X-Sync-Token'] = token;
+    if (method === 'POST' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body: method === 'POST' ? bodyStr : undefined
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, data };
+  }
 
   // Over-The-Air (OTA) Build Hash & Version Update Detector
   let _inAppPollTimer = null;
@@ -1280,7 +1558,7 @@
   }
 
   global.RollupBridge = {
-    version: '1.3.0',
+    version: '1.4.1',
     detectAppId,
     resolveHubRootUrl,
     resolveRegistryUrl,
@@ -1292,6 +1570,8 @@
     vault,
     camera,
     files,
+    usbSerial,
+    lanSyncRequest,
     updates,
     manuals,
     settings,

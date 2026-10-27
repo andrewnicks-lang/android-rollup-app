@@ -17,7 +17,7 @@ steps:
           -storepass rollupos2026 \
           -keypass rollupos2026 \
           -dname "CN=RollupOS Hub, OU=Mobile, O=Andrew Nicks, L=Kansas City, ST=MO, C=US"
-        gradle assembleRelease --no-daemon
+        gradle testDebugUnitTest assembleRelease --no-daemon
         cp app/build/outputs/apk/release/app-release.apk /workspace/RollupOS.apk
         ls -lh /workspace/RollupOS.apk
 artifacts:

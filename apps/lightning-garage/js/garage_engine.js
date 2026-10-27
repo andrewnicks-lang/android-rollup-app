@@ -181,12 +181,92 @@
     };
   }
 
+  function addrSortCmp(a, b) {
+    const pa = String(a || '').toUpperCase().split('-');
+    const pb = String(b || '').toUpperCase().split('-');
+    if (pa.length === 3 && pb.length === 3 && /^\d+$/.test(pa[1]) && /^\d+$/.test(pa[2]) && /^\d+$/.test(pb[1]) && /^\d+$/.test(pb[2])) {
+      if (pa[0] !== pb[0]) return pa[0] < pb[0] ? -1 : 1;
+      const ba = parseInt(pa[1], 10), bb = parseInt(pb[1], 10);
+      if (ba !== bb) return ba - bb;
+      return parseInt(pa[2], 10) - parseInt(pb[2], 10);
+    }
+    return String(a || '').localeCompare(String(b || ''));
+  }
+
+  function normalizeStep(step) {
+    if (!step || typeof step !== 'object') return { ops: [] };
+    if (Array.isArray(step.ops) && step.ops.length > 0) return step;
+    const mask = String(step.mask || '');
+    const addrS = String(step.address || '');
+    let stars;
+    try {
+      parseAddress(addrS);
+      stars = targetPositions(mask);
+    } catch (e) {
+      return {
+        ...step,
+        ops: [{ kind: 'manual', pos: null, text: step.community_instruction || step.notes || 'see source' }]
+      };
+    }
+    if (step.type === 'continuous') {
+      return {
+        ...step,
+        ops: [{ kind: 'manual', pos: stars, text: step.instruction || step.notes || 'enter value', unit: step.unit, continuous: true }]
+      };
+    }
+    const entries = Array.isArray(step.nibbles) && step.nibbles.length > 0 ? step.nibbles : [step];
+    const ops = [];
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i] || {};
+      let pos = e.nibble !== undefined && e.nibble !== null ? Number(e.nibble) : (stars.length === 1 ? stars[0] : null);
+      const text = e.community_instruction || e.instruction || e.notes || step.notes || 'see source';
+      if (pos === null || Number.isNaN(pos) || !stars.includes(pos)) {
+        ops.push({ kind: 'manual', pos: null, text });
+        continue;
+      }
+      const hexv = typeof e.recommended_hex === 'string' ? e.recommended_hex.trim().toUpperCase() : '';
+      let bitsMap = null;
+      let rawBits = e.bits;
+      if (!rawBits && e.bit !== undefined && e.action !== undefined) {
+        rawBits = [{ bit: e.bit, action: e.action }];
+      }
+      if (Array.isArray(rawBits) && rawBits.length > 0) {
+        bitsMap = {};
+        let okBits = true;
+        for (let b = 0; b < rawBits.length; b++) {
+          const bit = Number(rawBits[b].bit), act = Number(rawBits[b].action);
+          if (![0, 1, 2, 3].includes(bit) || ![0, 1].includes(act) || (bitsMap[bit] !== undefined && bitsMap[bit] !== act)) {
+            okBits = false;
+            break;
+          }
+          bitsMap[bit] = act;
+        }
+        if (!okBits) bitsMap = null;
+      }
+      let delta = null;
+      if (e.hex_offset !== undefined && e.hex_offset !== null) {
+        const ds = String(e.hex_offset).trim();
+        if (/^[+-]?\d+$/.test(ds)) delta = parseInt(ds, 10);
+      }
+      if (hexv.length === 1 && HEX.includes(hexv)) {
+        ops.push({ kind: 'set', pos, hex: hexv });
+      } else if (bitsMap) {
+        ops.push({ kind: 'bits', pos, bits: bitsMap });
+      } else if (delta !== null) {
+        ops.push({ kind: 'offset', pos, delta });
+      } else {
+        ops.push({ kind: 'manual', pos, text });
+      }
+    }
+    return { ...step, ops };
+  }
+
   function evaluateStep(step, stateMap) {
     let addr;
     try {
       addr = parseAddress(step.address);
     } catch (e) {
-      return { address: step.address || '?', state: 'LAYOUT_MISMATCH', before: null, after: null, detail: e.message };
+      return { address: (step && step.address) || '?', state: 'LAYOUT_MISMATCH', before: null, after: null, detail: e.message };
     }
     const payload = stateMap ? stateMap[addr.key] : null;
     if (!payload) {
@@ -215,9 +295,14 @@
       };
     }
 
+    const normStep = Array.isArray(step.ops) && step.ops.length > 0 ? step : normalizeStep(step);
+    const ops = Array.isArray(normStep.ops) ? normStep.ops : [];
+    if (!ops.length) {
+      return { address: addr.key, state: 'NEEDS_INPUT', before: payload, after: null, detail: 'step specifies no target operations' };
+    }
+
     const digits = rawDigits.split('');
     const states = [];
-    const ops = Array.isArray(step.ops) ? step.ops : [];
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
       if (op.kind === 'manual' || op.pos === null || op.pos === undefined) {
@@ -325,11 +410,44 @@
     };
   }
 
-  // --- 5. .abt & .ab Parsers + Byte-Level Differ (abt_parser.py + ab_parser.py) ---
+  // --- 5. .abt & .ab Parsers, FORScan >= 2.3.23 G0 Codec + Differ (abt_parser.py + ab_parser.py) ---
   const RE_DASHED = /^([0-9A-Fa-f]{3})-(\d{2,3})-(\d{2,3})\s+(.+)$/;
   const RE_LEGACY = /^([0-9A-Fa-f]{3})(\d{2})(\d{2})\s+(.+)$/;
-  const RE_ENCODED = /^[0-9A-Fa-f]{3}[A-Za-z0-9]{4,}\s+[0-9A-Fa-f]{2}/;
+  const RE_LEGACY_COMPACT = /^([0-9A-Fa-f]{3})(\d{2})(\d{2})([0-9A-Fa-f]{4,})$/;
+  const RE_ENCODED_COMPACT = /^([0-9A-Fa-f]{3})([G-Vg-v][0-9A-Fa-f])([G-Vg-v][0-9A-Fa-f])([0-9A-Fa-f]{4,})$/;
+  const RE_ENCODED_SPACED = /^([0-9A-Fa-f]{3})([G-Vg-v][0-9A-Fa-f])([G-Vg-v][0-9A-Fa-f])\s+(.+)$/;
+  const RE_ENCODED_HINT = /^[0-9A-Fa-f]{3}[A-Za-z0-9]{4,}(?:\s+[0-9A-Fa-f]{2}|[0-9A-Fa-f]{2,}$)/;
+  const RE_BLOCK_COMMENT = /^;\s*block\s+(\d+)\s*$/i;
   const RE_PAYLOAD = /^(?:[0-9A-Fa-f]{2,4})(?:\s+[0-9A-Fa-f]{2,4})*$/;
+
+  function encodeG0Byte(val) {
+    const v = Number(val);
+    if (!Number.isInteger(v) || v < 0 || v > 255) {
+      throw new Error(`G0-encoded index out of range 0..255: ${val}`);
+    }
+    return String.fromCharCode('G'.charCodeAt(0) + (v >> 4)) + HEX[v & 0x0f];
+  }
+
+  function decodeG0Pair(pair) {
+    const s = String(pair || '').toUpperCase();
+    if (s.length !== 2) throw new Error(`G0 token must be 2 chars: ${pair}`);
+    const hi = s.charCodeAt(0) - 'G'.charCodeAt(0);
+    const lo = HEX.indexOf(s[1]);
+    if (hi < 0 || hi > 15 || lo < 0) throw new Error(`Invalid FORScan G0 token: ${pair}`);
+    return (hi << 4) | lo;
+  }
+
+  function groupHexPayload(hexDigits) {
+    const h = String(hexDigits || '').replace(/\s+/g, '').toUpperCase();
+    if (h.length < 4 || h.length % 2 !== 0 || !/^[0-9A-F]+$/.test(h)) {
+      throw new Error(`Invalid contiguous hex payload: ${String(hexDigits).slice(0, 40)}`);
+    }
+    const out = [];
+    for (let i = 0; i < h.length; i += 4) {
+      out.push(h.slice(i, i + 4));
+    }
+    return out.join(' ');
+  }
 
   function detectFormat(text) {
     const raw = String(text || '');
@@ -346,8 +464,8 @@
     if (!first) return 'unknown';
     if (first.startsWith('<')) return 'xml_ab';
     if (RE_DASHED.test(first)) return 'text_dashed';
-    if (RE_LEGACY.test(first)) return 'text_legacy';
-    if (RE_ENCODED.test(first)) return 'encoded';
+    if (RE_LEGACY.test(first) || RE_LEGACY_COMPACT.test(first)) return 'text_legacy';
+    if (RE_ENCODED_COMPACT.test(first) || RE_ENCODED_SPACED.test(first) || RE_ENCODED_HINT.test(first)) return 'encoded';
     return 'unknown';
   }
 
@@ -356,39 +474,84 @@
     if (fmt === 'xml_ab') {
       throw new Error('This is a Ford Motorcraft .ab XML file — use the Factory .ab importer or unified importer.');
     }
-    if (fmt === 'encoded') {
-      throw new Error('Encoded FORScan >=2.3.23 layout detected (e.g. 726G1G1): unsupported until validated against a real truck dump.');
-    }
     if (fmt === 'binary') {
       throw new Error('Binary content detected: not a plain-text FORScan .abt file.');
     }
 
     const problems = [];
+    const commentWarnings = [];
     const lines = [];
     const seen = new Set();
     const rawLines = String(text || '').split(/\r?\n/);
+    let commentBlock = null;
 
     for (let i = 0; i < rawLines.length; i++) {
       const n = i + 1;
       const s = rawLines[i].trim().replace(/^\uFEFF/, '');
-      if (!s || s.startsWith(';')) continue;
-      const m = RE_DASHED.exec(s) || RE_LEGACY.exec(s);
-      if (!m) {
-        problems.push(`Line ${n}: unrecognized format '${s.slice(0, 50)}'`);
+      if (!s) continue;
+      if (s.startsWith(';')) {
+        const bm = RE_BLOCK_COMMENT.exec(s);
+        if (bm) commentBlock = parseInt(bm[1], 10);
         continue;
       }
-      const module = m[1].toUpperCase();
-      const block = parseInt(m[2], 10);
-      const line = parseInt(m[3], 10);
-      const payloadRaw = m[4].trim();
-      if (!RE_PAYLOAD.test(payloadRaw)) {
-        problems.push(`Line ${n}: invalid hex payload '${payloadRaw.slice(0, 40)}'`);
+
+      let module = '';
+      let block = 0;
+      let line = 0;
+      let payload = '';
+
+      const mStd = RE_DASHED.exec(s) || RE_LEGACY.exec(s);
+      if (mStd) {
+        module = mStd[1].toUpperCase();
+        block = parseInt(mStd[2], 10);
+        line = parseInt(mStd[3], 10);
+        const payloadRaw = mStd[4].trim();
+        if (!RE_PAYLOAD.test(payloadRaw)) {
+          problems.push(`Line ${n}: invalid hex payload '${payloadRaw.slice(0, 40)}'`);
+          continue;
+        }
+        payload = payloadRaw.toUpperCase().split(/\s+/).join(' ');
+      } else {
+        const mEnc = RE_ENCODED_COMPACT.exec(s);
+        const mLegC = mEnc ? null : RE_LEGACY_COMPACT.exec(s);
+        const mEncSp = !mEnc && !mLegC ? RE_ENCODED_SPACED.exec(s) : null;
+
+        if (mEnc && mEnc[4].length % 2 === 0) {
+          module = mEnc[1].toUpperCase();
+          block = decodeG0Pair(mEnc[2]);
+          line = decodeG0Pair(mEnc[3]);
+          payload = groupHexPayload(mEnc[4]);
+        } else if (mLegC && mLegC[4].length % 2 === 0) {
+          module = mLegC[1].toUpperCase();
+          block = parseInt(mLegC[2], 10);
+          line = parseInt(mLegC[3], 10);
+          payload = groupHexPayload(mLegC[4]);
+        } else if (mEncSp) {
+          module = mEncSp[1].toUpperCase();
+          block = decodeG0Pair(mEncSp[2]);
+          line = decodeG0Pair(mEncSp[3]);
+          const rawPay = mEncSp[4].trim();
+          if (!RE_PAYLOAD.test(rawPay)) {
+            problems.push(`Line ${n}: invalid hex payload '${rawPay.slice(0, 40)}'`);
+            continue;
+          }
+          payload = rawPay.toUpperCase().split(/\s+/).join(' ');
+        } else {
+          problems.push(`Line ${n}: unrecognized format '${s.slice(0, 50)}'`);
+          continue;
+        }
+      }
+
+      if (block < 1 || line < 1) {
+        problems.push(`Line ${n}: block/line indices must be >= 1`);
         continue;
       }
-      const payload = payloadRaw.toUpperCase().split(/\s+/).join(' ');
       const bStr = block < 10 ? `0${block}` : `${block}`;
       const lStr = line < 10 ? `0${line}` : `${line}`;
       const key = `${module}-${bStr}-${lStr}`;
+      if (commentBlock !== null && commentBlock !== block) {
+        commentWarnings.push(`Line ${n} (${key}): ;Block ${commentBlock} disagrees with decoded block ${block}`);
+      }
       if (seen.has(key)) {
         problems.push(`Line ${n}: duplicate address ${key}`);
         continue;
@@ -404,7 +567,7 @@
       throw new Error(problems.slice(0, 4).join('; '));
     }
 
-    const warnings = [];
+    const warnings = commentWarnings.slice();
     lines.forEach((l) => {
       if (!checksumOk(l.module, l.block, l.line, l.payload)) {
         warnings.push(`${l.key}: checksum byte does not match computed value`);
@@ -539,13 +702,13 @@
     const removed = {};
     const changed = [];
 
-    Array.from(aKeys).sort().forEach((k) => {
+    Array.from(aKeys).sort(addrSortCmp).forEach((k) => {
       if (!bKeys.has(k)) added[k] = afterMap[k];
     });
-    Array.from(bKeys).sort().forEach((k) => {
+    Array.from(bKeys).sort(addrSortCmp).forEach((k) => {
       if (!aKeys.has(k)) removed[k] = beforeMap[k];
     });
-    Array.from(bKeys).sort().forEach((k) => {
+    Array.from(bKeys).sort(addrSortCmp).forEach((k) => {
       if (aKeys.has(k) && beforeMap[k] !== afterMap[k]) {
         const bBytes = hexGroupsToBytes(beforeMap[k]).map((v) => ('00' + v.toString(16).toUpperCase()).slice(-2));
         const aBytes = hexGroupsToBytes(afterMap[k]).map((v) => ('00' + v.toString(16).toUpperCase()).slice(-2));
@@ -1118,15 +1281,20 @@
       ? 'CGEA 1.2 (HS-CAN 500k + MS-CAN 125k)'
       : msCan
       ? 'CGEA 1.3 (HS-CAN1/2 500k + MS-CAN 125k)'
-      : 'CGEA 1.3 / FNV2 (HS-CAN1/2/3/4 500k + CAN-FD)';
+      : 'FNV2 / CGEA 1.3+ (Primary DIAG1 500k pins 6&14 + Secondary DIAG2 500k pins 3&11 via GWM 716)';
     return {
       architecture: arch,
       ms_can_required: msCan,
-      hs_can_command: 'STP31',
-      ms_can_command: msCan ? 'STP33' : null,
+      dual_500k_can: !msCan,
+      hs_can_command: 'STP33',
+      hs_diag2_command: !msCan ? 'STP53' : null,
+      hs_diag2_baud_command: !msCan ? 'STPBR500000' : null,
+      ms_can_command: msCan ? 'STP53 + STPBR125000' : null,
+      ms_can_baud_command: msCan ? 'STPBR125000' : null,
+      min_safe_voltage: 12.5,
       note: msCan
-        ? '2011–2020 vehicles place DDM (740), PDM (741), HVAC (733), and TRM (791) on 125 kbaud MS-CAN (pins 3 & 11). OBDLink EX switches automatically via STP33.'
-        : '2021+ vehicles route all modules via Central Gateway (716 GWM) on 500 kbaud HS-CAN.'
+        ? '2011–2020 vehicles place DDM (740), PDM (741), HVAC (733), and TRM (791) on 125 kbaud MS-CAN (pins 3 & 11). OBDLink EX switches automatically via STP53 + STPBR125000.'
+        : '2021+ Gen14 F-150 Lightning & FNV2 vehicles expose Primary Diagnostic CAN (500k, pins 6 & 14, STP33) and Secondary Diagnostic CAN DIAG2 (500k, pins 3 & 11, STP53 + STPBR500000) for IPMA (706), CMR (7C4), DDM (740), PDM (741), and PSCM (730).'
     };
   }
 
@@ -1179,9 +1347,667 @@
       '; ====================================================================='
     ];
     const body = Object.keys(linesMap)
-      .sort()
+      .sort(addrSortCmp)
       .map((k) => `${k} ${linesMap[k]}`);
     return header.concat(body).join('\n');
+  }
+
+  // --- 8. FORScan 'Load All' .abt Exporter + F188 Stale Guard + USB-C OTG UDS Engine ---
+  function exportAbtText(linesMap, options = {}) {
+    const fmt = options.fmt || 'encoded';
+    if (!['encoded', 'dashed', 'legacy'].includes(fmt)) {
+      throw new Error(`Unsupported .abt export format: ${fmt}`);
+    }
+    const modWant = options.moduleFilter ? String(options.moduleFilter).trim().toUpperCase() : null;
+    const items = [];
+    Object.keys(linesMap || {}).forEach((k) => {
+      const parts = String(k).trim().toUpperCase().split('-');
+      if (parts.length !== 3) throw new Error(`Invalid normalized address key: ${k}`);
+      const mod = parts[0];
+      const blk = parseInt(parts[1], 10);
+      const ln = parseInt(parts[2], 10);
+      if (modWant && mod !== modWant) return;
+      items.push({ mod, blk, ln, grouped: groupHexPayload(linesMap[k]) });
+    });
+    if (!items.length) throw new Error('No As-Built lines matched for .abt export');
+
+    items.sort((a, b) => (a.mod !== b.mod ? a.mod.localeCompare(b.mod) : a.blk !== b.blk ? a.blk - b.blk : a.ln - b.ln));
+    const out = [];
+    (options.headerComments || []).forEach((c) => {
+      const clean = String(c).replace(/[\r\n]+/g, ' ').trim();
+      out.push(clean.startsWith(';') ? clean : `; ${clean}`);
+    });
+    let lastKey = '';
+    items.forEach((it) => {
+      const mk = `${it.mod}:${it.blk}`;
+      if (mk !== lastKey) {
+        out.push(`;Block ${it.blk}`);
+        lastKey = mk;
+      }
+      const compactPay = it.grouped.replace(/\s+/g, '');
+      const b2 = it.blk < 10 ? `0${it.blk}` : `${it.blk}`;
+      const l2 = it.ln < 10 ? `0${it.ln}` : `${it.ln}`;
+      if (fmt === 'encoded') {
+        out.push(`${it.mod}${encodeG0Byte(it.blk)}${encodeG0Byte(it.ln)}${compactPay}`);
+      } else if (fmt === 'dashed') {
+        out.push(`${it.mod}-${b2}-${l2} ${it.grouped}`);
+      } else {
+        if (it.blk > 99 || it.ln > 99) {
+          throw new Error(`Legacy .abt cannot encode block/line > 99 (${it.mod}-${b2}-${l2}); use fmt='encoded'`);
+        }
+        out.push(`${it.mod}${b2}${l2}${compactPay}`);
+      }
+    });
+    const sep = options.crlf !== false ? '\r\n' : '\n';
+    return out.join(sep) + sep;
+  }
+
+  function buildModdedAbtHandoff(params = {}) {
+    const entries = params.entries || [];
+    const currentState = params.currentState || {};
+    const backups = params.backups || [];
+    const liveScan = params.liveScan || {};
+    const vehicle = params.vehicle || {};
+    const fmt = params.fmt || 'encoded';
+    const allowStaleOverride = Boolean(params.allowStaleOverride);
+    const modStates = params.modStates || {};
+    const powertrain = String(vehicle.powertrain || 'BEV').toUpperCase();
+
+    if (!entries.length) {
+      return { ok: false, stale_blocked: false, error: 'No mods selected for export.', blockers: ['Select 1+ Approved mods first.'] };
+    }
+    if (!Object.keys(currentState).length) {
+      return {
+        ok: false,
+        stale_blocked: false,
+        error: 'No baseline backup loaded for this vehicle.',
+        blockers: ['Connect USB-C Adapter and run Targeted Mod Backup (~20s) or import a FORScan .abt file first.']
+      };
+    }
+
+    const blockers = [];
+    const cur = { ...currentState };
+    const touchedSet = new Set();
+
+    entries.forEach((e) => {
+      const us = (e.id !== undefined && modStates[e.id]) || modStates[e.source_key] || {};
+      const mergedEntry = { ...e, ...us };
+      const r = readiness(mergedEntry, currentState, powertrain);
+      const st = mergedEntry.status || 'DRAFT';
+      const alreadyOk =
+        r.state === 'ALREADY_SET' &&
+        (st === 'APPROVED' || st === 'APPLIED') &&
+        mergedEntry.tier !== 3 &&
+        !(mergedEntry.ev_status === 'ICE_ONLY' && powertrain === 'BEV');
+      if (!r.can_apply && !alreadyOk) {
+        (r.blockers.length ? r.blockers : [r.state]).forEach((b) => blockers.push(`${e.title}: ${b}`));
+      }
+    });
+    if (blockers.length) {
+      return { ok: false, stale_blocked: false, error: 'Selected mods have unresolved readiness blockers.', blockers };
+    }
+
+    entries.forEach((e) => {
+      (e.steps || []).forEach((s) => {
+        const sr = evaluateStep(s, cur);
+        if (sr.address) touchedSet.add(sr.address.slice(0, 3));
+        if ((sr.state === 'READY' || sr.state === 'ALREADY_SET') && sr.after) {
+          cur[sr.address] = sr.state === 'READY' ? sr.after : cur[sr.address];
+        } else {
+          blockers.push(`${e.title} @ ${sr.address}: ${sr.state}`);
+        }
+      });
+    });
+    if (blockers.length) {
+      return { ok: false, stale_blocked: false, error: 'Cannot compute deterministic target state.', blockers };
+    }
+
+    const touched = Array.from(touchedSet).sort();
+    const staleReasons = [];
+    const warnings = [];
+    const vinTag = String(vehicle.vin || 'VEHICLE').trim().toUpperCase();
+    const safeVin = vinTag.replace(/[^A-Z0-9]/g, '') || 'VEHICLE';
+    const liveMods = (liveScan && liveScan.modules) || liveScan || {};
+    const checklistLines = [
+      'BLUE OVAL GARAGE — FORSCAN WRITE HANDOFF CHECKLIST',
+      `Vehicle: ${vehicle.model_year || ''} ${vehicle.make || 'Ford'} ${vehicle.model || ''} (${vinTag})`.trim(),
+      `Mods (${entries.length}): ` + entries.map((e) => e.title).join('; '),
+      'Write Policy: Read & verify on USB-C Mobile; execute module writes ONLY in Windows FORScan.exe (Load All -> Write All).',
+      '='.repeat(78)
+    ];
+
+    const modulesOut = [];
+    touched.forEach((mod) => {
+      const modBackups = backups.filter((b) => b.kind === 'FORSCAN_BACKUP' && Array.isArray(b.modules) && b.modules.includes(mod));
+      const latestBackup = modBackups.length ? modBackups[modBackups.length - 1] : null;
+      const backupF188 = latestBackup && latestBackup.software_version ? String(latestBackup.software_version).trim() : '';
+      const liveEntry = liveMods[mod] || null;
+      const liveF188 =
+        liveEntry && liveEntry.ids && liveEntry.ids.F188 && liveEntry.ids.F188.value
+          ? String(liveEntry.ids.F188.value).trim()
+          : liveEntry && liveEntry.f188
+          ? String(liveEntry.f188).trim()
+          : '';
+
+      if (backupF188 && liveF188 && backupF188.toUpperCase() !== liveF188.toUpperCase()) {
+        staleReasons.push(
+          `Module ${mod}: baseline backup has F188=${backupF188}, but latest live USB scan reports F188=${liveF188} (Ford OTA detected). Capture a fresh ${mod} backup before using FORScan 'Load All'.`
+        );
+      }
+
+      const modBefore = {};
+      const modAfter = {};
+      Object.keys(cur).forEach((k) => {
+        if (k.startsWith(`${mod}-`)) {
+          modBefore[k] = currentState[k];
+          modAfter[k] = cur[k];
+        }
+      });
+      if (Object.keys(modAfter).length < 3) {
+        warnings.push(`Module ${mod} baseline has only ${Object.keys(modAfter).length} line(s); prefer a full live ${mod} USB backup before clicking 'Load All'.`);
+      }
+
+      const changed = Object.keys(modAfter)
+        .sort(addrSortCmp)
+        .filter((k) => modBefore[k] !== modAfter[k])
+        .map((k) => ({ address: k, before: modBefore[k], after: modAfter[k] }));
+
+      const hdr = [
+        `Blue Oval Garage Modded As-Built (${mod})`,
+        `VIN: ${vinTag} | F188: ${liveF188 || backupF188 || 'unrecorded'}`,
+        'Mods: ' + entries.map((e) => e.title).join('; ')
+      ];
+      const abtEncoded = exportAbtText(modAfter, { fmt: 'encoded', headerComments: null });
+      const abtDashed = exportAbtText(modAfter, { fmt: 'dashed', headerComments: hdr });
+      const abtText = fmt === 'dashed' ? abtDashed : abtEncoded;
+      const filename = `${safeVin}_${mod}_MODDED.abt`;
+
+      checklistLines.push(`\n[${mod}] File: ${filename} | F188: ${liveF188 || backupF188 || 'n/a'}`);
+      if (changed.length) {
+        changed.forEach((ch) => checklistLines.push(`  ${ch.address}:  ${ch.before}   -->   ${ch.after}`));
+      } else {
+        checklistLines.push('  (Already set to target values in current baseline)');
+      }
+
+      modulesOut.push({
+        module: mod,
+        filename,
+        baseline_f188: backupF188 || null,
+        live_f188: liveF188 || null,
+        f188_verified_match: Boolean(backupF188 && liveF188 && backupF188.toUpperCase() === liveF188.toUpperCase()),
+        total_lines: Object.keys(modAfter).length,
+        changed_lines: changed,
+        abt_text: abtText,
+        abt_encoded: abtEncoded,
+        abt_dashed: abtDashed
+      });
+    });
+
+    if (staleReasons.length && !allowStaleOverride) {
+      return {
+        ok: false,
+        stale_blocked: true,
+        error: 'Blocked by Stale Pre-OTA Guard: ECU software strategy (F188) changed since baseline backup.',
+        blockers: staleReasons
+      };
+    }
+    if (staleReasons.length && allowStaleOverride) {
+      staleReasons.forEach((r) => warnings.push(r));
+    }
+
+    return {
+      ok: true,
+      stale_blocked: false,
+      vin: vinTag,
+      format: fmt,
+      warnings,
+      modules: modulesOut,
+      checklist_text: checklistLines.join('\n') + '\n'
+    };
+  }
+
+  const RE_EVEN_HEX = /^(?:[0-9A-F]{2})+$/;
+
+  function parseElmResponse(lines) {
+    const data = [];
+    let expectedLen = null;
+    let lastPending78 = null;
+    const arr = Array.isArray(lines) ? lines : [];
+    for (let i = 0; i < arr.length; i++) {
+      const u = String(arr[i] || '').toUpperCase().trim();
+      if (!u || u === 'OK' || /^(SEARCHING|ELM|STN|OBDLINK)/.test(u)) continue;
+      if (/(NO DATA|CAN ERROR|UNABLE|BUS|STOPPED|ERROR|\?|BUFFER FULL)/.test(u)) return null;
+      const m = /^([0-9A-F]):\s*(.*)$/.exec(u);
+      const body = m ? m[2].trim() : u;
+      const toks = body.split(/\s+/).filter(Boolean);
+      if (!toks.length) return null;
+      if (!m && toks.length === 1 && /^[0-9A-F]{3}$/.test(toks[0])) {
+        expectedLen = parseInt(toks[0], 16);
+        if (expectedLen === 0) return null;
+        continue;
+      }
+      for (let t = 0; t < toks.length; t++) {
+        if (!RE_EVEN_HEX.test(toks[t])) return null;
+      }
+      const compact = toks.join('');
+      const frameBytes = [];
+      for (let j = 0; j < compact.length; j += 2) {
+        frameBytes.push(parseInt(compact.slice(j, j + 2), 16));
+      }
+      if (
+        !m &&
+        expectedLen === null &&
+        data.length === 0 &&
+        frameBytes.length === 3 &&
+        frameBytes[0] === 0x7f &&
+        frameBytes[2] === 0x78
+      ) {
+        lastPending78 = frameBytes;
+        continue;
+      }
+      for (let k = 0; k < frameBytes.length; k++) {
+        data.push(frameBytes[k]);
+      }
+    }
+    if (expectedLen !== null) {
+      if (data.length < expectedLen) return null;
+      return data.slice(0, expectedLen);
+    }
+    if (!data.length) {
+      return lastPending78 ? lastPending78.slice() : null;
+    }
+    return data;
+  }
+
+  function parseVoltageText(lines) {
+    const arr = Array.isArray(lines) ? lines : [];
+    for (let i = 0; i < arr.length; i++) {
+      const s = String(arr[i] || '').trim();
+      if (!s || s.includes('?') || /ERROR/i.test(s)) continue;
+      const m = /(\d{1,2}(?:\.\d{1,2})?)\s*V?\b/i.exec(s);
+      if (m) {
+        const val = parseFloat(m[1]);
+        if (val > 0 && val < 30) return Math.round(val * 100) / 100;
+      }
+    }
+    return null;
+  }
+
+  function checkVoltageGate(voltage, options = {}) {
+    const minVolts = Number(options.minVolts || 12.5);
+    const override = Boolean(options.override);
+    const requireForExtended = Boolean(options.requireForExtended);
+    if (voltage === null || voltage === undefined) {
+      return {
+        voltage: null,
+        min_volts: minVolts,
+        ok: true,
+        blocked: false,
+        warning: 'Adapter did not report 12V battery voltage (ATRV unsupported); confirm vehicle is in Ready/KOER mode manually.'
+      };
+    }
+    const low = voltage < minVolts;
+    return {
+      voltage,
+      min_volts: minVolts,
+      ok: !low,
+      blocked: Boolean(low && requireForExtended && !override),
+      override_used: Boolean(low && override),
+      warning: low
+        ? `12V battery is ${voltage.toFixed(2)}V (< ${minVolts.toFixed(1)}V). Put the Lightning/vehicle in Ready/KOER mode so the DC-DC holds ~14.4V.`
+        : null
+    };
+  }
+
+  function didsToAbtLines(address, didBytesMap) {
+    const mod = String(address || '').trim().toUpperCase();
+    if (!/^[0-9A-F]{3}$/.test(mod)) throw new Error(`Invalid module address: ${address}`);
+    const out = [];
+    const didKeys = Object.keys(didBytesMap || {}).sort((a, b) => parseInt(a, 16) - parseInt(b, 16));
+    didKeys.forEach((didHex) => {
+      const didInt = parseInt(didHex, 16);
+      if (didInt < 0xde00 || didInt > 0xdefe) return;
+      const raw = didBytesMap[didHex];
+      if (!Array.isArray(raw) || !raw.length) return;
+      const block = didInt - 0xde00 + 1;
+      const bStr = block < 10 ? `0${block}` : `${block}`;
+      let lineIdx = 1;
+      for (let off = 0; off < raw.length; off += 5) {
+        const chunk = raw.slice(off, off + 5);
+        const hexWithZeroCs =
+          chunk.map((b) => ('00' + (b & 0xff).toString(16).toUpperCase()).slice(-2)).join('') + '00';
+        const grouped = groupHexPayload(hexWithZeroCs);
+        const payload = withChecksum(mod, block, lineIdx, grouped);
+        const lStr = lineIdx < 10 ? `0${lineIdx}` : `${lineIdx}`;
+        out.push({ key: `${mod}-${bStr}-${lStr}`, module: mod, block, line: lineIdx, payload });
+        lineIdx++;
+      }
+    });
+    return out;
+  }
+
+  function decodeAsciiOrHex(byteArr) {
+    if (!Array.isArray(byteArr) || !byteArr.length) return null;
+    let s = '';
+    for (let i = 0; i < byteArr.length; i++) {
+      if (byteArr[i] === 0) continue;
+      s += String.fromCharCode(byteArr[i]);
+    }
+    s = s.trim();
+    if (s && /^[\x20-\x7E]+$/.test(s)) return s;
+    return byteArr.map((b) => ('00' + (b & 0xff).toString(16).toUpperCase()).slice(-2)).join('');
+  }
+
+  const UDS_ID_DIDS = {
+    F190: 'VIN',
+    F188: 'ECU software number',
+    F111: 'ECU core assembly number',
+    F113: 'ECU delivery assembly number',
+    F124: 'ECU calibration number'
+  };
+
+  async function runUsbVehicleScan(usbBridge, options = {}) {
+    const mode = options.mode || 'targeted_backup';
+    const addresses = Array.from(new Set((options.addresses || ['726', '720', '7D0']).map((a) => String(a).trim().toUpperCase())));
+    const dualBus = options.dualBus !== false;
+    const msCanFallback = Boolean(options.msCanFallback);
+    const allowExtended = Boolean(options.allowExtendedSession);
+    const confirmParked = Boolean(options.confirmParked);
+    const overrideLowV = Boolean(options.overrideLowVoltage);
+    const maxBlocks = Number(options.maxBlocks || 128);
+    const maxEmptyRun = Number(options.maxEmptyRun || 24);
+    const maxTimeoutRun = Number(options.maxTimeoutRun || 3);
+    const knownBlocksByModule = options.knownBlocksByModule || {};
+    const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
+    const log = [];
+    let currentBus = 'HS_DIAG1';
+
+    async function cmd(c, timeoutMs = 1200, parked = false) {
+      const r = await usbBridge.transact(c, timeoutMs, parked);
+      log.push(`> ${c}`);
+      if (r && Array.isArray(r.lines)) r.lines.forEach((l) => log.push(`< ${l}`));
+      if (!r || !r.ok) {
+        throw new Error((r && r.error) || `Adapter command failed: ${c}`);
+      }
+      return r.lines || [];
+    }
+
+    async function switchBus(bus) {
+      if (bus === 'HS_DIAG1') {
+        const r = await cmd('STP33', 800);
+        if (r.some((x) => x.includes('?') || /ERROR/i.test(x))) await cmd('ATSP6', 800);
+        currentBus = 'HS_DIAG1';
+        return { bus, switched: true };
+      }
+      if (bus === 'HS_DIAG2') {
+        const r1 = await cmd('STP53', 800);
+        if (r1.some((x) => x.includes('?') || /ERROR/i.test(x))) {
+          return { bus, switched: false, reason: 'Adapter rejected STP53' };
+        }
+        const r2 = await cmd('STPBR500000', 800);
+        if (r2.some((x) => x.includes('?') || /ERROR/i.test(x))) {
+          const rev = await cmd('STP33', 800);
+          if (rev.some((x) => x.includes('?') || /ERROR/i.test(x))) await cmd('ATSP6', 800);
+          currentBus = 'HS_DIAG1';
+          return { bus, switched: false, reason: 'Adapter rejected STPBR500000' };
+        }
+        currentBus = 'HS_DIAG2';
+        return { bus, switched: true };
+      }
+      if (bus === 'MS_CAN') {
+        const r1 = await cmd('STP53', 800);
+        if (r1.some((x) => x.includes('?') || /ERROR/i.test(x))) {
+          return { bus, switched: false, reason: 'Adapter rejected STP53' };
+        }
+        const r2 = await cmd('STPBR125000', 800);
+        if (r2.some((x) => x.includes('?') || /ERROR/i.test(x))) {
+          const rev = await cmd('STP33', 800);
+          if (rev.some((x) => x.includes('?') || /ERROR/i.test(x))) await cmd('ATSP6', 800);
+          currentBus = 'HS_DIAG1';
+          return { bus, switched: false, reason: 'Adapter rejected STPBR125000' };
+        }
+        currentBus = 'MS_CAN';
+        return { bus, switched: true };
+      }
+      return { bus, switched: false };
+    }
+
+    async function udsRequest(addr, hexPayload, timeoutMs = 1200, parked = false) {
+      const respId = ('000' + (parseInt(addr, 16) + 8).toString(16).toUpperCase()).slice(-3);
+      await cmd(`ATSH${addr}`, 600);
+      await cmd(`ATCRA${respId}`, 600);
+      await cmd(`ATFCSH${addr}`, 600);
+      await cmd('ATFCSD300000', 600);
+      await cmd('ATFCSM1', 600);
+      const rawLines = await cmd(hexPayload, timeoutMs, parked);
+      const data = parseElmResponse(rawLines);
+      if (!data) return { responded: false, positive: false, data: [], nrc: null };
+      if (data[0] === 0x7f && data.length >= 3) {
+        return { responded: true, positive: false, data, nrc: data[2] };
+      }
+      const reqSid = parseInt(hexPayload.slice(0, 2), 16);
+      if (data[0] === reqSid + 0x40) {
+        return { responded: true, positive: true, data: data.slice(1), nrc: null };
+      }
+      return { responded: true, positive: false, data, nrc: null };
+    }
+
+    async function readDtcs(addr) {
+      const r = await udsRequest(addr, '1902FF', 1500);
+      if (!r.positive || r.data.length < 2) return [];
+      const body = r.data.slice(2);
+      const out = [];
+      for (let i = 0; i <= body.length - 4; i += 4) {
+        const b1 = body[i], b2 = body[i + 1], b3 = body[i + 2], st = body[i + 3];
+        const letter = 'PCBU'[b1 >> 6];
+        const code = `${letter}${(b1 >> 4) & 3}${(b1 & 0x0f).toString(16).toUpperCase()}${('00' + b2.toString(16).toUpperCase()).slice(-2)}-${('00' + b3.toString(16).toUpperCase()).slice(-2)}`;
+        out.push({ code, status: ('00' + st.toString(16).toUpperCase()).slice(-2) });
+      }
+      return out;
+    }
+
+    async function probeModule(addr, wantAsbuilt) {
+      const tp = await udsRequest(addr, '3E00', 900);
+      if (!tp.responded) return null;
+      const ids = {};
+      for (const did of Object.keys(UDS_ID_DIDS)) {
+        const r = await udsRequest(addr, `22${did}`, 1100);
+        if (r.positive && r.data.length > 2) {
+          const val = decodeAsciiOrHex(r.data.slice(2));
+          if (val) ids[did] = { name: UDS_ID_DIDS[did], value: val };
+        }
+      }
+      const dtcs = await readDtcs(addr);
+      if (!wantAsbuilt) {
+        return { address: addr, bus: currentBus, responded: true, tester_present_ok: tp.positive, ids, dtcs };
+      }
+
+      async function sweepDexx(keepAlive) {
+        const didMap = {};
+        const nrcs = new Set();
+        const probed = new Set();
+        let emptyRun = 0;
+        let timeoutRun = 0;
+        let reqCount = 0;
+        let anyResp = false;
+        let sessionDenied = false;
+
+        async function queryBlock(blk) {
+          if (keepAlive && reqCount > 0 && reqCount % 8 === 0) {
+            await udsRequest(addr, '3E00', 700);
+          }
+          reqCount++;
+          probed.add(blk);
+          const didInt = 0xde00 + (blk - 1);
+          const didHex = didInt.toString(16).toUpperCase();
+          const res = await udsRequest(addr, `22${didHex}`, 1200);
+          if (res.responded) {
+            anyResp = true;
+            if (res.positive && res.data.length > 2 && res.data[0] === ((didInt >> 8) & 0xff) && res.data[1] === (didInt & 0xff)) {
+              didMap[didHex] = res.data.slice(2);
+            } else if (res.nrc !== null) {
+              nrcs.add(res.nrc);
+            }
+          }
+          return { res, didHex };
+        }
+
+        const limit = Math.min(Math.max(1, maxBlocks), 255);
+        for (let blk = 1; blk <= limit; blk++) {
+          const { res, didHex } = await queryBlock(blk);
+          if (!res.responded) {
+            timeoutRun++;
+            if (timeoutRun >= maxTimeoutRun) break;
+            continue;
+          }
+          timeoutRun = 0;
+          if (didMap[didHex]) {
+            emptyRun = 0;
+          } else {
+            if (Object.keys(didMap).length === 0 && !keepAlive && [0x33, 0x7e, 0x7f].includes(res.nrc)) {
+              sessionDenied = true;
+              break;
+            }
+            emptyRun++;
+            if (emptyRun >= maxEmptyRun) break;
+          }
+        }
+
+        const rawKnown = knownBlocksByModule[addr];
+        const knownArr = Array.isArray(rawKnown)
+          ? rawKnown
+          : rawKnown instanceof Set
+          ? Array.from(rawKnown)
+          : [];
+        if (knownArr.length && anyResp && timeoutRun < maxTimeoutRun && !sessionDenied) {
+          const sortedKnown = Array.from(new Set(knownArr.map((n) => Number(n)).filter((n) => Number.isInteger(n) && n >= 1 && n <= 255))).sort((a, b) => a - b);
+          for (let k = 0; k < sortedKnown.length; k++) {
+            const kb = sortedKnown[k];
+            if (probed.has(kb)) continue;
+            const { res, didHex } = await queryBlock(kb);
+            if (!res.responded) break;
+            let curBlk = kb + 1;
+            let prevHex = didHex;
+            while (didMap[prevHex] && curBlk <= 255 && !probed.has(curBlk)) {
+              const nxt = await queryBlock(curBlk);
+              if (!nxt.res.responded) break;
+              prevHex = nxt.didHex;
+              curBlk++;
+            }
+          }
+        }
+        return { didMap, nrcs };
+      }
+
+      let sessionUsed = 'default';
+      let { didMap, nrcs } = await sweepDexx(false);
+      if (Object.keys(didMap).length === 0 && allowExtended && confirmParked) {
+        const enter = await udsRequest(addr, '1003', 1000, true);
+        try {
+          if (enter.positive) {
+            sessionUsed = 'extended';
+            const retry = await sweepDexx(true);
+            didMap = retry.didMap;
+          }
+        } finally {
+          try { await udsRequest(addr, '1001', 900, true); } catch (e) {}
+        }
+      }
+
+      const abtLines = didsToAbtLines(addr, didMap);
+      const linesDict = {};
+      abtLines.forEach((l) => { linesDict[l.key] = l.payload; });
+      const f188 = (ids.F188 && ids.F188.value) || null;
+      const vin = (ids.F190 && ids.F190.value) || null;
+      const hdr = [
+        `Blue Oval Garage Mobile USB-C Snapshot - Module ${addr}`,
+        `VIN: ${vin || 'unknown'} | F188: ${f188 || 'unknown'} | Bus: ${currentBus} | Session: ${sessionUsed}`
+      ];
+      return {
+        address: addr,
+        bus: currentBus,
+        responded: true,
+        tester_present_ok: tp.positive,
+        session_used: sessionUsed,
+        ids,
+        f188,
+        vin,
+        dtcs,
+        blocks_read: Object.keys(didMap).length,
+        line_count: abtLines.length,
+        lines: abtLines,
+        abt_encoded: abtLines.length ? exportAbtText(linesDict, { fmt: 'encoded', headerComments: null }) : null,
+        abt_dashed: abtLines.length ? exportAbtText(linesDict, { fmt: 'dashed', headerComments: hdr }) : null
+      };
+    }
+
+    if (usbBridge.setKeepScreenOn) usbBridge.setKeepScreenOn(true);
+    try {
+      const ident = await cmd('ATZ', 1800);
+      for (const c of ['ATE0', 'ATL0', 'ATS0', 'ATH0', 'ATCAF1', 'ATSP6']) {
+        await cmd(c, 800);
+      }
+      let stn = '';
+      try {
+        const stnOut = await cmd('STDI', 800);
+        if (!stnOut.some((x) => x.includes('?'))) stn = stnOut.join(' ');
+      } catch (e) {}
+
+      const vRaw = await cmd('ATRV', 800);
+      const voltage = parseVoltageText(vRaw);
+      const wantAsbuilt = mode === 'targeted_backup' || mode === 'full_backup';
+      const vgate = checkVoltageGate(voltage, { minVolts: 12.5, override: overrideLowV, requireForExtended: wantAsbuilt });
+      if (vgate.blocked) {
+        const err = new Error(vgate.warning || '12V battery voltage below 12.5V');
+        err.lowVoltageBlocked = true;
+        err.voltage = voltage;
+        throw err;
+      }
+
+      if (dualBus || msCanFallback) await switchBus('HS_DIAG1');
+
+      const modulesOut = {};
+      for (let i = 0; i < addresses.length; i++) {
+        const a = addresses[i];
+        if (onProgress) onProgress({ step: i + 1, total: addresses.length, address: a, bus: currentBus });
+        const snap = await probeModule(a, wantAsbuilt);
+        if (snap) modulesOut[a] = snap;
+      }
+
+      const missing = addresses.filter((a) => !modulesOut[a]);
+      if (missing.length && (dualBus || msCanFallback)) {
+        const secBus = msCanFallback ? 'MS_CAN' : 'HS_DIAG2';
+        const sw = await switchBus(secBus);
+        if (sw.switched) {
+          try {
+            for (let i = 0; i < missing.length; i++) {
+              const a = missing[i];
+              if (onProgress) onProgress({ step: i + 1, total: missing.length, address: a, bus: secBus });
+              const snap = await probeModule(a, wantAsbuilt);
+              if (snap) modulesOut[a] = snap;
+            }
+          } finally {
+            await switchBus('HS_DIAG1');
+          }
+        }
+      }
+
+      let detectedVin = null;
+      Object.values(modulesOut).forEach((m) => {
+        if (!detectedVin && m.ids && m.ids.F190 && m.ids.F190.value) detectedVin = m.ids.F190.value;
+      });
+
+      return {
+        mode,
+        adapter: { elm: ident.join(' '), stn },
+        voltage: vgate,
+        vin: detectedVin,
+        modules: modulesOut,
+        log: log.slice(-100)
+      };
+    } finally {
+      if (usbBridge.setKeepScreenOn) usbBridge.setKeepScreenOn(false);
+    }
   }
 
   global.GarageEngine = {
@@ -1189,17 +2015,29 @@
     computeChecksum,
     checksumOk,
     withChecksum,
+    encodeG0Byte,
+    decodeG0Pair,
+    groupHexPayload,
     parseAddress,
+    addrSortCmp,
     cleanMask,
     targetPositions,
+    normalizeStep,
     evaluateStep,
     readiness,
     detectFormat,
     parseAbtText,
+    exportAbtText,
+    buildModdedAbtHandoff,
     parseAbXmlText,
     parseAnyBackupFile,
     diffBackups,
     verifySession,
+    parseElmResponse,
+    parseVoltageText,
+    checkVoltageGate,
+    didsToAbtLines,
+    runUsbVehicleScan,
     normalizeVin,
     computeVinCheckDigit,
     inferVehicleFromVin,
@@ -1213,4 +2051,4 @@
     yearApplies,
     generateDemoAbtText
   };
-})(window);
+})(typeof globalThis !== 'undefined' ? globalThis : window);

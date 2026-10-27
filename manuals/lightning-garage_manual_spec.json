@@ -1,33 +1,33 @@
 {
   "app_id": "lightning-garage",
   "title": "Blue Oval Garage",
-  "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 Multi-Vehicle, VIN Scanner & As-Built Engine",
-  "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Multi-Vehicle Garage (pre-seeded with 2023 F-150 Lightning ER Lariat 1FT6W1EV4PWG11434), 183 Community Recipes across 6 Platforms + 21 Curated Spreadsheet/PDF Downloads + Custom Spreadsheet Line Builder, Hybrid VIN Barcode/Photo/OCR Scanner with ISO 3779 Modulo-11 Auto-Repair, .abt & Motorcraft .ab XML Importer/Differ, 87-Module Guide, and In-Cab Session Planner.",
+  "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 USB-C Live Backup, VIN Scanner & As-Built Engine",
+  "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Native USB-C OTG Read-Only OBD-II As-Built Snapshot & 12V ATRV Battery Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Stale Pre-OTA F188 Guard, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, 183 Community Recipes across 6 Platforms + 21 Spreadsheets, and Hybrid VIN Scanner.",
   "icon": "\u26a1",
   "accent": "#38bdf8",
   "category": "Automotive & Telemetry",
-  "version": "2.0.1",
-  "build_hash": "7b8848bae0",
+  "version": "2.1.0",
+  "build_hash": "be18c93500",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T23:12:59.219159",
-  "generated_at": "2026-10-26 23:13",
-  "tagline": "Blue Oval Garage v2.0 \u2014 2011\u20132026+ Ford & Lincoln Multi-Vehicle FORScan Companion, VIN Barcode/OCR Scanner & Deterministic As-Built Engine",
+  "updated_at": "2026-10-27T01:43:28.061342",
+  "generated_at": "2026-10-27 01:50",
+  "tagline": "Blue Oval Garage v2.1 \u2014 2011\u20132026+ Ford & Lincoln USB-C Live OBD-II Backup, FORScan Modded .abt Handoff, VIN Scanner & Deterministic As-Built Engine",
   "quickstart": [
     {
       "step": "Select or Add Any 2011\u20132026+ Ford/Lincoln (`\ud83d\udd35 Garage & VIN`)",
       "detail": "Your 2023 F-150 Lightning ER Lariat (`1FT6W1EV4PWG11434`, \u26a1 BEV) is pre-seeded as Vehicle #1. Tap `+ Add Vehicle` to add any 2011\u20132026+ Ford or Lincoln by typing a 17-char VIN or scanning the door-jamb B-pillar sticker / windshield VIN plate with the Hybrid Camera Barcode + OCR Scanner."
     },
     {
-      "step": "Load a Baseline (`.abt` / `.ab` or `\ud83e\uddea Demo Baseline`)",
-      "detail": "Tap `\ud83d\udcc2 Import .abt / .ab File` to load your real FORScan `.abt` module backups or Ford Motorcraft `.ab` XML\u2014or tap `\ud83e\uddea Load Demo Baseline` to preview live nibble mask and checksum dry-runs immediately for the active vehicle."
+      "step": "Capture a Live USB-C OBD-II As-Built Snapshot or Import `.abt`/`.ab` (`\ud83d\udee1\ufe0f Backups`)",
+      "detail": "Plug your OBDLink EX or Vgate vLinker FS into your phone via a USB-A-to-USB-C OTG adapter, put the truck in Ready/KOER mode (`ATRV >= 12.5V`), and run a ~20s `Targeted Mod Backup` across Primary `DIAG1` (`STP33` 500k) and Secondary `DIAG2` (`STP53 + STPBR500000`) or 2011\u20132020 MS-CAN (`STP53 + STPBR125000`)\u2014or import existing FORScan `.abt` (including FORScan >= 2.3.23 `G0`-encoded files) and Motorcraft `.ab` XML."
     },
     {
       "step": "Browse 183 Recipes, 21 Master Spreadsheets & Custom Lines (`\ud83c\udf9b\ufe0f Mod Menu`)",
       "detail": "Browse 183 verified recipes across 6 upstream platforms (`f150`, `super_duty`, `bronco`, `explorer`, `ranger_6g`, `mustang`), download 1-click `.xlsx`/`.pdf` community master spreadsheets (Livnitup, ZooDad, DanMc85) for all 21 platforms, or use `\u2795 Quick-Add Custom Spreadsheet Line` to enter any forum/spreadsheet hex mod with deterministic checksum dry-run."
     },
     {
-      "step": "Run Your In-Cab FORScan Session (`\ud83d\udccb Session Plan`)",
-      "detail": "Open the `\ud83d\udccb Plan` tab in the vehicle cab with your OBDLink EX (`STP31` HS-CAN + automatic `STP33` 125 kbaud MS-CAN guidance for 2011\u20132020 CGEA 1.2/1.3 vehicles). Verify every target module has a saved `.abt` backup and copy/share your exact line-by-line write sheet."
+      "step": "Export Modded `.abt` & Sync to Windows FORScan (`\ud83d\udccb Session Plan`)",
+      "detail": "Open the `\ud83d\udccb Plan` tab to generate both a line-by-line hex diff checklist and a pre-computed `G0`-encoded modded `.abt` file (guarded against stale pre-OTA `F188` firmware drift). Share/Download offline or scan the 15-minute Desktop QR PIN to stage modded `.abt` files directly into `Documents\\FORScan\\LightningGarage_Staging\\` for FORScan's `Load All` button."
     }
   ],
   "navigation_map": [
@@ -41,34 +41,34 @@
     },
     {
       "screen": "\ud83e\udde9 Modules (87 Addresses)",
-      "purpose": "Complete Ford/Lincoln control module directory (`726`, `7D0`, `720`, `740/741`, `7E7`, `746`, etc.) with CGEA 1.2/1.3 MS-CAN (`STP33`) notes, write-risk ratings, and per-vehicle backup evidence."
+      "purpose": "Complete Ford/Lincoln control module directory (`726`, `7D0`, `720`, `740/741`, `7E7`, `746`, etc.) with CGEA 1.2/1.3 MS-CAN (`STP53` @ 125k) vs. Gen14 `DIAG2` (`STP53` @ 500k) notes, write-risk ratings, and per-vehicle backup evidence."
     },
     {
-      "screen": "\ud83d\udee1\ufe0f Backups & Factory .ab",
-      "purpose": "Per-vehicle module backup coverage checker, `.abt`/`.ab` importer, Factory vs. Current byte drift differ, Motorcraft AsBuilt helper, and Checksum Calculator."
+      "screen": "\ud83d\udee1\ufe0f Backups & Live USB-C",
+      "purpose": "Native USB-C OTG read-only OBD-II scanner (`ATRV >= 12.5V` gate, Quick Health / Targeted / Full Backup), time-boxed QR Phone-to-PC sync, `.abt`/`.ab` importer (`G0`-codec aware), and Factory drift differ."
     },
     {
-      "screen": "\ud83d\udccb Session Plan",
-      "purpose": "Printable/shareable in-cab FORScan write sheet with CGEA 1.2/1.3 vs. FNV2 adapter guidance, required module backups, and exact target hex lines."
+      "screen": "\ud83d\udccb Session Plan & Load-All Handoff",
+      "purpose": "Generates both printable line-by-line FORScan checklists and `F188`-verified pre-computed modded `.abt` files ready for Windows `FORScan.exe` (`Load All` -> `Write`)."
     }
   ],
   "deep_dive_features": [
     {
-      "title": "Hybrid VIN Barcode + Optical Confusable Auto-Repair (`Code -> Vision -> Code`)",
-      "body": "Combines native `BarcodeDetector` (Code 39 / DataMatrix door-jamb stickers with automatic 18th-char `'I'` guard stripping), Canvas CLAHE contrast enhancement, and a deterministic ISO 3779 Position 9 Modulo-11 repair engine that tests single- and double-character optical confusable substitutions (`O/Q/D -> 0`, `I/L -> 1`, `Z -> 2`, `S -> 5`, `G -> 6`, `B -> 8`) until the mathematical check digit passes."
+      "title": "Native USB-C OTG Read-Only UDS Engine & Dual-Bus Switching",
+      "body": "Uses `usb-serial-for-android` with a compiled Kotlin byte-level allowlist (`0x22`, `0x19`, `0x3E`, parked-only `0x10 01/03`, and ISO-TP `STP33`/`STP53`\u2014physically blocking `0x2E` writes, `0x27` security unlock, and raw non-ISO-TP `STP31`). Handles multi-baud negotiation, `ATS0`/`ATS1` ISO-TP slicing, transient `0x78` ResponsePending filtering, and `ATRV >= 12.5V` battery gating."
     },
     {
-      "title": "Full 3-Layer Vehicle-Specific FORScan Catalog & Custom Mod Builder",
-      "body": "Layer 1 ships 183 structured recipes across F-150/Lightning, Super Duty, Bronco, Explorer/Aviator, Ranger 6G, and Mustang with dynamic powertrain gating (`ICE_ONLY` blocked on `BEV`, unlocked on `ICE_GAS`/`ICE_DIESEL`/`HEV`). Layer 2 provides 1-click `.xlsx`/`.pdf` community spreadsheets for 21 Ford/Lincoln platforms (2011\u20132026+). Layer 3 lets you add any custom spreadsheet line (`726-12-01`, `xxxx-**xx-xxxx`) with full nibble-mask and Modulo-256 checksum dry-runs."
+      "title": "FORScan >= 2.3.23 `G0`-Codec Modded `.abt` Handoff & Stale Pre-OTA `F188` Guard",
+      "body": "Exports numerically sorted pure `;Block N` `G0`-encoded `.abt` files (`01 -> G1`, `101 -> M5`) for FORScan's `Load All` button while binding every baseline to its live `F188` software strategy so stale pre-OTA files cannot overwrite newly calibrated factory bytes."
     },
     {
-      "title": "100% Deterministic Nibble Mask, Checksum & Multi-Vehicle Isolation",
-      "body": "Evaluates `set`, `bits`, and `offset` nibble operations across multi-step recipes and recomputes exact Ford line checksums (`sum(header + data[:-1]) & 0xFF`). Every vehicle in your garage maintains isolated `.abt`/`.ab` backups, starred mods, custom lines, and session verification history."
+      "title": "Hybrid VIN Barcode + Optical Confusable Auto-Repair & 183-Recipe Engine",
+      "body": "Combines native `BarcodeDetector` (Code 39 / DataMatrix with automatic 18th-char `'I'` guard stripping), ISO 3779 Modulo-11 optical confusable repair, 183 structured recipes across 6 platforms + 21 community master spreadsheets, and deterministic Ford Modulo-256 line checksum math."
     }
   ],
   "pro_tips": [
-    "When scanning a door-jamb barcode on Ford trucks, the deterministic normalizer automatically strips the leading `'I'` Code 39 guard character from 18-character barcode payloads.",
-    "For 2011\u20132020 CGEA 1.2/1.3 vehicles, modules `740 DDM`, `741 PDM`, `733 HVAC`, and `791 TRM` reside on the 125 kbaud MS-CAN bus\u2014use an electronic bus-switching cable like OBDLink EX (`STP33`)."
+    "Always put your F-150 Lightning in Ready mode (foot on brake + Start in Park so the HV DC-DC converter holds ~14.4V) before running multi-module Extended Session (`10 03`) As-Built backups.",
+    "On STN cables like OBDLink EX, Primary HS-CAN (`DIAG1`, Pins 6 & 14 @ 500k) uses ISO-TP protocol `STP33`, Gen14 Secondary HS-CAN (`DIAG2`, Pins 3 & 11 @ 500k) uses `STP53 + STPBR500000`, and 2011\u20132020 CGEA 1.2/1.3 MS-CAN (Pins 3 & 11 @ 125k) uses `STP53 + STPBR125000`."
   ],
   "user_config_schema": [
     {
@@ -185,6 +185,11 @@
     ],
     "recent_commits": [
       {
+        "sha": "c3d9fdf",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 23:13)"
+      },
+      {
         "sha": "babdcfe",
         "date": "2026-10-26",
         "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:50)"
@@ -203,11 +208,6 @@
         "sha": "14a7159",
         "date": "2026-10-26",
         "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:40)"
-      },
-      {
-        "sha": "c4e5aad",
-        "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:38)"
       }
     ]
   }
