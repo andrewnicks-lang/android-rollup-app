@@ -18,15 +18,15 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-      "defaultForAdmin": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
+      "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+      "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
       "label": "Secondary / Tailscale Workstation URL (Optional)",
       "type": "text",
-      "default": "http://192.168.86.47:8765",
-      "defaultForAdmin": "http://192.168.86.47:8765"
+      "default": "http://10.0.0.91:8765",
+      "defaultForAdmin": "http://10.0.0.91:8765"
     },
     {
       "key": "sidecar_token",

@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ClipData
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -38,6 +39,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.hoho.android.usbserial.driver.FtdiSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
@@ -161,6 +163,31 @@ class MainActivity : ComponentActivity() {
             } else {
                 Pair(seenPendingCount, currentDeadlineMs)
             }
+        }
+
+        fun isAllowedLanHost(host: String): Boolean {
+            val clean = host.trim().lowercase()
+            if (clean == "localhost") return true
+            val parts = clean.split(".")
+            if (parts.size != 4) return false
+            val octets = parts.map { it.toIntOrNull() ?: return false }
+            if (octets.any { it !in 0..255 }) return false
+            val (a, b, _, _) = octets
+            return (a == 127) ||
+                (a == 10) ||
+                (a == 192 && b == 168) ||
+                (a == 172 && b in 16..31) ||
+                (a == 100 && b in 64..127)
+        }
+
+        fun isAllowedLanSyncPath(path: String): Boolean {
+            val clean = path.trim()
+            if (clean.isEmpty() || clean.contains("..")) return false
+            return clean in setOf("/sync/status", "/sync/pull", "/sync/push", "/api/ping") ||
+                clean == "/api/wifi-drop/ping" ||
+                clean == "/api/wifi-drop/jobs" ||
+                clean == "/api/wifi-drop/upload" ||
+                clean.startsWith("/api/wifi-drop/jobs/")
         }
     }
 
@@ -374,11 +401,16 @@ class MainActivity : ComponentActivity() {
                 val cleanB64 = if (base64Data.contains(",")) base64Data.substringAfter(",") else base64Data
                 val bytes = Base64.decode(cleanB64, Base64.DEFAULT)
 
-                writeBytesToDownloads(safeName, safeMime, bytes)
+                writeBytesToMediaOrDownloads(safeName, safeMime, bytes)
+                val destLabel = if (safeMime.lowercase().startsWith("image/")) {
+                    "Gallery (Pictures/CSC_Site_Discovery)"
+                } else {
+                    "Downloads"
+                }
                 runOnUiThread {
                     Toast.makeText(
                         this@MainActivity,
-                        "Saved to Downloads: $safeName",
+                        "Saved to $destLabel: $safeName",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -403,21 +435,23 @@ class MainActivity : ComponentActivity() {
                 val cleanB64 = if (base64Data.contains(",")) base64Data.substringAfter(",") else base64Data
                 val bytes = Base64.decode(cleanB64, Base64.DEFAULT)
 
-                val savedUri = writeBytesToDownloads(safeName, safeMime, bytes)
+                val savedUri = writeBytesToMediaOrDownloads(safeName, safeMime, bytes)
                 if (savedUri != null) {
+                    val shareTitle = title.ifBlank { safeName }
                     runOnUiThread {
                         try {
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = safeMime
                                 putExtra(Intent.EXTRA_STREAM, savedUri)
-                                putExtra(Intent.EXTRA_SUBJECT, title.ifBlank { safeName })
+                                putExtra(Intent.EXTRA_SUBJECT, shareTitle)
+                                clipData = ClipData.newUri(contentResolver, shareTitle, savedUri)
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                            startActivity(Intent.createChooser(shareIntent, title.ifBlank { "Share $safeName" }))
+                            startActivity(Intent.createChooser(shareIntent, shareTitle))
                         } catch (e: Exception) {
                             Toast.makeText(
                                 this@MainActivity,
-                                "Saved to Downloads ($safeName)",
+                                "Saved ($safeName)",
                                 Toast.LENGTH_LONG
                             ).show()
                         }
@@ -426,6 +460,70 @@ class MainActivity : ComponentActivity() {
                 } else {
                     false
                 }
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        @JavascriptInterface
+        fun shareMultipleBase64Files(filesJson: String, title: String): Boolean {
+            return try {
+                val arr = JSONArray(filesJson)
+                if (arr.length() == 0) return false
+                val uris = ArrayList<Uri>()
+                var allImages = true
+                for (i in 0 until arr.length()) {
+                    val item = arr.optJSONObject(i) ?: continue
+                    val rawName = item.optString("filename", "CSC_Photo_${i + 1}.jpg")
+                    val safeName = rawName.replace(Regex("[^a-zA-Z0-9._-]"), "_").ifBlank { "CSC_Photo_${i + 1}.jpg" }
+                    val safeMime = item.optString("mimeType", "image/jpeg").ifBlank { "image/jpeg" }
+                    if (!safeMime.lowercase().startsWith("image/")) {
+                        allImages = false
+                    }
+                    val rawB64 = item.optString("base64Data", "")
+                    if (rawB64.isBlank()) continue
+                    val cleanB64 = if (rawB64.contains(",")) rawB64.substringAfter(",") else rawB64
+                    val bytes = Base64.decode(cleanB64, Base64.DEFAULT)
+                    val uri = writeBytesToMediaOrDownloads(safeName, safeMime, bytes)
+                    if (uri != null) {
+                        uris.add(uri)
+                    }
+                }
+                if (uris.isEmpty()) return false
+                val shareTitle = title.ifBlank { "Share ${uris.size} Files" }
+                runOnUiThread {
+                    try {
+                        val shareIntent = if (uris.size == 1) {
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = if (allImages) "image/jpeg" else "*/*"
+                                putExtra(Intent.EXTRA_STREAM, uris[0])
+                                putExtra(Intent.EXTRA_SUBJECT, shareTitle)
+                                clipData = ClipData.newUri(contentResolver, shareTitle, uris[0])
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        } else {
+                            val multiClip = ClipData.newUri(contentResolver, shareTitle, uris[0])
+                            for (idx in 1 until uris.size) {
+                                multiClip.addItem(ClipData.Item(uris[idx]))
+                            }
+                            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                                type = if (allImages) "image/*" else "*/*"
+                                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                                putExtra(Intent.EXTRA_SUBJECT, shareTitle)
+                                clipData = multiClip
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                        }
+                        startActivity(Intent.createChooser(shareIntent, shareTitle))
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Saved ${uris.size} file(s)",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+                true
             } catch (_: Exception) {
                 false
             }
@@ -597,19 +695,6 @@ class MainActivity : ComponentActivity() {
             return true
         }
 
-        private fun isAllowedLanHost(host: String): Boolean {
-            val parts = host.trim().split(".")
-            if (parts.size != 4) return false
-            val octets = parts.map { it.toIntOrNull() ?: return false }
-            if (octets.any { it !in 0..255 }) return false
-            val (a, b, _, _) = octets
-            return (a == 127) ||
-                (a == 10) ||
-                (a == 192 && b == 168) ||
-                (a == 172 && b in 16..31) ||
-                (a == 100 && b in 64..127)
-        }
-
         @JavascriptInterface
         fun lanSyncRequest(url: String, method: String, token: String, jsonBody: String): String {
             return try {
@@ -626,7 +711,7 @@ class MainActivity : ComponentActivity() {
                         .put("error", "LAN Sync restricted to private IPv4 HTTP endpoints (192.168.x.x / 10.x.x.x / 172.16-31.x.x / 100.64-127.x.x)")
                         .toString()
                 }
-                if (path !in setOf("/sync/status", "/sync/pull", "/sync/push")) {
+                if (!isAllowedLanSyncPath(path)) {
                     return JSONObject()
                         .put("ok", false)
                         .put("status", 0)
@@ -643,12 +728,14 @@ class MainActivity : ComponentActivity() {
                 val conn = (uri.toURL().openConnection() as HttpURLConnection).apply {
                     requestMethod = cleanMethod
                     connectTimeout = 5000
-                    readTimeout = 15000
+                    readTimeout = 60000
                     useCaches = false
                     setRequestProperty("Accept", "application/json")
                     if (token.isNotBlank()) {
-                        setRequestProperty("X-Sync-Token", token.trim())
-                        setRequestProperty("Authorization", "Bearer ${token.trim()}")
+                        val cleanTok = token.trim()
+                        setRequestProperty("X-Sync-Token", cleanTok)
+                        setRequestProperty("X-Gravity-Token", cleanTok)
+                        setRequestProperty("Authorization", "Bearer $cleanTok")
                     }
                     if (cleanMethod == "POST") {
                         doOutput = true
@@ -680,30 +767,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun writeBytesToDownloads(filename: String, mimeType: String, bytes: ByteArray): Uri? {
+    private fun writeBytesToMediaOrDownloads(filename: String, mimeType: String, bytes: ByteArray): Uri? {
+        val isImage = mimeType.lowercase().startsWith("image/")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val collection = if (isImage) {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            } else {
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            }
+            val relPath = if (isImage) {
+                Environment.DIRECTORY_PICTURES + "/CSC_Site_Discovery"
+            } else {
+                Environment.DIRECTORY_DOWNLOADS
+            }
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, relPath)
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
-            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            val uri = contentResolver.insert(collection, values)
             if (uri != null) {
                 contentResolver.openOutputStream(uri)?.use { out ->
                     out.write(bytes)
                     out.flush()
                 }
+                val doneValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.IS_PENDING, 0)
+                }
+                try {
+                    contentResolver.update(uri, doneValues, null, null)
+                } catch (_: Exception) {}
                 return uri
             }
         }
-        val dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+        val fallbackSubDir = if (isImage) Environment.DIRECTORY_PICTURES else Environment.DIRECTORY_DOWNLOADS
+        val dir = getExternalFilesDir(fallbackSubDir) ?: filesDir
         if (!dir.exists()) dir.mkdirs()
         val outFile = File(dir, filename)
         FileOutputStream(outFile).use { out ->
             out.write(bytes)
             out.flush()
         }
-        return Uri.fromFile(outFile)
+        return try {
+            FileProvider.getUriForFile(this, "${packageName}.fileprovider", outFile)
+        } catch (_: Exception) {
+            Uri.fromFile(outFile)
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -735,7 +845,7 @@ class MainActivity : ComponentActivity() {
         ws.mediaPlaybackRequiresUserGesture = false
         ws.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         ws.cacheMode = if (isOnline()) WebSettings.LOAD_DEFAULT else WebSettings.LOAD_CACHE_ELSE_NETWORK
-        ws.userAgentString = ws.userAgentString + " RollupOSAndroid/1.2"
+        ws.userAgentString = ws.userAgentString + " RollupOSAndroid/1.3"
 
         webView.addJavascriptInterface(RollupNativeBridge(), "RollupNative")
 
@@ -744,13 +854,13 @@ class MainActivity : ComponentActivity() {
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url?.toString() ?: return false
+                val reqUri = request?.url ?: return false
+                val url = reqUri.toString()
+                val reqScheme = (reqUri.scheme ?: "").lowercase()
+                val reqHost = reqUri.host ?: ""
                 if (url.startsWith("https://andrewnicks-lang.github.io/android-rollup-app") ||
                     url.startsWith("https://accounts.google.com") ||
-                    url.startsWith("http://localhost") ||
-                    url.startsWith("http://127.0.0.1") ||
-                    url.startsWith("http://192.168.") ||
-                    url.startsWith("http://100.")
+                    (reqScheme == "http" && isAllowedLanHost(reqHost))
                 ) {
                     return false
                 }
@@ -812,17 +922,32 @@ class MainActivity : ComponentActivity() {
                 this@MainActivity.filePathCallback?.onReceiveValue(null)
                 this@MainActivity.filePathCallback = filePathCallback
 
+                val isCapture = fileChooserParams?.isCaptureEnabled == true
+                val rawAccepts = fileChooserParams?.acceptTypes
+                    ?.map { it.trim().lowercase() }
+                    ?.filter { it.isNotEmpty() }
+                    ?: emptyList()
+                val wantsArchiveOrMixed = !isCapture && rawAccepts.any {
+                    it.contains("zip") || it.contains("json") || it.contains("octet-stream") || it.startsWith(".")
+                }
+
                 val intent = try {
-                    fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
-                        addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "*/*"
+                    if (wantsArchiveOrMixed) {
+                        Intent(Intent.ACTION_GET_CONTENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "*/*"
+                        }
+                    } else {
+                        fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "*/*"
+                        }
                     }
                 } catch (e: Exception) {
                     this@MainActivity.filePathCallback = null
                     return false
                 }
 
-                val isCapture = fileChooserParams?.isCaptureEnabled == true
                 if (isCapture && !hasPerm(Manifest.permission.CAMERA)) {
                     pendingChooserIntent = intent
                     cameraPermLauncher.launch(Manifest.permission.CAMERA)

@@ -1407,6 +1407,64 @@
     return out.join(sep) + sep;
   }
 
+  function isSyntheticBackupRecord(b) {
+    return Boolean(b && (b.is_synthetic || String(b.source || '').trim().toUpperCase() === 'SYNTHETIC'));
+  }
+
+  function inferAbtBackupSource(rawText, filename, label, explicitSource, isUsbLive) {
+    const src = String(explicitSource || '').trim().toUpperCase();
+    if (src === 'USB_LIVE' || src === 'SYNTHETIC' || src === 'FORSCAN_ABT' || src === 'FORD_FACTORY') {
+      return src;
+    }
+    if (isUsbLive) return 'USB_LIVE';
+    if (/^\s*;.*\bsource\s*=\s*USB_LIVE\b/im.test(String(rawText || ''))) return 'USB_LIVE';
+    const fnLow = String(filename || '').trim().toLowerCase();
+    if (fnLow.endsWith('_live.abt') || fnLow.includes('_usb_live')) return 'USB_LIVE';
+    const lblLow = String(label || '').trim().toLowerCase();
+    if (lblLow.startsWith('live usb') || lblLow.startsWith('usb-c live')) return 'USB_LIVE';
+    return 'FORSCAN_ABT';
+  }
+
+  function isUsbLiveBackupRecord(b) {
+    if (!b || b.kind === 'FORD_AB' || b.kind === 'FORD_FACTORY') return false;
+    if (b.is_usb_live || String(b.id || '').startsWith('usb-')) return true;
+    return (
+      inferAbtBackupSource(b.raw_text, b.filename, b.label, b.source, Boolean(b.is_usb_live)) === 'USB_LIVE'
+    );
+  }
+
+  function extractBackupBlocksForModule(b, mod) {
+    let dict = b && b.dict && typeof b.dict === 'object' ? b.dict : null;
+    if (!dict && b && typeof b.raw_text === 'string' && b.raw_text.trim()) {
+      try {
+        const parsed = parseAnyBackupFile(b.filename || 'backup.abt', b.raw_text);
+        dict = parsed && parsed.dict ? parsed.dict : null;
+      } catch (e) {
+        dict = null;
+      }
+    }
+    if (!dict) return null;
+    const out = new Set();
+    const prefix = `${mod}-`;
+    Object.keys(dict).forEach((k) => {
+      if (k.startsWith(prefix)) {
+        const blk = parseInt(k.split('-')[1], 10);
+        if (!Number.isNaN(blk)) out.add(blk);
+      }
+    });
+    return out;
+  }
+
+  function backupCoversModule(b, mod) {
+    if (!b) return false;
+    if (Array.isArray(b.modules) && b.modules.includes(mod)) return true;
+    if (b.dict && typeof b.dict === 'object') {
+      const prefix = `${mod}-`;
+      return Object.keys(b.dict).some((k) => k.startsWith(prefix));
+    }
+    return false;
+  }
+
   function buildModdedAbtHandoff(params = {}) {
     const entries = params.entries || [];
     const currentState = params.currentState || {};
@@ -1415,18 +1473,26 @@
     const vehicle = params.vehicle || {};
     const fmt = params.fmt || 'encoded';
     const allowStaleOverride = Boolean(params.allowStaleOverride);
+    const allowUnverifiedUsbBaseline = Boolean(params.allowUnverifiedUsbBaseline);
     const modStates = params.modStates || {};
     const powertrain = String(vehicle.powertrain || 'BEV').toUpperCase();
 
     if (!entries.length) {
-      return { ok: false, stale_blocked: false, error: 'No mods selected for export.', blockers: ['Select 1+ Approved mods first.'] };
+      return {
+        ok: false,
+        stale_blocked: false,
+        parity_blocked: false,
+        error: 'No mods selected for export.',
+        blockers: ['Select 1+ Approved mods first.']
+      };
     }
     if (!Object.keys(currentState).length) {
       return {
         ok: false,
         stale_blocked: false,
+        parity_blocked: false,
         error: 'No baseline backup loaded for this vehicle.',
-        blockers: ['Connect USB-C Adapter and run Targeted Mod Backup (~20s) or import a FORScan .abt file first.']
+        blockers: ['Import your Motorcraft .ab XML + run a USB-C Live Backup (~20s), or import a FORScan "Save All" .abt file first.']
       };
     }
 
@@ -1449,7 +1515,13 @@
       }
     });
     if (blockers.length) {
-      return { ok: false, stale_blocked: false, error: 'Selected mods have unresolved readiness blockers.', blockers };
+      return {
+        ok: false,
+        stale_blocked: false,
+        parity_blocked: false,
+        error: 'Selected mods have unresolved readiness blockers.',
+        blockers
+      };
     }
 
     entries.forEach((e) => {
@@ -1464,11 +1536,18 @@
       });
     });
     if (blockers.length) {
-      return { ok: false, stale_blocked: false, error: 'Cannot compute deterministic target state.', blockers };
+      return {
+        ok: false,
+        stale_blocked: false,
+        parity_blocked: false,
+        error: 'Cannot compute deterministic target state.',
+        blockers
+      };
     }
 
     const touched = Array.from(touchedSet).sort();
     const staleReasons = [];
+    const parityReasons = [];
     const warnings = [];
     const vinTag = String(vehicle.vin || 'VEHICLE').trim().toUpperCase();
     const safeVin = vinTag.replace(/[^A-Z0-9]/g, '') || 'VEHICLE';
@@ -1483,8 +1562,15 @@
 
     const modulesOut = [];
     touched.forEach((mod) => {
-      const modBackups = backups.filter((b) => b.kind === 'FORSCAN_BACKUP' && Array.isArray(b.modules) && b.modules.includes(mod));
-      const latestBackup = modBackups.length ? modBackups[modBackups.length - 1] : null;
+      const allModBackups = backups.filter((b) => backupCoversModule(b, mod));
+      const hasSynth = allModBackups.some(isSyntheticBackupRecord) || backups.some(isSyntheticBackupRecord);
+      const realForscanBackups = allModBackups.filter((b) => b.kind === 'FORSCAN_BACKUP' && !isSyntheticBackupRecord(b));
+      const factoryBackups = allModBackups.filter(
+        (b) => (b.kind === 'FORD_AB' || b.kind === 'FORD_FACTORY') && !isSyntheticBackupRecord(b)
+      );
+      const authForscanBackups = realForscanBackups.filter((b) => !isUsbLiveBackupRecord(b));
+      const authBackups = [...factoryBackups, ...authForscanBackups];
+      const latestBackup = realForscanBackups.length ? realForscanBackups[realForscanBackups.length - 1] : null;
       const backupF188 = latestBackup && latestBackup.software_version ? String(latestBackup.software_version).trim() : '';
       const liveEntry = liveMods[mod] || null;
       const liveF188 =
@@ -1508,6 +1594,71 @@
           modAfter[k] = cur[k];
         }
       });
+
+      const actualBlocks = new Set(
+        Object.keys(modAfter)
+          .map((k) => parseInt(k.split('-')[1], 10))
+          .filter((n) => !Number.isNaN(n))
+      );
+      const refBlocks = new Set();
+      authBackups.forEach((ab) => {
+        const bSet = extractBackupBlocksForModule(ab, mod);
+        if (bSet) bSet.forEach((n) => refBlocks.add(n));
+      });
+      const latestBlocks = latestBackup ? extractBackupBlocksForModule(latestBackup, mod) : null;
+
+      let parityVerified = false;
+      if (hasSynth) {
+        parityReasons.push(
+          `Module ${mod}: synthetic demo baseline is present and cannot be used for FORScan 'Load All'. Remove the synthetic demo baseline first.`
+        );
+      } else if (realForscanBackups.length === 0) {
+        if (factoryBackups.length > 0) {
+          parityReasons.push(
+            `Module ${mod}: Motorcraft .ab factory reference is loaded, but no current truck backup (.abt or USB-C Live scan) is saved yet — run a 20s USB-C Live Scan so post-OTA module bytes & F188 strategy are current before generating 'Load All' files.`
+          );
+        } else {
+          parityReasons.push(
+            `Module ${mod}: no verified baseline backup record found. Import your Motorcraft .ab XML + run a USB-C Live Scan, or import a FORScan 'Save All' .abt backup first.`
+          );
+        }
+      } else if (authBackups.length === 0) {
+        parityReasons.push(
+          `Module ${mod}: unanchored USB-C Live snapshot has no authoritative full-block reference. Import your VIN's Motorcraft .ab XML (motorcraftservice.com/AsBuilt) or a one-time FORScan 'Save All' .abt baseline for ${mod} so FORScan 'Load All' never misses sparse/high blocks.`
+        );
+      } else {
+        const missingSet = new Set();
+        refBlocks.forEach((blk) => {
+          if (!actualBlocks.has(blk)) missingSet.add(blk);
+          if (latestBackup && latestBlocks && !latestBlocks.has(blk)) {
+            missingSet.add(blk);
+          }
+        });
+        if (missingSet.size > 0) {
+          const missingArr = Array.from(missingSet).sort((a, b) => a - b);
+          const latestDesc = isUsbLiveBackupRecord(latestBackup) ? 'USB-C Live snapshot' : 'Latest backup';
+          parityReasons.push(
+            `Module ${mod}: ${latestDesc} is missing ${missingArr.length} block(s) [${missingArr.join(', ')}] present in authoritative baseline. Re-run USB-C Backup (enable Parked Extended Session 10 03 if ${mod} gates sparse blocks) or import a full FORScan 'Save All' .abt.`
+          );
+        } else {
+          parityVerified = true;
+        }
+      }
+
+      const baselineSources = Array.from(
+        new Set(
+          allModBackups
+            .filter((b) => !isSyntheticBackupRecord(b))
+            .map((b) =>
+              b.kind === 'FORD_AB' || b.kind === 'FORD_FACTORY'
+                ? 'FORD_FACTORY'
+                : isUsbLiveBackupRecord(b)
+                ? 'USB_LIVE'
+                : 'FORSCAN_ABT'
+            )
+        )
+      ).sort();
+
       if (Object.keys(modAfter).length < 3) {
         warnings.push(`Module ${mod} baseline has only ${Object.keys(modAfter).length} line(s); prefer a full live ${mod} USB backup before clicking 'Load All'.`);
       }
@@ -1519,7 +1670,7 @@
 
       const hdr = [
         `Blue Oval Garage Modded As-Built (${mod})`,
-        `VIN: ${vinTag} | F188: ${liveF188 || backupF188 || 'unrecorded'}`,
+        `VIN: ${vinTag} | F188: ${liveF188 || backupF188 || 'unrecorded'} | Parity: ${parityVerified ? 'VERIFIED' : 'UNVERIFIED'}`,
         'Mods: ' + entries.map((e) => e.title).join('; ')
       ];
       const abtEncoded = exportAbtText(modAfter, { fmt: 'encoded', headerComments: null });
@@ -1527,7 +1678,9 @@
       const abtText = fmt === 'dashed' ? abtDashed : abtEncoded;
       const filename = `${safeVin}_${mod}_MODDED.abt`;
 
-      checklistLines.push(`\n[${mod}] File: ${filename} | F188: ${liveF188 || backupF188 || 'n/a'}`);
+      checklistLines.push(
+        `\n[${mod}] File: ${filename} | F188: ${liveF188 || backupF188 || 'n/a'} | Block Parity: ${parityVerified ? 'VERIFIED' : 'OVERRIDE'}`
+      );
       if (changed.length) {
         changed.forEach((ch) => checklistLines.push(`  ${ch.address}:  ${ch.before}   -->   ${ch.after}`));
       } else {
@@ -1537,6 +1690,10 @@
       modulesOut.push({
         module: mod,
         filename,
+        baseline_sources: baselineSources,
+        parity_verified: parityVerified,
+        authoritative_block_count: refBlocks.size || actualBlocks.size,
+        actual_block_count: actualBlocks.size,
         baseline_f188: backupF188 || null,
         live_f188: liveF188 || null,
         f188_verified_match: Boolean(backupF188 && liveF188 && backupF188.toUpperCase() === liveF188.toUpperCase()),
@@ -1548,21 +1705,38 @@
       });
     });
 
-    if (staleReasons.length && !allowStaleOverride) {
-      return {
-        ok: false,
-        stale_blocked: true,
-        error: 'Blocked by Stale Pre-OTA Guard: ECU software strategy (F188) changed since baseline backup.',
-        blockers: staleReasons
-      };
-    }
+    const staleBlocked = Boolean(staleReasons.length && !allowStaleOverride);
+    const parityBlocked = Boolean(parityReasons.length && !allowUnverifiedUsbBaseline);
     if (staleReasons.length && allowStaleOverride) {
       staleReasons.forEach((r) => warnings.push(r));
+    }
+    if (parityReasons.length && allowUnverifiedUsbBaseline) {
+      parityReasons.forEach((r) => warnings.push(r));
+    }
+    if (staleBlocked || parityBlocked) {
+      const combinedBlockers = [
+        ...(staleBlocked ? staleReasons : []),
+        ...(parityBlocked ? parityReasons : [])
+      ];
+      const errMsg =
+        staleBlocked && parityBlocked
+          ? 'Blocked by Baseline Parity & Stale Pre-OTA Safety Gates.'
+          : staleBlocked
+          ? 'Blocked by Stale Pre-OTA Guard: ECU software strategy (F188) changed since baseline backup.'
+          : "Blocked by Baseline Parity Safety Gate: authoritative full-block reference (.ab XML or FORScan 'Save All' .abt) required before staging 'Load All' files.";
+      return {
+        ok: false,
+        stale_blocked: staleBlocked,
+        parity_blocked: parityBlocked,
+        error: errMsg,
+        blockers: combinedBlockers
+      };
     }
 
     return {
       ok: true,
       stale_blocked: false,
+      parity_blocked: false,
       vin: vinTag,
       format: fmt,
       warnings,
@@ -2180,6 +2354,7 @@
         file: entryName,
         label: b.label || b.filename || entryName,
         kind: b.kind || 'FORSCAN_BACKUP',
+        source: isFactory ? 'FORD_FACTORY' : isUsbLiveBackupRecord(b) ? 'USB_LIVE' : 'FORSCAN_ABT',
         vin: b.vin || vehicle.vin || null,
         software_version: b.software_version || null,
         modules: b.modules || [],
@@ -2256,6 +2431,8 @@
     detectFormat,
     parseAbtText,
     exportAbtText,
+    inferAbtBackupSource,
+    isUsbLiveBackupRecord,
     buildModdedAbtHandoff,
     parseAbXmlText,
     parseAnyBackupFile,

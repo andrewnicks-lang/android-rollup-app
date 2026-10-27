@@ -2,15 +2,15 @@
   "app_id": "lightning-garage",
   "title": "Blue Oval Garage",
   "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 USB-C Live Backup, VIN Scanner & As-Built Engine",
-  "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Native USB-C OTG Read-Only OBD-II As-Built Snapshot & 12V ATRV Battery Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Stale Pre-OTA F188 Guard, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, 183 Community Recipes across 6 Platforms + 21 Spreadsheets, and Hybrid VIN Scanner.",
+  "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Native USB-C OTG Read-Only OBD-II As-Built Snapshot & 12V ATRV Battery Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Strict Baseline Parity Gate & Stale Pre-OTA F188 Guard, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, 183 Community Recipes across 6 Platforms + 21 Spreadsheets, and Hybrid VIN Scanner.",
   "icon": "\u26a1",
   "accent": "#38bdf8",
   "category": "Automotive & Telemetry",
-  "version": "2.1.1",
-  "build_hash": "9b769fbc89",
+  "version": "2.1.3",
+  "build_hash": "c02bd2678a",
   "visibility": "restricted",
-  "updated_at": "2026-10-27T02:18:52.299156",
-  "generated_at": "2026-10-27 02:18",
+  "updated_at": "2026-10-27T08:58:12.285666",
+  "generated_at": "2026-10-27 08:58",
   "tagline": "Blue Oval Garage v2.1 \u2014 2011\u20132026+ Ford & Lincoln USB-C Live OBD-II Backup, FORScan Modded .abt Handoff, VIN Scanner & Deterministic As-Built Engine",
   "quickstart": [
     {
@@ -185,14 +185,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "71b73ea",
+        "sha": "a480721",
         "date": "2026-10-27",
-        "subject": "RollupOS v1.2.0 + Blue Oval Garage v2.1.0: USB-C OTG UDS read engine, STP33/STP53 ISO-TP & NRC 0x78 fixes, G0 .abt handoff, PC FORScan sync"
+        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-10-27 08:18)"
       },
       {
-        "sha": "153cf21",
-        "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 23:32)"
+        "sha": "26a6d3c",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:26)"
+      },
+      {
+        "sha": "561708e",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:13)"
+      },
+      {
+        "sha": "c0dab34",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:08)"
+      },
+      {
+        "sha": "8a788a8",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:07)"
       }
     ]
   }

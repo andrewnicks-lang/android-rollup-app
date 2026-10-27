@@ -6,11 +6,11 @@
   "icon": "\ud83e\udd85",
   "accent": "#ff6b00",
   "category": "Gaming & Tactical Tools",
-  "version": "4.2.0",
-  "build_hash": "bd8b573ae1",
+  "version": "4.2.1",
+  "build_hash": "69c2924d6d",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T15:03:07.425531",
-  "generated_at": "2026-10-26 15:10",
+  "updated_at": "2026-10-27T08:16:16.313188",
+  "generated_at": "2026-10-27 08:16",
   "tagline": "100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver & Expertise 413/500 Tracker",
   "quickstart": [
     {
@@ -100,105 +100,110 @@
       "shd_storage_adapter.js",
       "styles.css"
     ],
-    "tabs": [
-      "mpanel-matrix-list",
-      "mpanel-matrix-center",
-      "mpanel-matrix-right",
-      "mpanel-wb-list",
-      "mpanel-wb-center",
-      "mpanel-wb-right",
-      "mpanel-exp-list",
-      "mpanel-exp-center",
-      "mpanel-exp-right"
+    "tabs": [],
+    "headings": [
+      "\ud83c\udfc6 Endgame Meta Archetypes",
+      "\ud83d\udce1 Countdown Farm Radar",
+      "\ud83d\uddd1\ufe0f Safe Deconstruct Advisor",
+      "\ud83d\udcbe Saved Loadouts Locker",
+      "\ud83d\udc51 Admin Showcase Builds",
+      "\ud83d\udcca Live 7-Bucket Telemetry",
+      "\ud83c\udf92 Agent Armory & Stash Explorer (0 Items)",
+      "\ud83d\udcca Proficiency Categories (413 / 500)",
+      "\ud83d\udd0d Individual Item Proficiency & Printer Filament Calculator",
+      "Configure Slot: MASK",
+      "\ud83d\udd0d Click-to-Verify & Edit Gear Piece",
+      "\ud83d\udcbe Data Persistence, Snapshots & Android Hub Sync"
     ],
-    "headings": [],
     "buttons": [
       {
-        "label": "BUILD MATRIX Ctrl+1",
-        "action": "switchView('matrix')"
+        "label": "\ud83c\udfaf Build Matrix 13",
+        "action": "switchMainView('matrix')"
       },
       {
-        "label": "\ud83d\udee0\ufe0f WORKBENCH (1) Ctrl+2",
-        "action": "switchView('workbench')"
+        "label": "\ud83d\udee0\ufe0f Loadout Workbench 4",
+        "action": "switchMainView('workbench')"
       },
       {
-        "label": "ARMORY (0) Ctrl+3",
-        "action": "switchView('armory')"
+        "label": "\ud83c\udf92 Armory & Stash 0",
+        "action": "switchMainView('armory')"
       },
       {
-        "label": "\ud83c\udf96\ufe0f EXPERTISE (413/500) Ctrl+4",
-        "action": "switchView('expertise')"
+        "label": "\u2b50 Expertise 413/500",
+        "action": "switchMainView('expertise')"
       },
       {
-        "label": "FARM RADAR Ctrl+5",
-        "action": "switchView('radar')"
-      },
-      {
-        "label": "DECONSTRUCT (0) Ctrl+6",
-        "action": "switchView('decon')"
-      },
-      {
-        "label": "\ud83e\uddea Demo Stash",
-        "action": "loadDemoStash()"
-      },
-      {
-        "label": "\ud83e\uddf9 Clear",
-        "action": "clearAllStash()"
-      },
-      {
-        "label": "\ud83d\udcbe Sync / Vault",
+        "label": "\ud83d\udcbe Backup / Sync",
         "action": "openBackupModal()"
       },
       {
-        "label": "\ud83d\udcf8 Snap (F9)",
-        "action": "triggerF9Capture()"
+        "label": "\u26a1 Demo Stash",
+        "action": "loadGoldenStash()"
       },
       {
-        "label": "\u2795 Custom Build",
-        "action": "openBuilderModal()"
+        "label": "\ud83d\udcf8 Scan Screenshots",
+        "action": "document.getElementById('img-upload-input').click()"
+      },
+      {
+        "label": "\ud83c\udfa5 Scan Stash Video",
+        "action": "document.getElementById('vid-upload-input').click()"
       },
       {
         "label": "+ Add",
         "action": "submitShorthand()"
       },
       {
-        "label": "\ud83d\udccb Builds",
-        "action": "switchMobileSubPanel('matrix', 'list')"
+        "label": "+ Custom",
+        "action": "openAddCustomBuildModal()"
       },
       {
-        "label": "\ud83d\udee1\ufe0f 6-Slot Gear",
-        "action": "switchMobileSubPanel('matrix', 'center')"
+        "label": "All (13)",
+        "action": "filterMatrixRole('ALL', this)"
       },
       {
-        "label": "\u26a1 Telemetry & Recipe",
-        "action": "switchMobileSubPanel('matrix', 'right')"
+        "label": "\ud83d\udd34 DPS",
+        "action": "filterMatrixRole('RED_DPS', this)"
       },
       {
-        "label": "\ud83d\udd12 Locker & Showcase",
-        "action": "switchMobileSubPanel('wb', 'list')"
+        "label": "\ud83d\udd35/\ud83d\udd34 Bruiser",
+        "action": "filterMatrixRole('TECH_TANK', this)"
       },
       {
-        "label": "\ud83d\udee0\ufe0f 6-Slot Workbench",
-        "action": "switchMobileSubPanel('wb', 'center')"
+        "label": "\ud83d\udfe1 Skill/CC",
+        "action": "filterMatrixRole('SKILL', this)"
       },
       {
-        "label": "\ud83d\udcca Live Stats",
-        "action": "switchMobileSubPanel('wb', 'right')"
+        "label": "\ud83d\udee1\ufe0f Tank/Heal",
+        "action": "filterMatrixRole('TANK_HEAL', this)"
+      },
+      {
+        "label": "+ New",
+        "action": "createNewBlankLoadout()"
+      },
+      {
+        "label": "\u26a1 Auto-Assemble From Armory",
+        "action": "autoAssembleWorkbenchFromArmory()"
+      },
+      {
+        "label": "\ud83d\udcbe Save to Locker",
+        "action": "saveCurrentWorkbenchLoadout()"
       }
     ],
     "modals": [
-      "verify-modal",
-      "verify-modal-content",
-      "backup-modal",
-      "backup-modal-content",
-      "builder-modal",
-      "builder-modal-content",
       "slot-picker-modal",
-      "slot-picker-content"
+      "verify-modal",
+      "verify-modal-title",
+      "backup-modal"
     ],
     "inputs": [
-      "Type shorthand (e.g. 'lengmo backpack wd 22.5 chc 9 chd 12') or Ctrl+V screenshot...",
-      "Search Brand, Item Name, Talent..."
+      "Quick Add Item: e.g. 'Backbone Backpack 15% WD 6% CHC 12% CHD' or 'Turmoil Kneepads'",
+      "Loadout Name...",
+      "Describe combat rotation, stack management, and target priority...",
+      "Search brand, talent, stat...",
+      "Search weapon, named item, exotic...",
+      "e.g. Backbone, The Sacrifice, Lengmo Mask...",
+      "e.g. Perfect Glass Cannon, Obliterate, Perfect Unstoppable Force...",
+      "Leave blank if none"
     ],
     "storage_keys": [],
     "vault_secrets": [],
@@ -207,29 +212,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "21325e4",
-        "date": "2026-10-26",
-        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-10-26 11:02)"
+        "sha": "0b82f55",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:07)"
       },
       {
-        "sha": "62a47b2",
-        "date": "2026-10-26",
-        "subject": "feat(gravity): add Cloudflare HTTPS tunnel & direct GitHub Pages sync for Rollup Hub App"
+        "sha": "93bb7a4",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:04)"
       },
       {
-        "sha": "5d2f2a2",
-        "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 22:30)"
+        "sha": "e1ed248",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:40)"
       },
       {
-        "sha": "c34a730",
-        "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/Heartbeat15m - 2026-10-24 20:45)"
+        "sha": "807c17c",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:37)"
       },
       {
-        "sha": "c34bb8d",
-        "date": "2026-10-24",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/EveningPush - 2026-10-24 16:45)"
+        "sha": "bb66f8f",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:36)"
       }
     ]
   }

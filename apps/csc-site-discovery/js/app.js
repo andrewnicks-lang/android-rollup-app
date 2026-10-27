@@ -2347,6 +2347,11 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
   cachedRawSlotPhotos[slot] = img.dataUrl;
   allStationThumbs[st.id] = cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1];
 
+  const sharpnessScore = window.CSCDiscoveryAdapter.computeCanvasLaplacianSharpness(img.canvas || img);
+  const isBlurry = sharpnessScore < 28;
+  st.sharpnessScore = sharpnessScore;
+  st.isBlurry = isBlurry;
+
   if (img.exif) {
     if (img.exif.gpsLat !== null && img.exif.gpsLon !== null) {
       st.gpsLat = img.exif.gpsLat;
@@ -2358,12 +2363,30 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
     }
   }
 
+  let barcodeHit = null;
+  if (typeof window.CSCDiscoveryAdapter.detectBarcodeFromImage === "function") {
+    barcodeHit = await window.CSCDiscoveryAdapter.detectBarcodeFromImage(img.canvas || img.dataUrl);
+    if (barcodeHit && barcodeHit.detected) {
+      st.barcodeDetected = barcodeHit.rawValue;
+      if (barcodeHit.manufacturer && (slot === 2 || !st.mfg)) st.mfg = barcodeHit.manufacturer;
+      if (barcodeHit.modelNumber && (slot === 2 || !st.model)) st.model = barcodeHit.modelNumber;
+      if (barcodeHit.serialNumber && (slot === 2 || !st.serial)) st.serial = barcodeHit.serialNumber;
+      if (st.tag && /^Unit #\d+$/i.test(st.tag.trim()) && (st.mfg || st.model)) {
+        const unitIdx = state.stations.findIndex((x) => x.id === st.id) + 1;
+        st.tag = `Unit #${unitIdx} (${[st.mfg, st.model].filter(Boolean).join(" ")})`;
+      }
+    }
+  }
+
   if (!st.burstMeta) st.burstMeta = {};
   st.burstMeta[slot] = {
     filename: _buildSortedFilename(st, slot),
     capturedAt: (img.exif && img.exif.dateTimeOriginal) || img.capturedAt,
     claheEnhanced: false,
     sizeKB: img.sizeKB,
+    sharpnessScore,
+    isBlurry,
+    barcodeDetected: barcodeHit && barcodeHit.detected ? barcodeHit.rawValue : null,
     exifGps: img.exif && img.exif.gpsLat ? `${img.exif.gpsLat}, ${img.exif.gpsLon}` : null
   };
 
@@ -2371,6 +2394,23 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
   renderTagAndGoSheet(st);
   renderUnitFeed();
   renderInteractiveMap();
+
+  const decodedSummary = (barcodeHit && barcodeHit.detected)
+    ? ([
+      barcodeHit.modelNumber ? `M/N ${barcodeHit.modelNumber}` : "",
+      barcodeHit.serialNumber ? `S/N ${barcodeHit.serialNumber}` : ""
+    ].filter(Boolean).join(" • ") || barcodeHit.rawValue)
+    : "";
+
+  if (isBlurry) {
+    const bcSuffix = decodedSummary ? ` (🏷️ Barcode still decoded: ${escapeHtml(decodedSummary)})` : "";
+    showBannerToast(
+      `⚠️ <strong>Blurry Photo Warning (Sharpness ${sharpnessScore} &lt; 28):</strong> Hold steady or tap 🔦 CLAHE / Torch and re-snap for reliable nameplate OCR!${bcSuffix}`,
+      true
+    );
+  } else if (barcodeHit && barcodeHit.detected) {
+    showBannerToast(`🏷️ <strong>Barcode/QR Decoded (${escapeHtml(barcodeHit.format || "1D/2D")}):</strong> Auto-filled ${escapeHtml(decodedSummary)}!`);
+  }
 
   if (slot === 2 && autoRunOcr) {
     runLiveVisionOcrOnSlot2(true);
@@ -3009,7 +3049,7 @@ function startBlankSiteWalk(zeroUnits = true) {
     siteContact: contact,
     siteAddress: addr,
     verbalConsentLogged: true,
-    cloudSpeechOptIn: true,
+    cloudSpeechOptIn: false,
     uiMode: "quick",
     rfi23011TempConditioningFlag: false,
     activeFloorId: "FLR-01",

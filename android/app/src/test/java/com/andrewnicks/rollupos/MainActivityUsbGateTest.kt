@@ -97,5 +97,35 @@ class MainActivityUsbGateTest {
         assertEquals(2, seen2)
         assertEquals(16000L, dl2)
     }
+
+    @Test
+    fun allowsRfc1918AndTailscaleLanHostsAndWifiDropPathsWhileBlockingPublicOrTraversalTargets() {
+        // Private LAN & CGNAT/Tailscale hosts allowed
+        assertEquals(true, MainActivity.isAllowedLanHost("10.0.0.91"))
+        assertEquals(true, MainActivity.isAllowedLanHost("192.168.1.42"))
+        assertEquals(true, MainActivity.isAllowedLanHost("172.16.4.10"))
+        assertEquals(true, MainActivity.isAllowedLanHost("172.31.255.1"))
+        assertEquals(true, MainActivity.isAllowedLanHost("100.64.10.5"))
+        assertEquals(true, MainActivity.isAllowedLanHost("127.0.0.1"))
+        assertEquals(true, MainActivity.isAllowedLanHost("localhost"))
+
+        // Public IPv4 & out-of-range octets rejected
+        assertEquals(false, MainActivity.isAllowedLanHost("8.8.8.8"))
+        assertEquals(false, MainActivity.isAllowedLanHost("172.32.0.1"))
+        assertEquals(false, MainActivity.isAllowedLanHost("100.128.0.1"))
+        assertEquals(false, MainActivity.isAllowedLanHost("example.com"))
+
+        // Office PC Wi-Fi Drop & FORScan sync paths allowed
+        assertEquals(true, MainActivity.isAllowedLanSyncPath("/api/wifi-drop/ping"))
+        assertEquals(true, MainActivity.isAllowedLanSyncPath("/api/wifi-drop/jobs"))
+        assertEquals(true, MainActivity.isAllowedLanSyncPath("/api/wifi-drop/jobs/CSC-2026-26410"))
+        assertEquals(true, MainActivity.isAllowedLanSyncPath("/api/wifi-drop/upload"))
+        assertEquals(true, MainActivity.isAllowedLanSyncPath("/sync/status"))
+
+        // Arbitrary or path-traversal endpoints blocked
+        assertEquals(false, MainActivity.isAllowedLanSyncPath("/api/wifi-drop/jobs/../../etc/passwd"))
+        assertEquals(false, MainActivity.isAllowedLanSyncPath("/admin/exec"))
+        assertEquals(false, MainActivity.isAllowedLanSyncPath(""))
+    }
 }
 

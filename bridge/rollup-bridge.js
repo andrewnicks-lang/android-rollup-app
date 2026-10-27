@@ -381,8 +381,13 @@
 
     set(key, value, customAppId = null) {
       const fullKey = this._key(key, customAppId);
-      localStorage.setItem(fullKey, JSON.stringify(value));
-      return value;
+      try {
+        localStorage.setItem(fullKey, JSON.stringify(value));
+        return value;
+      } catch (e) {
+        console.warn('[RollupBridge] storage.set quota/storage error for', fullKey, e);
+        return false;
+      }
     },
 
     remove(key, customAppId = null) {
@@ -676,6 +681,42 @@
       return this.downloadBase64(filename, clean, mimeType);
     },
 
+    shareMultipleBase64Files(filesList, title = '') {
+      if (!Array.isArray(filesList) || filesList.length === 0) return false;
+      const normalized = filesList.map((f, idx) => {
+        const raw = String((f && f.base64Data) || (f && f.dataUrl) || '');
+        const clean = raw.includes(',') ? raw.split(',')[1] : raw;
+        return {
+          filename: String((f && f.filename) || `CSC_File_${idx + 1}.jpg`),
+          mimeType: String((f && f.mimeType) || 'image/jpeg'),
+          base64Data: clean
+        };
+      });
+      if (normalized.length === 1) {
+        const single = normalized[0];
+        return this.shareBase64File(single.filename, single.base64Data, single.mimeType, title || single.filename);
+      }
+      if (global.RollupNative && typeof global.RollupNative.shareMultipleBase64Files === 'function') {
+        return global.RollupNative.shareMultipleBase64Files(JSON.stringify(normalized), title || 'Share Files');
+      }
+      if (navigator.share && typeof File === 'function') {
+        try {
+          const fileObjs = normalized.map((item) => {
+            const bin = atob(item.base64Data);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new File([bytes], item.filename, { type: item.mimeType });
+          });
+          if (!navigator.canShare || navigator.canShare({ files: fileObjs })) {
+            navigator.share({ title: title || 'Share Files', files: fileObjs }).catch(() => {});
+            return true;
+          }
+        } catch (e) {}
+      }
+      normalized.forEach((item) => this.downloadBase64(item.filename, item.base64Data, item.mimeType));
+      return true;
+    },
+
     shareTextFile(filename, content, mimeType = 'text/plain;charset=utf-8', title = '') {
       if (global.RollupNative && typeof global.RollupNative.shareBase64File === 'function') {
         const bytes = new TextEncoder().encode(String(content ?? ''));
@@ -945,12 +986,14 @@
   };
 
   async function lanSyncRequest(url, options = {}) {
+    const cleanUrl = String(url || '').trim();
     const method = String(options.method || 'GET').toUpperCase();
     const token = String(options.token || '');
     const bodyStr = typeof options.body === 'string' ? options.body : options.body ? JSON.stringify(options.body) : '';
-    if (global.RollupNative && typeof global.RollupNative.lanSyncRequest === 'function') {
+    const isCleartextLan = /^http:\/\//i.test(cleanUrl);
+    if (isCleartextLan && global.RollupNative && typeof global.RollupNative.lanSyncRequest === 'function') {
       await new Promise((r) => setTimeout(r, 0));
-      const raw = global.RollupNative.lanSyncRequest(String(url), method, token, bodyStr);
+      const raw = global.RollupNative.lanSyncRequest(cleanUrl, method, token, bodyStr);
       const parsed = JSON.parse(raw || '{"ok":false}');
       let data = {};
       if (parsed.body) {
@@ -962,9 +1005,12 @@
       return { ok: Boolean(parsed.ok), status: Number(parsed.status || 0), data };
     }
     const headers = { ...(options.headers || {}) };
-    if (token) headers['X-Sync-Token'] = token;
+    if (token) {
+      headers['X-Sync-Token'] = token;
+      headers['X-Gravity-Token'] = token;
+    }
     if (method === 'POST' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-    const resp = await fetch(url, {
+    const resp = await fetch(cleanUrl, {
       method,
       headers,
       body: method === 'POST' ? bodyStr : undefined
@@ -1596,7 +1642,7 @@
   }
 
   global.RollupBridge = {
-    version: '1.4.1',
+    version: '1.5.0',
     detectAppId,
     resolveHubRootUrl,
     resolveRegistryUrl,
@@ -1610,6 +1656,7 @@
     files,
     usbSerial,
     lanSyncRequest,
+    sync: { lanRequest: lanSyncRequest },
     updates,
     manuals,
     settings,

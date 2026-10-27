@@ -462,6 +462,7 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
             const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const sharpnessScore = computeCanvasLaplacianSharpness(canvas);
             resolve({
               width: w,
               height: h,
@@ -469,6 +470,9 @@
               capturedAt: new Date().toISOString(),
               originalName: file.name,
               exif,
+              canvas,
+              sharpnessScore,
+              isBlurry: sharpnessScore < 28,
               dataUrl
             });
           };
@@ -604,10 +608,17 @@
   /**
    * Deterministic 3x3 Discrete Laplacian Variance Calculator: Var(∇²I)
    */
-  function computeCanvasLaplacianSharpness(canvas) {
+  function computeCanvasLaplacianSharpness(canvasOrObj) {
+    if (!canvasOrObj) return 0;
+    if (typeof canvasOrObj.sharpnessScore === 'number' && !canvasOrObj.getContext && !canvasOrObj.canvas) {
+      return canvasOrObj.sharpnessScore;
+    }
+    const canvas = canvasOrObj.getContext ? canvasOrObj : canvasOrObj.canvas;
+    if (!canvas || typeof canvas.getContext !== 'function') return 0;
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
+    if (!w || !h) return 0;
     const d = ctx.getImageData(0, 0, w, h).data;
     const gray = new Float32Array(w * h);
 
@@ -631,6 +642,143 @@
     const mean = sum / count;
     const variance = sumSq / count - mean * mean;
     return Math.round(variance * 10) / 10;
+  }
+
+  /**
+   * Deterministically parses a raw 1D/2D barcode or QR payload into HVAC manufacturer, model & serial fields.
+   */
+  function parseEquipmentBarcodeText(rawText) {
+    const raw = String(rawText || '').trim();
+    if (!raw) {
+      return { detected: false, rawValue: '', manufacturer: '', modelNumber: '', serialNumber: '' };
+    }
+    let manufacturer = '';
+    let modelNumber = '';
+    let serialNumber = '';
+
+    // 1. JSON QR payload check
+    if (raw.startsWith('{') && raw.endsWith('}')) {
+      try {
+        const obj = JSON.parse(raw);
+        manufacturer = String(obj.manufacturer || obj.mfg || obj.make || '').trim();
+        modelNumber = String(obj.model_number || obj.model || obj.mn || '').trim();
+        serialNumber = String(obj.serial_number || obj.serial || obj.sn || '').trim();
+      } catch (e) {}
+    }
+
+    // 2. Key-Value / Delimited QR or DataMatrix payload (e.g., "M/N: YSC120H4RMA; S/N: 231914582L" or "MFG:TRANE;MDL:YSC090H4RMA;SN:241510884L")
+    if (!modelNumber && !serialNumber) {
+      const mMfg = raw.match(/(?:MFG|MAKE|BRAND)\s*[:=]\s*([A-Za-z0-9 _-]+?)(?:[;|,\r\n]|$)/i);
+      const mMod = raw.match(/(?:M\/N|MDL|MODEL(?:\s*NO)?|MOD|P\/N)\s*[:=#]?\s*([A-Za-z0-9._/-]{4,28})/i);
+      const mSer = raw.match(/(?:S\/N|SN|SERIAL(?:\s*NO)?|SER)\s*[:=#]?\s*([A-Za-z0-9._/-]{4,28})/i);
+      if (mMfg) manufacturer = mMfg[1].trim();
+      if (mMod) modelNumber = mMod[1].trim();
+      if (mSer) serialNumber = mSer[1].trim();
+    }
+
+    // 3. Pipe or slash separated pair (e.g., "YSC120H4RMA|231914582L")
+    if (!modelNumber && !serialNumber && /[|;]/.test(raw)) {
+      const parts = raw.split(/[|;]/).map((s) => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        modelNumber = parts[0];
+        serialNumber = parts[1];
+      }
+    }
+
+    // 4. Single 1D barcode token (Code 128 / Code 39)
+    if (!modelNumber && !serialNumber) {
+      const token = raw.replace(/[^A-Za-z0-9._/-]/g, '');
+      if (token.length >= 4) {
+        if (/^(?:YSC|YCD|TCD|WSC|CSAA|ACH580|ACH550|DESV|PESV|FB\d|KBN\d|48[A-Z]{2}|50[A-Z]{2})/i.test(token)) {
+          modelNumber = token;
+        } else {
+          serialNumber = token;
+        }
+      }
+    }
+
+    return {
+      detected: Boolean(modelNumber || serialNumber || raw),
+      rawValue: raw,
+      manufacturer,
+      modelNumber,
+      serialNumber,
+      mfg: manufacturer,
+      model: modelNumber,
+      serial: serialNumber
+    };
+  }
+
+  /**
+   * Offline 1D/2D Barcode & QR Detector using browser native `BarcodeDetector` when available,
+   * with graceful fallback so it never blocks or throws in unsupported WebViews.
+   */
+  async function detectBarcodeFromImage(source) {
+    const empty = { detected: false, format: '', rawValue: '', manufacturer: '', modelNumber: '', serialNumber: '' };
+    if (!source || typeof global.BarcodeDetector !== 'function') {
+      return empty;
+    }
+    try {
+      let detector;
+      try {
+        detector = new global.BarcodeDetector({
+          formats: ['qr_code', 'code_128', 'code_39', 'data_matrix', 'pdf417', 'ean_13', 'itf', 'upc_a']
+        });
+      } catch (e) {
+        detector = new global.BarcodeDetector();
+      }
+
+      let target = source;
+      if (typeof source === 'string' && source.startsWith('data:image/')) {
+        target = await new Promise((resolve) => {
+          const im = new Image();
+          im.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = im.width || 640;
+            c.height = im.height || 480;
+            c.getContext('2d').drawImage(im, 0, 0);
+            resolve(c);
+          };
+          im.onerror = () => resolve(null);
+          im.src = source;
+        });
+      } else if (source && source.canvas) {
+        target = source.canvas;
+      }
+      if (!target) return empty;
+
+      const results = await detector.detect(target);
+      if (!Array.isArray(results) || results.length === 0) return empty;
+
+      let mergedMfg = '';
+      let mergedModel = '';
+      let mergedSerial = '';
+      const rawValues = [];
+      let firstFmt = '';
+
+      for (const hit of results) {
+        const val = String(hit.rawValue || '').trim();
+        if (!val) continue;
+        rawValues.push(val);
+        if (!firstFmt && hit.format) firstFmt = String(hit.format);
+        const parsed = parseEquipmentBarcodeText(val);
+        if (parsed.manufacturer && !mergedMfg) mergedMfg = parsed.manufacturer;
+        if (parsed.modelNumber && !mergedModel) mergedModel = parsed.modelNumber;
+        if (parsed.serialNumber && !mergedSerial) mergedSerial = parsed.serialNumber;
+      }
+
+      if (rawValues.length === 0) return empty;
+      return {
+        detected: true,
+        format: firstFmt || 'barcode',
+        rawValue: rawValues.join(' | '),
+        manufacturer: mergedMfg,
+        modelNumber: mergedModel,
+        serialNumber: mergedSerial
+      };
+    } catch (e) {
+      return empty;
+    }
   }
 
   // ============================================================================
@@ -1097,6 +1245,8 @@
     enhanceStampedPlateDataUrl,
     renderStampedFieldPhotoDataUrl,
     computeCanvasLaplacianSharpness,
+    parseEquipmentBarcodeText,
+    detectBarcodeFromImage,
     dataUrlToUint8Array,
     uint8ArrayToBase64,
     buildCscWalkZipBlob,

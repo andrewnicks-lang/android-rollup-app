@@ -248,14 +248,21 @@
   // --- Merged View of Current As-Built State & Entries ---
   function getMergedTruckState() {
     const merged = {};
+    const hasRealBackups = state.backups.some(
+      (b) => !b.is_synthetic && String(b.source || '').trim().toUpperCase() !== 'SYNTHETIC'
+    );
     state.backups
-      .filter((b) => b.kind === 'FORSCAN_BACKUP')
+      .filter(
+        (b) =>
+          b.kind === 'FORSCAN_BACKUP' &&
+          (!hasRealBackups || (!b.is_synthetic && String(b.source || '').trim().toUpperCase() !== 'SYNTHETIC'))
+      )
       .forEach((b) => {
         Object.assign(merged, b.dict || {});
       });
     if (Object.keys(merged).length === 0) {
       state.backups
-        .filter((b) => b.kind === 'FORD_AB')
+        .filter((b) => b.kind === 'FORD_AB' && !b.is_synthetic)
         .forEach((b) => {
           Object.assign(merged, b.dict || {});
         });
@@ -1080,6 +1087,10 @@
   };
 
   global.loadSyntheticBaseline = function () {
+    if (state.backups.some((b) => !b.is_synthetic && String(b.source || '').trim().toUpperCase() !== 'SYNTHETIC')) {
+      showToast('Real vehicle backups are already loaded — demo baseline skipped so real bytes are never mixed.', true);
+      return;
+    }
     const abtText = GarageEngine.generateDemoAbtText(BUNDLE);
     const parsed = GarageEngine.parseAbtText(abtText);
     state.backups = state.backups.filter((b) => !b.is_synthetic);
@@ -1089,6 +1100,7 @@
       filename: 'synthetic_demo_baseline.abt',
       taken_at: new Date().toISOString().slice(0, 10),
       kind: 'FORSCAN_BACKUP',
+      source: 'SYNTHETIC',
       is_synthetic: true,
       modules: parsed.modules,
       line_count: parsed.lines.length,
@@ -1899,28 +1911,48 @@
         };
 
         if (mSnap.abt_encoded && mSnap.line_count > 0) {
-          const parsed = GarageEngine.parseAnyBackupFile(`${mod}_${dateShort}.abt`, mSnap.abt_encoded);
-          // Remove synthetic demo backups and any identical SHA-256 duplicate
-          state.backups = state.backups.filter((b) => !b.is_synthetic && b.sha256 !== parsed.sha256);
           const safeVin = String(mSnap.vin || scanRes.vin || state.profile.vin || 'TRUCK').replace(/[^A-Z0-9]/gi, '');
-          const fname = `${safeVin}_${mod}_${dateShort}.abt`;
-          state.backups.push({
-            id: `usb-${Date.now()}-${mod}`,
-            label: `USB-C Live ${mod} (${mSnap.bus})`,
-            filename: fname,
-            taken_at: dateShort,
-            kind: 'FORSCAN_BACKUP',
-            is_synthetic: false,
-            vin: mSnap.vin || scanRes.vin || state.profile.vin,
-            software_version: mSnap.f188 || null,
-            modules: parsed.modules,
-            line_count: parsed.lines.length,
-            sha256: parsed.sha256,
-            dict: parsed.dict,
-            nodes: {},
-            warnings: parsed.warnings || [],
-            raw_text: mSnap.abt_encoded
-          });
+          const fname = `${safeVin}_${mod}_${dateShort}_live.abt`;
+          const rawUsb = mSnap.abt_encoded.includes('source=USB_LIVE')
+            ? mSnap.abt_encoded
+            : `; Blue Oval Garage Live USB Snapshot (source=USB_LIVE)\r\n${mSnap.abt_encoded}`;
+          const parsed = GarageEngine.parseAnyBackupFile(fname, rawUsb);
+          const rawPlainDigest = GarageEngine.sha256Hex(mSnap.abt_encoded);
+          // Remove synthetic demo backups; keep authoritative FORSCAN_ABT if identical lines/sha256 already exist
+          const existingAuth = state.backups.find(
+            (b) =>
+              !b.is_synthetic &&
+              (b.sha256 === parsed.sha256 || b.sha256 === rawPlainDigest) &&
+              b.kind === 'FORSCAN_BACKUP' &&
+              !b.is_usb_live &&
+              b.source !== 'USB_LIVE'
+          );
+          if (existingAuth) {
+            existingAuth.software_version = mSnap.f188 || existingAuth.software_version || null;
+          } else {
+            state.backups = state.backups.filter(
+              (b) => !b.is_synthetic && b.sha256 !== parsed.sha256 && b.sha256 !== rawPlainDigest
+            );
+            state.backups.push({
+              id: `usb-${Date.now()}-${mod}`,
+              label: `USB-C Live ${mod} (${mSnap.bus})`,
+              filename: fname,
+              taken_at: dateShort,
+              kind: 'FORSCAN_BACKUP',
+              source: 'USB_LIVE',
+              is_usb_live: true,
+              is_synthetic: false,
+              vin: mSnap.vin || scanRes.vin || state.profile.vin,
+              software_version: mSnap.f188 || null,
+              modules: parsed.modules,
+              line_count: parsed.lines.length,
+              sha256: parsed.sha256,
+              dict: parsed.dict,
+              nodes: {},
+              warnings: parsed.warnings || [],
+              raw_text: rawUsb
+            });
+          }
           importedCount++;
           totalLinesSaved += parsed.lines.length;
         }
@@ -2057,23 +2089,37 @@
     }
 
     const handoff = computeCurrentHandoff('encoded');
-    if (fromPlanTab && (!handoff.ok || handoff.stale_blocked)) {
-      showToast(handoff.error || 'Blocked by Stale Pre-OTA F188 Guard.', true);
+    if (fromPlanTab && (!handoff.ok || handoff.stale_blocked || handoff.parity_blocked)) {
+      showToast(handoff.error || 'Blocked by Safety Gate (Baseline Parity or F188 OTA Guard).', true);
       return;
     }
 
     const realBackups = state.backups
       .filter((b) => b.kind === 'FORSCAN_BACKUP' && !b.is_synthetic && b.raw_text)
+      .map((b) => {
+        const isUsb = Boolean(b.is_usb_live || b.source === 'USB_LIVE' || String(b.id || '').startsWith('usb-'));
+        return {
+          label: b.label || b.filename,
+          filename: b.filename || 'phone_backup.abt',
+          taken_at: b.taken_at,
+          software_version: b.software_version || null,
+          source: isUsb ? 'USB_LIVE' : 'FORSCAN_ABT',
+          is_usb_live: isUsb,
+          vin: b.vin || state.profile.vin,
+          raw_text: b.raw_text
+        };
+      });
+
+    const factoryBackups = state.backups
+      .filter((b) => b.kind === 'FORD_AB' && !b.is_synthetic && b.raw_text)
       .map((b) => ({
         label: b.label || b.filename,
-        filename: b.filename || 'phone_backup.abt',
-        taken_at: b.taken_at,
-        software_version: b.software_version || null,
+        filename: b.filename || 'factory.ab',
         vin: b.vin || state.profile.vin,
         raw_text: b.raw_text
       }));
 
-    const stagedAbt = handoff.ok && !handoff.stale_blocked
+    const stagedAbt = handoff.ok && !handoff.stale_blocked && !handoff.parity_blocked
       ? (handoff.modules || []).map((m) => ({
           filename: m.filename,
           content: m.abt_encoded,
@@ -2093,6 +2139,7 @@
       const { ok, status, data } = await executeLanSync(`${baseUrl}/sync/push`, 'POST', pin, {
         vin: state.profile.vin,
         backups: realBackups,
+        factory_backups: factoryBackups,
         staged_abt: stagedAbt,
         wanted_keys: wantedKeys,
         approved_keys: approvedKeys,
@@ -2103,18 +2150,22 @@
         throw new Error(data.error || `PC Sync HTTP ${status}`);
       }
       const stagedNames = (data.staged_files || []).map((f) => f.filename).join(', ');
-      const f188SkipNote = handoff.stale_blocked
+      const skipNote = handoff.stale_blocked
         ? ' (⚠️ Modded .abt staging skipped due to F188 OTA strategy drift — raw backups & live scan synced)'
+        : handoff.parity_blocked
+        ? ' (ℹ️ Modded .abt staging held by Baseline Parity Gate — import .ab XML or FORScan Save-All .abt first)'
         : '';
       state.pcSync.lastMessage = `✓ Synced ${data.imported_backups ? data.imported_backups.length : 0} backup(s), ${
         data.synced_mods || 0
       } mod selection(s), & staged ${
         data.staged_files ? data.staged_files.length : 0
-      } modded .abt file(s) to ${data.staging_dir || 'FORScan Staging'}${stagedNames ? ` (${stagedNames})` : ''}${f188SkipNote}.`;
+      } modded .abt file(s) to ${data.staging_dir || 'FORScan Staging'}${stagedNames ? ` (${stagedNames})` : ''}${skipNote}.`;
       state.pcSync.lastError = false;
       showToast(
         handoff.stale_blocked
           ? 'Synced raw backups & live scan to PC (modded .abt skipped: F188 OTA drift).'
+          : handoff.parity_blocked
+          ? 'Synced raw backups to PC (modded .abt held until .ab / Save-All .abt is present).'
           : `Staged ${(data.staged_files || []).length} modded .abt file(s) to PC FORScan folder!`
       );
     } catch (err) {
@@ -2147,18 +2198,57 @@
         throw new Error(data.error || `PC Sync HTTP ${status}`);
       }
       let added = 0;
+      (data.factory_backups || []).forEach((fb) => {
+        if (!fb.raw_text) return;
+        try {
+          const parsedAb = GarageEngine.parseAnyBackupFile(fb.filename || 'pc_factory.ab', fb.raw_text);
+          state.backups = state.backups.filter((x) => !x.is_synthetic);
+          if (!state.backups.some((x) => x.sha256 === parsedAb.sha256 && x.kind === 'FORD_AB')) {
+            state.backups.push({
+              id: `pc-ab-${fb.id || Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+              label: fb.label || fb.filename || 'PC Factory .ab',
+              filename: fb.filename || 'pc_factory.ab',
+              taken_at: (fb.imported_at || new Date().toISOString()).slice(0, 10),
+              kind: 'FORD_AB',
+              source: 'FORD_FACTORY',
+              is_usb_live: false,
+              is_synthetic: false,
+              vin: parsedAb.vin || fb.vin || state.profile.vin,
+              modules: parsedAb.modules,
+              line_count: parsedAb.lines.length,
+              sha256: parsedAb.sha256,
+              dict: parsedAb.dict,
+              nodes: parsedAb.nodes || {},
+              warnings: parsedAb.warnings || [],
+              raw_text: fb.raw_text
+            });
+            added++;
+          }
+        } catch (e) {}
+      });
       (data.backups || []).forEach((b) => {
         if (!b.raw_text) return;
         try {
           const parsed = GarageEngine.parseAnyBackupFile(b.filename || 'pc_backup.abt', b.raw_text);
+          const isUsb = String(b.source || '').toUpperCase() === 'USB_LIVE';
           state.backups = state.backups.filter((x) => !x.is_synthetic);
-          if (!state.backups.some((x) => x.sha256 === parsed.sha256)) {
+          const existing = state.backups.find((x) => x.sha256 === parsed.sha256 && x.kind === 'FORSCAN_BACKUP');
+          if (existing) {
+            if (!isUsb && (existing.is_usb_live || existing.source === 'USB_LIVE')) {
+              existing.source = 'FORSCAN_ABT';
+              existing.is_usb_live = false;
+              existing.label = b.label || existing.label;
+              added++;
+            }
+          } else {
             state.backups.push({
               id: `pc-${b.id || Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
               label: b.label || b.filename || 'PC Backup',
               filename: b.filename || 'pc_backup.abt',
               taken_at: b.taken_at || new Date().toISOString().slice(0, 10),
               kind: 'FORSCAN_BACKUP',
+              source: isUsb ? 'USB_LIVE' : 'FORSCAN_ABT',
+              is_usb_live: isUsb,
               is_synthetic: false,
               vin: b.vin || state.profile.vin,
               software_version: b.software_version || null,
@@ -2206,7 +2296,7 @@
         saveLiveScans();
       }
 
-      state.pcSync.lastMessage = `✓ Pulled ${added} new .abt backup(s) (${(data.backups || []).length} on PC) & synced ${syncedModCount} mod selection(s).`;
+      state.pcSync.lastMessage = `✓ Pulled ${added} new backup/factory item(s) (${(data.backups || []).length} .abt on PC) & synced ${syncedModCount} mod selection(s).`;
       state.pcSync.lastError = false;
       showToast(state.pcSync.lastMessage);
     } catch (err) {
@@ -2254,10 +2344,10 @@
       backups: state.backups || [],
       includeSynthetic: realCount === 0,
       vehicle: state.profile || {},
-      handoff: handoff && handoff.ok && !handoff.stale_blocked ? handoff : null,
+      handoff: handoff && handoff.ok && !handoff.stale_blocked && !handoff.parity_blocked ? handoff : null,
       vaultSnapshot: {
         app: APP_ID,
-        version: '2.1.0',
+        version: '2.1.2',
         exported_at: new Date().toISOString(),
         profile: state.profile,
         modOverrides: state.modOverrides,
@@ -2296,7 +2386,7 @@
 
   global.downloadModdedHandoffZip = function () {
     const handoff = computeCurrentHandoff(state.abtExportFmt);
-    if (!handoff.ok || handoff.stale_blocked) {
+    if (!handoff.ok || handoff.stale_blocked || handoff.parity_blocked) {
       showToast(handoff.error || 'Cannot export modded .abt bundle yet.', true);
       return;
     }
@@ -2315,7 +2405,7 @@
 
   global.shareModdedHandoffZip = function () {
     const handoff = computeCurrentHandoff(state.abtExportFmt);
-    if (!handoff.ok || handoff.stale_blocked) {
+    if (!handoff.ok || handoff.stale_blocked || handoff.parity_blocked) {
       showToast(handoff.error || 'Cannot share modded .abt bundle yet.', true);
       return;
     }
@@ -2350,9 +2440,19 @@
     });
 
     const backedUpMods = new Set();
-    state.backups
-      .filter((b) => b.kind === 'FORSCAN_BACKUP' && !b.is_synthetic)
-      .forEach((b) => (b.modules || []).forEach((m) => backedUpMods.add(m)));
+    const authMods = new Set();
+    state.backups.forEach((b) => {
+      if (b.is_synthetic) return;
+      const isUsb = Boolean(b.is_usb_live || String(b.source || '').toUpperCase() === 'USB_LIVE');
+      if (b.kind === 'FORSCAN_BACKUP') {
+        (b.modules || []).forEach((m) => backedUpMods.add(String(m || '').toUpperCase()));
+        if (!isUsb) {
+          (b.modules || []).forEach((m) => authMods.add(String(m || '').toUpperCase()));
+        }
+      } else if (b.kind === 'FORD_AB') {
+        (b.modules || []).forEach((m) => authMods.add(String(m || '').toUpperCase()));
+      }
+    });
 
     const isNativeUsb = Boolean(global.RollupBridge && RollupBridge.usbSerial && RollupBridge.usbSerial.isNativeApk());
     const isWebSerial = Boolean(!isNativeUsb && global.RollupBridge && RollupBridge.usbSerial && RollupBridge.usbSerial.isSupported());
@@ -2387,15 +2487,25 @@
       .sort()
       .map((m) => {
         const fn = (BUNDLE.ford_modules[m] && BUNDLE.ford_modules[m].short) || m;
-        const ok = backedUpMods.has(m);
+        const hasAbt = backedUpMods.has(m);
+        const hasAuth = authMods.has(m);
+        const ok = hasAbt && hasAuth;
         const ls = state.liveScans[m];
+        let statusBadge = `<span class="pill pill-amber">⚠️ Needs .abt + Auth Baseline</span>`;
+        if (ok) {
+          statusBadge = `<span class="pill pill-green">✓ Parity Baseline Ready</span>`;
+        } else if (hasAbt && !hasAuth) {
+          statusBadge = `<span class="pill pill-amber">⚠️ USB-C Only (Import .ab or Save-All)</span>`;
+        } else if (!hasAbt && hasAuth) {
+          statusBadge = `<span class="pill pill-amber">⚠️ .ab Only (Run USB Scan or Import .abt)</span>`;
+        }
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#090e1a;border:1px solid ${ok ? '#166534' : '#7c2d12'};border-radius:8px;gap:6px;flex-wrap:wrap;">
             <div>
               <strong style="color:#f8fafc;">${escapeHtml(m)} (${escapeHtml(fn)})</strong>
               <span style="font-size:11px;color:#94a3b8;margin-left:6px;">${ls && ls.f188 ? `Live F188: ${escapeHtml(ls.f188)}` : 'Required by Wanted/Approved mods'}</span>
             </div>
-            ${ok ? `<span class="pill pill-green">✓ Real .abt Saved</span>` : `<span class="pill pill-amber">⚠️ Needs .abt Backup</span>`}
+            ${statusBadge}
           </div>
         `;
       })
@@ -2404,13 +2514,29 @@
     const backupsListHtml = state.backups.length
       ? state.backups
           .map(
-            (b, idx) => `
+            (b, idx) => {
+              const isUsb = Boolean(b.is_usb_live || String(b.source || '').toUpperCase() === 'USB_LIVE');
+              const provLabel =
+                b.kind === 'FORD_AB'
+                  ? 'FORD_AB (Auth Blocks)'
+                  : b.is_synthetic
+                  ? 'SYNTHETIC'
+                  : isUsb
+                  ? 'USB-C Live (Needs .ab)'
+                  : 'FORScan Save-All';
+              const provClass =
+                b.kind === 'FORD_AB'
+                  ? 'pill-blue'
+                  : b.is_synthetic || isUsb
+                  ? 'pill-amber'
+                  : 'pill-green';
+              return `
           <div style="padding:10px;background:#090e1a;border:1px solid #1e293b;border-radius:10px;margin-top:8px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
               <div>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                   <strong style="font-size:13px;color:#f8fafc;">${escapeHtml(b.label || b.filename)}</strong>
-                  <span class="pill ${b.kind === 'FORD_AB' ? 'pill-blue' : b.is_synthetic ? 'pill-amber' : 'pill-green'}">${escapeHtml(b.kind)}</span>
+                  <span class="pill ${provClass}">${escapeHtml(provLabel)}</span>
                   ${b.software_version ? `<span class="pill pill-dark">F188: ${escapeHtml(b.software_version)}</span>` : ''}
                 </div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
@@ -2424,7 +2550,8 @@
               </div>
             </div>
           </div>
-        `
+        `;
+            }
           )
           .join('')
       : `<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px;">No <code>.abt</code> or <code>.ab</code> files imported for this vehicle yet.</div>`;
@@ -2645,6 +2772,11 @@
         try {
           const text = String(e.target.result || '');
           const parsed = GarageEngine.parseAnyBackupFile(file.name, text);
+          const inferredSrc =
+            parsed.kind === 'FORD_AB'
+              ? 'FORD_FACTORY'
+              : GarageEngine.inferAbtBackupSource(text, file.name, file.name);
+          const isUsb = inferredSrc === 'USB_LIVE';
           state.backups = state.backups.filter((b) => !b.is_synthetic && b.sha256 !== parsed.sha256);
           state.backups.push({
             id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -2652,6 +2784,8 @@
             filename: file.name,
             taken_at: new Date().toISOString().slice(0, 10),
             kind: parsed.kind,
+            source: inferredSrc,
+            is_usb_live: isUsb,
             is_synthetic: false,
             vin: parsed.vin,
             modules: parsed.modules,
@@ -2755,6 +2889,16 @@
           <button class="btn btn-primary" onclick="switchTab('backups')">🔌 Run Fresh USB-C Backup Now</button>
         </div>
       `;
+    } else if (handoff.parity_blocked) {
+      handoffBodyHtml = `
+        <div class="alert alert-red" style="margin-top:8px;">
+          <strong>⛔ Baseline Parity Safety Gate Blocked "Load All" Export:</strong>
+          <ul style="margin:6px 0 6px 18px;padding:0;">
+            ${(handoff.blockers || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('')}
+          </ul>
+          <button class="btn btn-primary" onclick="switchTab('backups')">📂 Import Motorcraft .ab or FORScan Save-All .abt</button>
+        </div>
+      `;
     } else if (!handoff.ok) {
       handoffBodyHtml = `
         <div class="alert alert-amber" style="margin-top:8px;">
@@ -2778,12 +2922,16 @@
             : m.baseline_f188
             ? `<span class="pill pill-dark">F188: ${escapeHtml(m.baseline_f188)}</span>`
             : `<span class="pill pill-muted">F188 Unrecorded</span>`;
+          const parityPill = m.parity_verified
+            ? `<span class="pill pill-green">✓ Block Parity (${m.actual_block_count || 0} blk)</span>`
+            : `<span class="pill pill-amber">⚠️ Unverified USB</span>`;
           return `
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;background:#070c18;border:1px solid #1e293b;border-radius:8px;margin-top:8px;">
               <div>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                   <strong style="color:#38bdf8;font-family:monospace;">${escapeHtml(m.filename)}</strong>
                   <span class="pill pill-blue">${escapeHtml(m.module)} (${escapeHtml(fn)})</span>
+                  ${parityPill}
                   ${f188Pill}
                 </div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:3px;">

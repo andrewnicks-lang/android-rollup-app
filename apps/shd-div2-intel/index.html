@@ -1,313 +1,640 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#070a10">
-  <title>SHD // Division 2 Gear &amp; Build Intelligence Platform</title>
-  <link rel="stylesheet" href="./styles.css?v=5">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SHD TACTICAL COMMAND // BUILD & ARMORY SOLVER v5.0</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-
-  <!-- Top Navigation Bar -->
-  <header class="topbar">
-    <div class="brand">
-      <div class="shd-ring"></div>
+  <!-- TOP TACTICAL HEADER -->
+  <header class="shd-header">
+    <div class="brand-block">
+      <div class="shd-ring" title="SHD ISAC Node Active"></div>
       <div>
-        <div class="brand-title">SHD // BUILD INTELLIGENCE</div>
-        <div class="brand-sub" id="active-user-badge">LOCAL-FIRST TACTICAL SOLVER &amp; VISION SCANNER</div>
+        <div class="shd-title">SHD TACTICAL COMMAND <span class="version-pill">v5.0 ULTIMATE</span></div>
+        <div class="shd-subtitle">Division 2 Inventory Vision OCR • 6-Slot Combinatorial Solver • Tactical Dossier &amp; Expertise 413/500</div>
       </div>
     </div>
 
-    <nav class="nav-tabs desktop-only-nav">
-      <button class="nav-btn active" id="tab-matrix" onclick="switchView('matrix')">
-        BUILD MATRIX <span class="kbd-hint">Ctrl+1</span>
+    <!-- MAIN NAVIGATION TABS (Desktop) -->
+    <nav class="main-nav" id="desktop-nav">
+      <button class="main-nav-btn active" data-view="matrix" onclick="switchMainView('matrix')">
+        <span class="nav-icon">🎯</span> Build Matrix <span class="nav-badge" id="nav-count-builds">13</span>
       </button>
-      <button class="nav-btn" id="tab-workbench" onclick="switchView('workbench')">
-        🛠️ WORKBENCH (<span id="nav-count-loadouts">1</span>) <span class="kbd-hint">Ctrl+2</span>
+      <button class="main-nav-btn" data-view="workbench" onclick="switchMainView('workbench')">
+        <span class="nav-icon">🛠️</span> Loadout Workbench <span class="nav-badge" id="nav-count-loadouts">4</span>
       </button>
-      <button class="nav-btn" id="tab-armory" onclick="switchView('armory')">
-        ARMORY (<span id="nav-count-armory">0</span>) <span class="kbd-hint">Ctrl+3</span>
+      <button class="main-nav-btn" data-view="armory" onclick="switchMainView('armory')">
+        <span class="nav-icon">🎒</span> Armory &amp; Stash <span class="nav-badge" id="nav-count-armory">0</span>
       </button>
-      <button class="nav-btn" id="tab-expertise" onclick="switchView('expertise')">
-        🎖️ EXPERTISE (<span id="nav-count-exp">413/500</span>) <span class="kbd-hint">Ctrl+4</span>
-      </button>
-      <button class="nav-btn" id="tab-radar" onclick="switchView('radar')">
-        FARM RADAR <span class="kbd-hint">Ctrl+5</span>
-      </button>
-      <button class="nav-btn" id="tab-decon" onclick="switchView('decon')">
-        DECONSTRUCT (<span id="nav-count-decon">0</span>) <span class="kbd-hint">Ctrl+6</span>
+      <button class="main-nav-btn" data-view="expertise" onclick="switchMainView('expertise')">
+        <span class="nav-icon">⭐</span> Expertise <span class="nav-badge accent" id="nav-count-expertise">413/500</span>
       </button>
     </nav>
 
-    <div class="top-actions">
-      <button class="btn-action" style="border-color:#a855f7;color:#d8b4fe;" onclick="loadDemoStash()" title="Populate the 47-item Golden Benchmark Demo Stash to test builds">
-        🧪 Demo Stash
+    <div class="header-actions">
+      <!-- Profile / Multi-User Switcher -->
+      <div class="profile-switcher-wrap" title="Switch Profile (Admin vs Demo vs Tester)">
+        <span class="profile-badge-dot" id="active-user-badge">🟢</span>
+        <select id="profile-selector" class="shd-select compact" onchange="handleProfileSwitch(this.value)">
+          <option value="admin">👑 Admin (SHD 2793)</option>
+          <option value="demo">🎮 Demo (47 Golden Stash)</option>
+          <option value="tester1">🧪 Tester 1 (Clean Slate)</option>
+          <option value="tester2">🧪 Tester 2 (Clean Slate)</option>
+        </select>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="openBackupModal()" title="Snapshots, Import/Export &amp; Android Hub Sync">
+        💾 Backup / Sync
       </button>
-      <button class="btn-action" style="border-color:#ef4444;color:#fca5a5;" onclick="clearAllStash()" title="Wipe current inventory to start empty">
-        🧹 Clear
-      </button>
-      <button class="btn-action" style="border-color:#38bdf8;color:#7dd3fc;" onclick="openBackupModal()" title="PC <-> Android Hub Sync &amp; JSON Backup Vault">
-        💾 Sync / Vault
-      </button>
-      <button class="btn-action btn-primary desktop-only-btn" onclick="triggerF9Capture()" title="Grab current screen Item Card via MSS">
-        📸 Snap (F9)
-      </button>
-      <label class="btn-action desktop-only-btn" style="cursor:pointer;" title="Select 1 or more Screenshots (.png/.jpg) or a Stash Scroll Video (.mp4)">
-        📂 Upload Shots / Video
-        <input type="file" id="file-upload-input" accept="image/*,video/*" multiple style="display:none" onchange="handleFileUpload(event)">
-      </label>
-      <button class="btn-action desktop-only-btn" style="border-color:#10b981;color:#6ee7b7;" onclick="openBuilderModal()" title="Create a Custom Build Template or Save Equipped Loadout">
-        ➕ Custom Build
+      <button class="btn btn-gold btn-sm" onclick="loadGoldenStash()" title="Load 47-Item Endgame Benchmark Stash">
+        ⚡ Demo Stash
       </button>
     </div>
   </header>
 
-  <!-- Universal Quick-Add & Command Bar -->
-  <div class="quickbar">
-    <span class="quickbar-label" style="color:var(--shd-orange);font-weight:800;font-size:11.5px;white-space:nowrap;">⚡ QUICK INGEST:</span>
-    <input type="text" id="shorthand-input" placeholder="Type shorthand (e.g. 'lengmo backpack wd 22.5 chc 9 chd 12') or Ctrl+V screenshot..." onkeydown="if(event.key==='Enter') submitShorthand()">
-    <select id="shorthand-loc">
-      <option value="STASH">STASH</option>
-      <option value="BACKPACK">BACKPACK</option>
-    </select>
-    <button class="btn-action btn-primary" onclick="submitShorthand()">+ Add</button>
-  </div>
+  <!-- QUICK INGESTION BAR (Collapsible or Compact) -->
+  <section class="quick-ingest-bar">
+    <div class="quick-ingest-left">
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('img-upload-input').click()">
+        📸 Scan Screenshots
+      </button>
+      <input type="file" id="img-upload-input" accept="image/*" multiple hidden onchange="handleImageUpload(this.files)" />
 
-  <!-- ===================================================================
-       VIEW 1: BUILD READINESS MATRIX (3-COLUMN DESKTOP / SUB-TAB MOBILE)
-       =================================================================== -->
-  <main class="view-container active" id="view-matrix">
-    <div class="mobile-subtabs">
-      <button class="msub-btn active" id="msub-matrix-list" onclick="switchMobileSubPanel('matrix', 'list')">📋 Builds</button>
-      <button class="msub-btn" id="msub-matrix-center" onclick="switchMobileSubPanel('matrix', 'center')">🛡️ 6-Slot Gear</button>
-      <button class="msub-btn" id="msub-matrix-right" onclick="switchMobileSubPanel('matrix', 'right')">⚡ Telemetry &amp; Recipe</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('vid-upload-input').click()">
+        🎥 Scan Stash Video
+      </button>
+      <input type="file" id="vid-upload-input" accept="video/mp4,video/webm,video/quicktime" hidden onchange="handleVideoUpload(this.files[0])" />
     </div>
-    <div class="matrix-layout">
-      <!-- Left Column: Ranked Build Archetypes -->
-      <section class="panel mpanel-active" id="mpanel-matrix-list">
-        <div class="panel-header">
-          <span>RANKED BUILD READINESS (13 ARCHETYPES)</span>
-          <span id="ready-builds-pill" style="color:#34d399;">0 READY</span>
-        </div>
-        <div class="panel-body" id="build-list-container"></div>
-      </section>
 
-      <!-- Center Column: Active 6-Slot Best Loadout Combination -->
-      <section class="panel" id="mpanel-matrix-center">
-        <div class="panel-header">
-          <span id="active-build-header">OPTIMAL 6-SLOT LOADOUT FROM YOUR STASH</span>
-          <span id="active-build-role" style="color:var(--shd-orange);"></span>
-        </div>
-        <div class="panel-body" id="active-build-center"></div>
-      </section>
-
-      <!-- Right Column: Aggregated Telemetry & Tinkering Bench Recipe -->
-      <section class="panel" id="mpanel-matrix-right">
-        <div class="panel-header">
-          <span>LOADOUT TELEMETRY &amp; BENCH RECIPE</span>
-        </div>
-        <div class="panel-body" id="active-build-telemetry"></div>
-      </section>
+    <div class="quick-shorthand-group">
+      <input
+        type="text"
+        id="shorthand-input"
+        placeholder="Quick Add Item: e.g. 'Backbone Backpack 15% WD 6% CHC 12% CHD' or 'Turmoil Kneepads'"
+        onkeydown="if(event.key==='Enter') submitShorthand()"
+      />
+      <select id="shorthand-slot-select" class="shd-select compact">
+        <option value="">Auto Slot</option>
+        <option value="MASK">Mask</option>
+        <option value="BACKPACK">Backpack</option>
+        <option value="CHEST">Chest</option>
+        <option value="GLOVES">Gloves</option>
+        <option value="HOLSTER">Holster</option>
+        <option value="KNEEPADS">Kneepads</option>
+      </select>
+      <button class="btn btn-accent btn-sm" onclick="submitShorthand()">+ Add</button>
     </div>
-  </main>
 
-  <!-- ===================================================================
-       VIEW 2: INTERACTIVE BUILD WORKBENCH & SAVED LOADOUTS LOCKER
-       =================================================================== -->
-  <main class="view-container" id="view-workbench">
-    <div class="mobile-subtabs">
-      <button class="msub-btn" id="msub-wb-list" onclick="switchMobileSubPanel('wb', 'list')">🔒 Locker &amp; Showcase</button>
-      <button class="msub-btn active" id="msub-wb-center" onclick="switchMobileSubPanel('wb', 'center')">🛠️ 6-Slot Workbench</button>
-      <button class="msub-btn" id="msub-wb-right" onclick="switchMobileSubPanel('wb', 'right')">📊 Live Stats</button>
-    </div>
-    <div class="matrix-layout">
-      <!-- Left Column: Saved Loadouts Locker + Admin Showcase -->
-      <section class="panel" id="mpanel-wb-list">
-        <div class="panel-header">
-          <span>LOADOUT LOCKER &amp; ADMIN SHOWCASE</span>
-          <button class="btn-action btn-primary" style="padding:3px 8px;font-size:10.5px;" onclick="createNewBlankWorkbench()">+ New Blank</button>
-        </div>
-        <div class="panel-body" id="workbench-loadout-list"></div>
-      </section>
+    <div class="ingest-status" id="ingest-status">Ready • EAC-Safe Zero Game Hooks</div>
+  </section>
 
-      <!-- Center Column: Interactive 6-Gear + Weapons + Spec Workbench -->
-      <section class="panel mpanel-active" id="mpanel-wb-center">
+  <!-- ==================================================================== -->
+  <!-- VIEW 1: BUILD MATRIX & TACTICAL KNOWLEDGE DOSSIER                    -->
+  <!-- ==================================================================== -->
+  <main class="workspace-view active" id="view-matrix">
+    <div class="matrix-grid">
+      <!-- LEFT PANEL: 13+ Meta Builds Readiness List -->
+      <aside class="panel builds-sidebar">
         <div class="panel-header">
-          <span id="wb-title-header">INTERACTIVE LOADOUT WORKBENCH // TAP ANY SLOT TO SWAP</span>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <button class="btn-action" style="padding:3px 8px;font-size:10.5px;border-color:#38bdf8;color:#7dd3fc;" onclick="copyWorkbenchShareCode()" title="Copy compact SHD5:... share code to clipboard">🔗 Copy Code</button>
-            <button class="btn-action" style="padding:3px 8px;font-size:10.5px;border-color:#a855f7;color:#d8b4fe;" onclick="promptPasteWorkbenchShareCode()" title="Paste an SHD5:... share code into the Workbench">📥 Paste Code</button>
-            <button class="btn-action btn-primary" style="padding:3px 10px;font-size:11px;" onclick="saveActiveWorkbenchLoadout()">💾 Save to Locker</button>
+          <h2>🏆 Endgame Meta Archetypes</h2>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <span class="badge" id="builds-ready-badge">0 Ready</span>
+            <button class="btn btn-outline btn-xs" onclick="openAddCustomBuildModal()" title="Create New Meta Build Template">+ Custom</button>
           </div>
         </div>
-        <div class="panel-body" id="workbench-center-canvas"></div>
+        <div class="role-filter-bar" id="matrix-role-filter">
+          <button class="filter-pill active" onclick="filterMatrixRole('ALL', this)">All (13)</button>
+          <button class="filter-pill" onclick="filterMatrixRole('RED_DPS', this)">🔴 DPS</button>
+          <button class="filter-pill" onclick="filterMatrixRole('TECH_TANK', this)">🔵/🔴 Bruiser</button>
+          <button class="filter-pill" onclick="filterMatrixRole('SKILL', this)">🟡 Skill/CC</button>
+          <button class="filter-pill" onclick="filterMatrixRole('TANK_HEAL', this)">🛡️ Tank/Heal</button>
+        </div>
+        <div class="builds-list" id="builds-list"></div>
+      </aside>
+
+      <!-- CENTER PANEL: Active Build 6-Slot Breakdown, Knowledge Dossier & Ballistics -->
+      <section class="panel build-detail-panel">
+        <div id="matrix-build-detail">
+          <div class="empty-state">Select a Meta Build to inspect your 6-slot readiness, Tactical Knowledge Dossier, and 7-Bucket DPS math.</div>
+        </div>
       </section>
 
-      <!-- Right Column: Live Set Bonus & Telemetry Calculator -->
-      <section class="panel" id="mpanel-wb-right">
+      <!-- RIGHT PANEL: Countdown Farm Radar & Deconstruct Advisor -->
+      <aside class="panel radar-sidebar">
         <div class="panel-header">
-          <span>LIVE SET BONUSES &amp; STAT CALCULATOR</span>
+          <h2>📡 Countdown Farm Radar</h2>
+          <span class="badge">Targeted Loot</span>
         </div>
-        <div class="panel-body" id="workbench-live-telemetry"></div>
-      </section>
+        <div id="farm-radar-list" class="radar-list"></div>
+
+        <div class="panel-header" style="margin-top: 14px; border-top: 1px solid var(--border);">
+          <h2>🗑️ Safe Deconstruct Advisor</h2>
+          <span class="badge badge-warn" id="deconstruct-count-badge">0</span>
+        </div>
+        <div id="deconstruct-list" class="radar-list"></div>
+      </aside>
     </div>
   </main>
 
-  <!-- ===================================================================
-       VIEW 4: EXPERTISE 413/500 MASTERY & RESEARCH TRACKER
-       =================================================================== -->
-  <main class="view-container" id="view-expertise">
-    <div class="mobile-subtabs">
-      <button class="msub-btn" id="msub-exp-list" onclick="switchMobileSubPanel('exp', 'list')">🎖️ Summary</button>
-      <button class="msub-btn active" id="msub-exp-center" onclick="switchMobileSubPanel('exp', 'center')">📂 17 Categories</button>
-      <button class="msub-btn" id="msub-exp-right" onclick="switchMobileSubPanel('exp', 'right')">🔬 Chase Items</button>
-    </div>
-    <div class="matrix-layout" style="grid-template-columns: 280px 1fr 350px;">
-      <!-- Left Column: Expertise Level 30 Ring & Mastery Summary -->
-      <section class="panel" id="mpanel-exp-list">
+  <!-- ==================================================================== -->
+  <!-- VIEW 2: INTERACTIVE 6-SLOT LOADOUT WORKBENCH & SAVED LOADOUTS        -->
+  <!-- ==================================================================== -->
+  <main class="workspace-view" id="view-workbench">
+    <div class="workbench-grid">
+      <!-- LEFT: Saved Loadouts Locker + Admin Showcase -->
+      <aside class="panel workbench-sidebar">
         <div class="panel-header">
-          <span>EXPERTISE SYSTEM TELEMETRY</span>
-          <span style="color:var(--shd-orange);">LVL 30 MAX</span>
+          <h2>💾 Saved Loadouts Locker</h2>
+          <button class="btn btn-accent btn-xs" onclick="createNewBlankLoadout()">+ New</button>
         </div>
-        <div class="panel-body" id="expertise-left-summary"></div>
+        <div class="loadouts-list" id="saved-loadouts-list"></div>
+
+        <div class="panel-header" style="margin-top: 12px; border-top: 1px solid var(--border);">
+          <h2>👑 Admin Showcase Builds</h2>
+          <span class="badge badge-gold">Cloneable</span>
+        </div>
+        <div class="loadouts-list" id="showcase-loadouts-list"></div>
+      </aside>
+
+      <!-- CENTER: Interactive 6-Slot Gear Configurator -->
+      <section class="panel workbench-center">
+        <div class="workbench-top-bar">
+          <div class="wb-title-group">
+            <input type="text" id="wb-loadout-name" class="wb-name-input" value="Lengmo Pesti Turm (SHD 2793 Main)" placeholder="Loadout Name..." />
+            <div class="wb-sub-controls">
+              <label>Specialization:</label>
+              <select id="wb-specialization" class="shd-select compact" onchange="recalcWorkbench()">
+                <option value="Gunner">Gunner (+10% AoK, +5% RoF)</option>
+                <option value="Technician">Technician (+1 Skill Tier, Linked Laser)</option>
+                <option value="Firewall">Firewall (Striker Shield, +20% Burn)</option>
+                <option value="Sharpshooter">Sharpshooter (+15% Stability/Headshot)</option>
+                <option value="Survivalist">Survivalist (+10% Status Team Amp, +15% Heal)</option>
+                <option value="Demolitionist">Demolitionist (+5% DTTOOC, Explosion Ignore)</option>
+              </select>
+
+              <label>Primary Weapon:</label>
+              <select id="wb-primary-weapon" class="shd-select compact" onchange="recalcWorkbench()">
+                <option value="Pestilence">Pestilence (Exotic LMG)</option>
+                <option value="St. Elmo's Engine">St. Elmo's Engine (Exotic AR)</option>
+                <option value="Lexington">Lexington (Named LVOA-C AR)</option>
+                <option value="Gear Shift">Gear Shift (Secondary LMG)</option>
+                <option value="Scorpio">Scorpio (Exotic Shotgun)</option>
+                <option value="Ouroboros">Ouroboros (Exotic SMG)</option>
+                <option value="Dark Winter">Dark Winter (Named Vector SMG)</option>
+                <option value="Capacitor">Capacitor (Exotic Skill AR)</option>
+                <option value="Kingbreaker">Kingbreaker (Perfect Flatline AR)</option>
+                <option value="SR-1 (Determined)">SR-1 / White Death (Determined MMR)</option>
+                <option value="Classic M1A">Classic M1A / Baker's Dozen (Rifle)</option>
+                <option value="Bullet King">Bullet King (Exotic LMG)</option>
+                <option value="Chameleon">Chameleon (Exotic AR)</option>
+                <option value="ACS-12 / Rock n' Roll">ACS-12 / Lefty / Rock n' Roll</option>
+              </select>
+
+              <label>Weapon Talent:</label>
+              <select id="wb-weapon-talent" class="shd-select compact" onchange="recalcWorkbench()" title="Override weapon talent for live 7-bucket DPS &amp; TTK comparison">
+                <option value="">Weapon Native / Default</option>
+                <option value="Perfect Flatline">Perfect Flatline (x1.20 Pulsed Amp)</option>
+                <option value="Flatline">Flatline (x1.15 Pulsed Amp)</option>
+                <option value="Perfect Killer">Perfect Killer (+50% CHD on Crit Kill)</option>
+                <option value="Killer">Killer (+40% CHD on Crit Kill)</option>
+                <option value="Strained">Strained (+35% Avg CHD)</option>
+                <option value="Optimist">Optimist (+15% Avg Weapon DMG)</option>
+                <option value="Perfectly In Sync">Perfectly In Sync (+40% WD &amp; Skill DMG)</option>
+                <option value="In Sync">In Sync (+30% WD &amp; Skill DMG)</option>
+                <option value="Sadist">Sadist / Eyeless / Ignited (x1.20 Status Amp)</option>
+                <option value="Determined">Determined (Guaranteed 1-Shot Headshot Chain)</option>
+                <option value="Perfect Sledgehammer">Perfect Sledgehammer (+40% DTA on Grenade)</option>
+              </select>
+
+              <label>Weapon Expertise:</label>
+              <select id="wb-weapon-expertise" class="shd-select compact" onchange="recalcWorkbench()" title="+1% Weapon Damage per Expertise Grade (up to +30%)">
+                <option value="0">Grade 0 (+0% WD)</option>
+                <option value="10">Grade 10 (+10% WD)</option>
+                <option value="15">Grade 15 (+15% WD)</option>
+                <option value="20">Grade 20 (+20% WD)</option>
+                <option value="25">Grade 25 (+25% WD)</option>
+                <option value="27" selected>Grade 27 (+27% WD)</option>
+                <option value="30">Grade 30 MAX (+30% WD)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="wb-action-btns">
+            <button class="btn btn-gold btn-sm" onclick="autoAssembleWorkbenchFromArmory()" title="Automatically slot your highest-scoring owned Armory items for this build and auto-balance 3x Gear Mods to 60% CHC">
+              ⚡ Auto-Assemble From Armory
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="saveCurrentWorkbenchLoadout()">💾 Save to Locker</button>
+            <button class="btn btn-outline btn-sm" onclick="exportWorkbenchShareCard()">📋 Copy Build JSON</button>
+          </div>
+        </div>
+
+        <!-- 3x GEAR MOD SLOTS (Mask, Chest, Backpack) -->
+        <div class="wb-mods-bar">
+          <span class="wb-mods-label">🔌 3x Gear Mod Slots (Mask / Chest / Backpack):</span>
+          <select id="wb-mod-1" class="shd-select compact" onchange="recalcWorkbench()">
+            <option value="MOD_CHD" selected>+12.0% Critical Hit Damage</option>
+            <option value="MOD_CHC">+6.0% Critical Hit Chance</option>
+            <option value="MOD_HSD">+10.0% Headshot Damage</option>
+            <option value="MOD_PFE">+12.0% Protection From Elites</option>
+            <option value="MOD_SKILL_HASTE">+12.0% Skill Haste</option>
+            <option value="MOD_REPAIR_SKILLS">+20.0% Repair Skills</option>
+          </select>
+          <select id="wb-mod-2" class="shd-select compact" onchange="recalcWorkbench()">
+            <option value="MOD_CHD" selected>+12.0% Critical Hit Damage</option>
+            <option value="MOD_CHC">+6.0% Critical Hit Chance</option>
+            <option value="MOD_HSD">+10.0% Headshot Damage</option>
+            <option value="MOD_PFE">+12.0% Protection From Elites</option>
+            <option value="MOD_SKILL_HASTE">+12.0% Skill Haste</option>
+            <option value="MOD_REPAIR_SKILLS">+20.0% Repair Skills</option>
+          </select>
+          <select id="wb-mod-3" class="shd-select compact" onchange="recalcWorkbench()">
+            <option value="MOD_CHD" selected>+12.0% Critical Hit Damage</option>
+            <option value="MOD_CHC">+6.0% Critical Hit Chance</option>
+            <option value="MOD_HSD">+10.0% Headshot Damage</option>
+            <option value="MOD_PFE">+12.0% Protection From Elites</option>
+            <option value="MOD_SKILL_HASTE">+12.0% Skill Haste</option>
+            <option value="MOD_REPAIR_SKILLS">+20.0% Repair Skills</option>
+          </select>
+          <button class="btn btn-outline btn-xs" onclick="autoBalanceWorkbenchChcMods()" title="Auto-select CHC vs CHD mods to reach 60% CHC without wasting stats">🎯 Auto-Cap 60% CHC</button>
+        </div>
+
+        <!-- 6-SLOT INTERACTIVE CARDS GRID -->
+        <div class="wb-slots-grid" id="wb-slots-grid"></div>
+
+        <!-- WORKBENCH NOTES & KNOWLEDGE DOSSIER -->
+        <div class="wb-notes-box">
+          <label>📝 Tactical Execution Notes &amp; Engagement Loop:</label>
+          <textarea id="wb-loadout-notes" rows="2" placeholder="Describe combat rotation, stack management, and target priority..."></textarea>
+        </div>
+        <div id="wb-dossier-container"></div>
       </section>
 
-      <!-- Center Column: 17 Category Progress Grid (Matches In-Game Layout) -->
-      <section class="panel mpanel-active" id="mpanel-exp-center">
+      <!-- RIGHT: Live 7-Bucket Ballistics, Set Bonuses & 5-Target TTK Matrix -->
+      <aside class="panel workbench-telemetry">
         <div class="panel-header">
-          <span>SELECT CATEGORY TO RESEARCH (TAP +/-)</span>
-          <span id="exp-cat-header-count" style="color:#34d399;">413 / 500 PROFICIENT</span>
+          <h2>📊 Live 7-Bucket Telemetry</h2>
+          <span class="badge badge-accent">Deterministic</span>
         </div>
-        <div class="panel-body" id="expertise-category-grid"></div>
-      </section>
-
-      <!-- Right Column: Item Research Checklist & Filament Calculator -->
-      <section class="panel" id="mpanel-exp-right">
-        <div class="panel-header">
-          <span>ITEM RESEARCH &amp; FILAMENT TRACKER</span>
-        </div>
-        <div class="panel-body" id="expertise-item-tracker"></div>
-      </section>
+        <div id="wb-telemetry-content" class="telemetry-body"></div>
+      </aside>
     </div>
   </main>
 
-  <!-- ===================================================================
-       VIEW 3: ARMORY & CLICK-TO-VERIFY INVENTORY GRID
-       =================================================================== -->
-  <main class="view-container" id="view-armory">
-    <div class="full-layout">
-      <div class="filter-bar">
-        <strong style="color:var(--shd-orange);">FILTER ARMORY:</strong>
-        <input type="text" id="armory-search" placeholder="Search Brand, Item Name, Talent..." oninput="renderArmory()" style="flex:1;min-width:140px;">
-        <select id="armory-slot" onchange="renderArmory()">
-          <option value="ALL">All Slots</option>
-          <option value="MASK">Mask</option>
-          <option value="CHEST">Chest</option>
-          <option value="BACKPACK">Backpack</option>
-          <option value="GLOVES">Gloves</option>
-          <option value="HOLSTER">Holster</option>
-          <option value="KNEEPADS">Kneepads</option>
-        </select>
-        <select id="armory-loc" onchange="renderArmory()">
-          <option value="ALL">All Locs</option>
-          <option value="BACKPACK">Backpack</option>
-          <option value="STASH">Stash</option>
-        </select>
-        <select id="armory-core" onchange="renderArmory()">
-          <option value="ALL">All Cores</option>
-          <option value="RED">🔴 Red</option>
-          <option value="BLUE">🔵 Blue</option>
-          <option value="YELLOW">🟡 Yellow</option>
-        </select>
-      </div>
-      <div class="armory-grid" id="armory-grid-container"></div>
-    </div>
-  </main>
-
-  <!-- ===================================================================
-       VIEW 5: COUNTDOWN TARGETED LOOT FARMING RADAR
-       =================================================================== -->
-  <main class="view-container" id="view-radar">
-    <div class="full-layout">
-      <div class="filter-bar" style="justify-content:space-between;">
+  <!-- ==================================================================== -->
+  <!-- VIEW 3: ARMORY & STASH INVENTORY EXPLORER                            -->
+  <!-- ==================================================================== -->
+  <main class="workspace-view" id="view-armory">
+    <div class="panel armory-full-panel">
+      <div class="panel-header armory-header-bar">
         <div>
-          <strong style="color:var(--shd-orange);font-size:14px;">🎯 COUNTDOWN TARGETED LOOT FARMING ADVISOR</strong>
-          <div style="color:var(--text-muted);font-size:12px;margin-top:2px;">Ranks missing brands &amp; sets across all 13 Endgame Meta Archetypes by Multi-Build Leverage.</div>
+          <h2>🎒 Agent Armory &amp; Stash Explorer (<span id="stash-count">0</span> Items)</h2>
+          <p class="muted-sub">Categorize by Role Archetype, Core, Brand/Set, or Tinkering State • Click 🛠️ Equip to send directly to Workbench</p>
+        </div>
+
+        <div class="armory-controls">
+          <div class="slot-tabs" id="armory-slot-tabs">
+            <button class="slot-tab active" onclick="filterArmorySlot('ALL', this)">ALL</button>
+            <button class="slot-tab" onclick="filterArmorySlot('MASK', this)">MASK</button>
+            <button class="slot-tab" onclick="filterArmorySlot('BACKPACK', this)">BACKPACK</button>
+            <button class="slot-tab" onclick="filterArmorySlot('CHEST', this)">CHEST</button>
+            <button class="slot-tab" onclick="filterArmorySlot('GLOVES', this)">GLOVES</button>
+            <button class="slot-tab" onclick="filterArmorySlot('HOLSTER', this)">HOLSTER</button>
+            <button class="slot-tab" onclick="filterArmorySlot('KNEEPADS', this)">KNEEPADS</button>
+            <button class="slot-tab fav-tab" onclick="filterArmorySlot('FAV', this)">★ FAV</button>
+            <button class="slot-tab trash-tab" onclick="filterArmorySlot('TRASH', this)">🗑️ TRASH</button>
+          </div>
+
+          <input type="text" id="stash-search" class="shd-input compact" placeholder="Search brand, talent, stat..." oninput="renderArmoryGrid()" />
+          <button class="btn btn-danger btn-xs" onclick="clearStashConfirm()">Clear All</button>
         </div>
       </div>
-      <div class="armory-grid" id="radar-grid-container"></div>
+
+      <!-- NEW SLEEK MULTI-DIMENSIONAL GEAR CATEGORIZATION BAR -->
+      <div class="armory-categorization-bar">
+        <div class="cat-pill-group" id="armory-archetype-pills">
+          <span class="cat-group-label">Role Archetype:</span>
+          <button class="filter-pill active" onclick="filterArmoryArchetype('ALL', this)">All Roles</button>
+          <button class="filter-pill" onclick="filterArmoryArchetype('CRIT_DPS', this)">🔴 Crit DPS</button>
+          <button class="filter-pill" onclick="filterArmoryArchetype('HEADSHOT_MMR', this)">🎯 Headshot / MMR</button>
+          <button class="filter-pill" onclick="filterArmoryArchetype('SKILL_DPS', this)">⚡ Skill DPS</button>
+          <button class="filter-pill" onclick="filterArmoryArchetype('STATUS_CC', this)">☣️ Status CC</button>
+          <button class="filter-pill" onclick="filterArmoryArchetype('TANK_REGEN', this)">🛡️ Tank / Regen</button>
+          <button class="filter-pill" onclick="filterArmoryArchetype('HEALER', this)">💉 Healer</button>
+        </div>
+
+        <div class="cat-select-group">
+          <label>Core:</label>
+          <select id="armory-core-filter" class="shd-select compact" onchange="renderArmoryGrid()">
+            <option value="ALL">All Cores</option>
+            <option value="RED">🔴 Weapon Damage</option>
+            <option value="BLUE">🔵 Armor Core</option>
+            <option value="YELLOW">🟡 Skill Tier</option>
+            <option value="TRIPLE">🌈 Triple Core Exotic</option>
+          </select>
+
+          <label>State / Provenance:</label>
+          <select id="armory-state-filter" class="shd-select compact" onchange="renderArmoryGrid()">
+            <option value="ALL">All States</option>
+            <option value="VIRGIN">🌱 Virgin (Unrecalibrated)</option>
+            <option value="RECALIBRATED">🔧 Wrench Recalibrated</option>
+            <option value="PROTOTYPE">🟣 Prototype Overcap</option>
+            <option value="PIP_DEDUCED">⚡ Pip Deduced (Needs Review)</option>
+            <option value="OCR_DIRECT">✔ OCR Direct / Verified</option>
+            <option value="IN_LOADOUT">🛡️ Used in Meta Build</option>
+          </select>
+
+          <label>Group By:</label>
+          <select id="armory-group-by" class="shd-select compact" onchange="renderArmoryGrid()">
+            <option value="NONE">Standard Tactical Grid</option>
+            <option value="ARCHETYPE">Group by Role Archetype</option>
+            <option value="BRAND">Group by Brand / Gear Set</option>
+            <option value="SLOT">Group by Gear Slot</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="armory-grid" class="armory-cards-grid"></div>
     </div>
   </main>
 
-  <!-- ===================================================================
-       VIEW 6: STASH DECONSTRUCT ADVISOR (DOMINATED DUPLICATES)
-       =================================================================== -->
-  <main class="view-container" id="view-decon">
-    <div class="full-layout">
-      <div class="filter-bar" style="justify-content:space-between;">
-        <div>
-          <strong style="color:#f87171;font-size:14px;">🗑️ STASH DECONSTRUCT &amp; CLEANUP ADVISOR</strong>
-          <div style="color:var(--text-muted);font-size:12px;margin-top:2px;">Items below are strictly dominated by a higher-rolled piece of the same Brand + Slot AND are not locked in any Saved Loadout.</div>
-        </div>
+  <!-- ==================================================================== -->
+  <!-- VIEW 4: EXPERTISE 413/500 MASTERY TRACKER                            -->
+  <!-- ==================================================================== -->
+  <main class="workspace-view" id="view-expertise">
+    <div class="expertise-layout">
+      <!-- Top Summary KPI Strip -->
+      <div class="expertise-kpi-strip" id="expertise-kpi-strip"></div>
+
+      <div class="expertise-split">
+        <!-- LEFT: Category Progress Bars (500 Total Items) -->
+        <section class="panel exp-categories-panel">
+          <div class="panel-header">
+            <h2>📊 Proficiency Categories (413 / 500)</h2>
+            <div class="exp-bulk-btns">
+              <button class="btn btn-outline btn-xs" onclick="setAllExpertise(true)">Max All (500/500)</button>
+              <button class="btn btn-outline btn-xs" onclick="setAllExpertise(false)">Reset (0/500)</button>
+            </div>
+          </div>
+          <div id="exp-categories-list" class="exp-cat-list"></div>
+        </section>
+
+        <!-- RIGHT: Granular Missing / Upgradeable Item Tracker -->
+        <section class="panel exp-items-panel">
+          <div class="panel-header">
+            <h2>🔍 Individual Item Proficiency &amp; Printer Filament Calculator</h2>
+            <div class="exp-filter-controls">
+              <select id="exp-status-filter" class="shd-select compact" onchange="renderExpertiseView()">
+                <option value="ALL">All Tracked Items</option>
+                <option value="MISSING" selected>⚠️ Not Yet Proficient (Needs Donation/Kill XP)</option>
+                <option value="PROFICIENT">✅ Proficient (Rank 10)</option>
+              </select>
+              <input type="text" id="exp-item-search" class="shd-input compact" placeholder="Search weapon, named item, exotic..." oninput="renderExpertiseView()" />
+            </div>
+          </div>
+          <div id="exp-items-list" class="exp-items-grid"></div>
+        </section>
       </div>
-      <div class="armory-grid" id="decon-grid-container"></div>
     </div>
   </main>
 
-  <!-- Sticky Mobile 6-Tab Bottom Navigation Bar (Visible on <=860px) -->
+  <!-- ==================================================================== -->
+  <!-- MOBILE BOTTOM NAVIGATION BAR (Shown on < 920px screens)              -->
+  <!-- ==================================================================== -->
   <nav class="mobile-bottom-nav">
-    <button class="mnav-btn active" id="mtab-matrix" onclick="switchView('matrix')">
-      <span class="mnav-ico">🎯</span>
-      <span>Matrix</span>
+    <button class="mnav-btn active" data-view="matrix" onclick="switchMainView('matrix')">
+      <span class="mnav-icon">🎯</span>
+      <span class="mnav-label">Builds</span>
     </button>
-    <button class="mnav-btn" id="mtab-workbench" onclick="switchView('workbench')">
-      <span class="mnav-ico">🛠️</span>
-      <span>Workbench</span>
+    <button class="mnav-btn" data-view="workbench" onclick="switchMainView('workbench')">
+      <span class="mnav-icon">🛠️</span>
+      <span class="mnav-label">Workbench</span>
     </button>
-    <button class="mnav-btn" id="mtab-armory" onclick="switchView('armory')">
-      <span class="mnav-ico">🎒</span>
-      <span>Armory (<span id="mnav-count-armory">0</span>)</span>
+    <button class="mnav-btn" data-view="armory" onclick="switchMainView('armory')">
+      <span class="mnav-icon">🎒</span>
+      <span class="mnav-label">Armory (<span id="mnav-count-armory">0</span>)</span>
     </button>
-    <button class="mnav-btn" id="mtab-expertise" onclick="switchView('expertise')">
-      <span class="mnav-ico">🎖️</span>
-      <span>Expertise</span>
-    </button>
-    <button class="mnav-btn" id="mtab-radar" onclick="switchView('radar')">
-      <span class="mnav-ico">📡</span>
-      <span>Radar</span>
-    </button>
-    <button class="mnav-btn" id="mtab-decon" onclick="switchView('decon')">
-      <span class="mnav-ico">🗑️</span>
-      <span>Decon</span>
+    <button class="mnav-btn" data-view="expertise" onclick="switchMainView('expertise')">
+      <span class="mnav-icon">⭐</span>
+      <span class="mnav-label">Expertise</span>
     </button>
   </nav>
 
-  <!-- Click-to-Verify Item Modal -->
-  <div class="modal-backdrop" id="verify-modal" onclick="if(event.target===this) closeVerifyModal()">
-    <div class="modal-card" id="verify-modal-content"></div>
+  <!-- ==================================================================== -->
+  <!-- MODAL 1: WORKBENCH SLOT PICKER (Equip Owned Armory Item or Theorycraft) -->
+  <!-- ==================================================================== -->
+  <div class="modal-backdrop hidden" id="slot-picker-modal" onclick="if(event.target===this) closeSlotPickerModal()">
+    <div class="modal-card wide-modal">
+      <div class="modal-header">
+        <h3 id="slot-picker-title">Configure Slot: MASK</h3>
+        <button class="btn-close" onclick="closeSlotPickerModal()">✕</button>
+      </div>
+      <div class="modal-body slot-picker-split">
+        <!-- Left: Owned Armory Items for this Slot -->
+        <div class="sp-col">
+          <h4>🎒 Pick From Owned Armory (<span id="sp-owned-count">0</span>)</h4>
+          <div id="sp-owned-list" class="sp-owned-list"></div>
+        </div>
+        <!-- Right: Custom Theorycraft Configurator -->
+        <div class="sp-col sp-theory-col">
+          <h4>🧪 Or Theorycraft Any Piece</h4>
+          <div class="form-group">
+            <label>Brand / Gear Set / Named / Exotic:</label>
+            <select id="sp-brand-select" class="shd-select" onchange="handleSpBrandChange()"></select>
+          </div>
+          <div class="form-group">
+            <label>Custom Item Name (Optional):</label>
+            <input type="text" id="sp-item-name" class="shd-input" placeholder="e.g. Backbone, The Sacrifice, Lengmo Mask..." />
+          </div>
+          <div class="form-group">
+            <label>Core Attribute:</label>
+            <select id="sp-core-select" class="shd-select">
+              <option value="WEAPON_DAMAGE">🔴 +15.0% Weapon Damage</option>
+              <option value="ARMOR">🔵 +170,000 Armor</option>
+              <option value="SKILL_TIER">🟡 +1 Skill Tier</option>
+              <option value="TRIPLE_CORE">🌈 Exotic Triple Core (Red + Blue + Yellow)</option>
+            </select>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Minor #1 Stat &amp; Roll:</label>
+              <select id="sp-m1-stat" class="shd-select compact" style="margin-bottom:4px;" onchange="handleSpMinorStatChange(1)">
+                <option value="CRITICAL_HIT_CHANCE">Critical Hit Chance (%)</option>
+                <option value="CRITICAL_HIT_DAMAGE">Critical Hit Damage (%)</option>
+                <option value="DAMAGE_TO_ARMOR">Damage to Armor (%)</option>
+                <option value="DTTOOC">DMG to Target Out of Cover (%)</option>
+                <option value="HEADSHOT_DAMAGE">Headshot Damage (%)</option>
+                <option value="WEAPON_HANDLING">Weapon Handling (%)</option>
+                <option value="SKILL_DAMAGE">Skill Damage (%)</option>
+                <option value="SKILL_HASTE">Skill Haste (%)</option>
+                <option value="STATUS_EFFECTS">Status Effects (%)</option>
+                <option value="SKILL_REPAIR">Repair Skills (%)</option>
+                <option value="ARMOR_REGEN">Armor Regen (HP/s)</option>
+                <option value="HAZARD_PROTECTION">Hazard Protection (%)</option>
+              </select>
+              <input type="number" step="0.1" id="sp-m1-val" class="shd-input" value="6.0" />
+            </div>
+            <div class="form-group">
+              <label>Minor #2 Stat &amp; Roll:</label>
+              <select id="sp-m2-stat" class="shd-select compact" style="margin-bottom:4px;" onchange="handleSpMinorStatChange(2)">
+                <option value="CRITICAL_HIT_DAMAGE">Critical Hit Damage (%)</option>
+                <option value="CRITICAL_HIT_CHANCE">Critical Hit Chance (%)</option>
+                <option value="NONE">🚫 None (Gear Set 1-Minor Rule)</option>
+                <option value="DAMAGE_TO_ARMOR">Damage to Armor (%)</option>
+                <option value="DTTOOC">DMG to Target Out of Cover (%)</option>
+                <option value="HEADSHOT_DAMAGE">Headshot Damage (%)</option>
+                <option value="WEAPON_HANDLING">Weapon Handling (%)</option>
+                <option value="SKILL_DAMAGE">Skill Damage (%)</option>
+                <option value="SKILL_HASTE">Skill Haste (%)</option>
+                <option value="STATUS_EFFECTS">Status Effects (%)</option>
+                <option value="SKILL_REPAIR">Repair Skills (%)</option>
+                <option value="ARMOR_REGEN">Armor Regen (HP/s)</option>
+                <option value="HAZARD_PROTECTION">Hazard Protection (%)</option>
+              </select>
+              <input type="number" step="0.1" id="sp-m2-val" class="shd-input" value="12.0" />
+            </div>
+          </div>
+          <div class="form-group" id="sp-talent-group">
+            <label>Talent (Chest / Backpack):</label>
+            <input type="text" id="sp-talent-input" class="shd-input" placeholder="e.g. Perfect Glass Cannon, Obliterate, Perfect Unstoppable Force..." />
+          </div>
+          <button class="btn btn-primary" style="width:100%; margin-top:10px;" onclick="applyTheorycraftSlot()">
+            ✅ Apply Theorycraft Piece to Slot
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Backup / Restore & PC <-> Hub Sync Modal -->
-  <div class="modal-backdrop" id="backup-modal" onclick="if(event.target===this) closeBackupModal()">
-    <div class="modal-card" id="backup-modal-content" style="width:720px;"></div>
+  <!-- ==================================================================== -->
+  <!-- MODAL 2: CLICK-TO-VERIFY & INLINE ITEM EDITOR                        -->
+  <!-- ==================================================================== -->
+  <div class="modal-backdrop hidden" id="verify-modal" onclick="if(event.target===this) closeVerifyModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="verify-modal-title">🔍 Click-to-Verify &amp; Edit Gear Piece</h3>
+        <button class="btn-close" onclick="closeVerifyModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="verify-crop-preview" id="verify-crop-container"></div>
+        <input type="hidden" id="edit-item-id" />
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Slot:</label>
+            <select id="edit-slot" class="shd-select">
+              <option value="MASK">MASK</option>
+              <option value="BACKPACK">BACKPACK</option>
+              <option value="CHEST">CHEST</option>
+              <option value="GLOVES">GLOVES</option>
+              <option value="HOLSTER">HOLSTER</option>
+              <option value="KNEEPADS">KNEEPADS</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Rarity:</label>
+            <select id="edit-rarity" class="shd-select">
+              <option value="HIGH_END">High-End (Gold)</option>
+              <option value="NAMED_HIGH_END">Named High-End</option>
+              <option value="GEAR_SET">Gear Set (Teal)</option>
+              <option value="EXOTIC">Exotic (Red)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Brand or Gear Set:</label>
+            <input type="text" id="edit-brand" class="shd-input" />
+          </div>
+          <div class="form-group">
+            <label>Item Name:</label>
+            <input type="text" id="edit-name" class="shd-input" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Core Attribute Type:</label>
+            <select id="edit-core-type" class="shd-select" onchange="handleEditCoreTypeChange(this.value)">
+              <option value="WEAPON_DAMAGE">WEAPON_DAMAGE (+%)</option>
+              <option value="ARMOR">ARMOR (+HP)</option>
+              <option value="SKILL_TIER">SKILL_TIER (+1)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Core Value:</label>
+            <input type="number" step="0.1" id="edit-core-val" class="shd-input" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Minor #1 Type &amp; Value:</label>
+            <select id="edit-m1-type" class="shd-select"></select>
+            <input type="number" step="0.1" id="edit-m1-val" class="shd-input" style="margin-top:4px;" />
+          </div>
+          <div class="form-group">
+            <label>Minor #2 Type &amp; Value:</label>
+            <select id="edit-m2-type" class="shd-select"></select>
+            <input type="number" step="0.1" id="edit-m2-val" class="shd-input" style="margin-top:4px;" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Talent (Chest/Backpack):</label>
+            <input type="text" id="edit-talent" class="shd-input" placeholder="Leave blank if none" />
+          </div>
+          <div class="form-group">
+            <label>🔧 Recalibration Wrench Lock:</label>
+            <select id="edit-recal-lock" class="shd-select">
+              <option value="NONE">🌱 Virgin (No Slot Locked)</option>
+              <option value="CORE">🔧 Core Attribute Recalibrated</option>
+              <option value="MINOR_0">🔧 Minor Attribute #1 Recalibrated</option>
+              <option value="MINOR_1">🔧 Minor Attribute #2 Recalibrated</option>
+              <option value="TALENT">🔧 Talent Recalibrated</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.82rem; color:var(--text-main);">
+            <input type="checkbox" id="edit-is-prototype" />
+            🟣 Prototype Overcap Item (Allows 22.5% WD / 9.0% CHC / Augment)
+          </label>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
+          <button class="btn btn-outline" onclick="closeVerifyModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveInlineEditedItem()">✅ Save &amp; Mark Verified</button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Custom Build Creator Modal -->
-  <div class="modal-backdrop" id="builder-modal" onclick="if(event.target===this) closeBuilderModal()">
-    <div class="modal-card" id="builder-modal-content" style="width:740px;"></div>
+  <!-- ==================================================================== -->
+  <!-- MODAL 3: BACKUP, RESTORE & ANDROID HUB SYNC                          -->
+  <!-- ==================================================================== -->
+  <div class="modal-backdrop hidden" id="backup-modal" onclick="if(event.target===this) closeBackupModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>💾 Data Persistence, Snapshots &amp; Android Hub Sync</h3>
+        <button class="btn-close" onclick="closeBackupModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="muted-sub" style="margin-bottom:12px;">
+          Your Armory, Saved Loadouts, and Expertise 413/500 progress are persisted in SQLite (`data/shd_armory.db`) on PC and isolated per-user `localStorage` on Android Hub.
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+          <button class="btn btn-primary btn-sm" onclick="downloadJsonBackup()">⬇️ Download JSON Backup</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('backup-import-input').click()">⬆️ Import JSON Backup</button>
+          <input type="file" id="backup-import-input" accept=".json" hidden onchange="handleBackupFileImport(this.files[0])" />
+          <button class="btn btn-gold btn-sm" onclick="triggerPcToHubSync()">📱 Sync PC State -&gt; Android Hub Cartridge</button>
+          <button class="btn btn-outline btn-sm" onclick="syncFromEmbeddedPcSeed()">🔄 Reset Phone Profile to Embedded PC Seed</button>
+        </div>
+        <div id="backup-status-msg" class="ingest-status" style="margin-bottom:10px;"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Workbench Slot Picker Modal -->
-  <div class="modal-backdrop" id="slot-picker-modal" onclick="if(event.target===this) closeSlotPickerModal()">
-    <div class="modal-card" id="slot-picker-content" style="width:760px;"></div>
-  </div>
-
-  <div class="toast" id="toast-banner"></div>
-
+  <!-- SCRIPTS: Seed Bundle -> Storage Adapter -> Main App Controller -->
   <script src="../../bridge/rollup-bridge.js"></script>
-  <script src="./shd_solver_portable.js?v=5"></script>
-  <script src="./shd_storage_adapter.js?v=5"></script>
-  <script src="./app.js?v=5"></script>
+  <script src="shd_solver_portable.js"></script>
+  <script src="shd_storage_adapter.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

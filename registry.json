@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.8",
-    "updated_at": "2026-10-27T02:18:52.299156",
+    "version": "1.0.9",
+    "updated_at": "2026-10-27T09:22:57.472448",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -39,8 +39,8 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-              "tailscale_workstation_url": "http://192.168.86.47:8765",
+              "primary_workstation_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+              "tailscale_workstation_url": "http://10.0.0.91:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
             "csc-site-discovery": {
@@ -108,9 +108,9 @@
       ]
     },
     "apk_version": "1.2.0",
-    "build_hash": "d5702ac023",
-    "stamped_version": "1.0.8",
-    "ota_etag": "641cfc9106"
+    "build_hash": "970db01240",
+    "stamped_version": "1.0.9",
+    "ota_etag": "18b2fef1d5"
   },
   "apps": [
     {
@@ -121,7 +121,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -133,15 +133,15 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-          "defaultForAdmin": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
+          "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+          "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
           "label": "Secondary / Tailscale Workstation URL (Optional)",
           "type": "text",
-          "default": "http://192.168.86.47:8765",
-          "defaultForAdmin": "http://192.168.86.47:8765"
+          "default": "http://10.0.0.91:8765",
+          "defaultForAdmin": "http://10.0.0.91:8765"
         },
         {
           "key": "sidecar_token",
@@ -151,13 +151,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "8be8f4015a",
-      "stamped_version": "1.4.0",
-      "updated_at": "2026-10-26T23:49:05.976309",
+      "build_hash": "e84c3a9e49",
+      "stamped_version": "1.4.1",
+      "updated_at": "2026-10-27T09:22:57.683857",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "8be8f4015a",
-      "manual_updated_at": "2026-10-26T23:49:34.649205"
+      "manual_source_hash": "e84c3a9e49",
+      "manual_updated_at": "2026-10-27T09:23:01.106488"
     },
     {
       "id": "fantasy-manager",
@@ -213,7 +213,7 @@
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.3.0",
+      "version": "3.3.1",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -238,13 +238,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "516c8e3f82",
-      "stamped_version": "3.3.0",
-      "updated_at": "2026-10-26T23:49:05.976309",
+      "build_hash": "2debfaf71d",
+      "stamped_version": "3.3.1",
+      "updated_at": "2026-10-27T08:16:16.313188",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "516c8e3f82",
-      "manual_updated_at": "2026-10-26T23:49:44.394425"
+      "manual_source_hash": "2debfaf71d",
+      "manual_updated_at": "2026-10-27T08:16:18.131782"
     },
     {
       "id": "field-snap",
@@ -308,7 +308,7 @@
       "icon": "\ud83e\udd85",
       "accent": "#ff6b00",
       "category": "Gaming & Tactical Tools",
-      "version": "4.2.0",
+      "version": "4.2.1",
       "entry": "apps/shd-div2-intel/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -334,13 +334,13 @@
           "defaultForAdmin": "true"
         }
       ],
-      "build_hash": "bd8b573ae1",
-      "stamped_version": "4.2.0",
-      "updated_at": "2026-10-26T15:03:07.425531",
+      "build_hash": "69c2924d6d",
+      "stamped_version": "4.2.1",
+      "updated_at": "2026-10-27T08:16:16.313188",
       "manual_pdf": "manuals/shd-div2-intel_User_Manual.pdf",
       "manual_html": "manuals/shd-div2-intel_User_Manual.html",
-      "manual_source_hash": "bd8b573ae1",
-      "manual_updated_at": "2026-10-26T15:10:27.103956"
+      "manual_source_hash": "69c2924d6d",
+      "manual_updated_at": "2026-10-27T08:16:19.783100"
     },
     {
       "id": "sapphire-companion",
@@ -377,11 +377,11 @@
       "id": "lightning-garage",
       "title": "Blue Oval Garage",
       "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 USB-C Live Backup, VIN Scanner & As-Built Engine",
-      "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Native USB-C OTG Read-Only OBD-II As-Built Snapshot & 12V ATRV Battery Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Stale Pre-OTA F188 Guard, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, 183 Community Recipes across 6 Platforms + 21 Spreadsheets, and Hybrid VIN Scanner.",
+      "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Native USB-C OTG Read-Only OBD-II As-Built Snapshot & 12V ATRV Battery Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Strict Baseline Parity Gate & Stale Pre-OTA F188 Guard, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, 183 Community Recipes across 6 Platforms + 21 Spreadsheets, and Hybrid VIN Scanner.",
       "icon": "\u26a1",
       "accent": "#38bdf8",
       "category": "Automotive & Telemetry",
-      "version": "2.1.1",
+      "version": "2.1.2",
       "entry": "apps/lightning-garage/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -414,13 +414,13 @@
           "defaultForAdmin": "Extended Range (131 kWh)"
         }
       ],
-      "build_hash": "9b769fbc89",
-      "stamped_version": "2.1.1",
-      "updated_at": "2026-10-27T02:18:52.299156",
+      "build_hash": "c02bd2678a",
+      "stamped_version": "2.1.2",
+      "updated_at": "2026-10-27T09:03:33.060694",
       "manual_pdf": "manuals/lightning-garage_User_Manual.pdf",
       "manual_html": "manuals/lightning-garage_User_Manual.html",
-      "manual_source_hash": "9b769fbc89",
-      "manual_updated_at": "2026-10-27T02:18:54.734384"
+      "manual_source_hash": "c02bd2678a",
+      "manual_updated_at": "2026-10-27T08:58:14.267513"
     }
   ]
 }
