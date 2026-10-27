@@ -433,6 +433,135 @@
       word-break: break-word;
     }
 
+    /* 1-Line Condensed Sent & Queued User Message Cards */
+    .user-msg-card {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(79, 70, 229, 0.26));
+      border: 1px solid rgba(99, 102, 241, 0.42);
+      border-left: 3px solid #6366f1;
+      border-radius: 12px;
+      margin-left: 14px;
+      overflow: hidden;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .user-msg-card.queued {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.18));
+      border-color: rgba(245, 158, 11, 0.45);
+      border-left-color: #f59e0b;
+    }
+
+    .user-msg-1line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 11px;
+      cursor: pointer;
+      user-select: none;
+      min-height: 36px;
+    }
+
+    .user-msg-1line:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .user-msg-badge {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .user-msg-badge.sent {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.38);
+    }
+
+    .user-msg-badge.queued {
+      background: rgba(245, 158, 11, 0.22);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.48);
+    }
+
+    .user-msg-preview {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-msg-img-indicator {
+      font-size: 11.5px;
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 1px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .user-msg-chev {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+    }
+
+    .user-msg-drawer {
+      display: none;
+      padding: 9px 12px 11px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(9, 13, 22, 0.55);
+      font-size: 13px;
+      color: #f1f5f9;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .user-msg-card.open .user-msg-drawer {
+      display: block;
+    }
+
+    .user-msg-media-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .user-msg-thumb {
+      width: 84px;
+      height: 84px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      cursor: pointer;
+      background: #090d16;
+    }
+
+    .slash-pill-inline {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.28));
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      color: #7dd3fc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 0px 6px;
+      border-radius: 6px;
+      margin: 0 2px;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+    }
+
     .bubble-agent {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
@@ -795,6 +924,10 @@
       scrollbar-width: none;
     }
 
+    .quick-chips.collapsed-bar {
+      display: none;
+    }
+
     .quick-chips::-webkit-scrollbar { display: none; }
 
     .quick-chip {
@@ -808,10 +941,155 @@
       cursor: pointer;
     }
 
-    .steer-input-row {
+    /* Slash Command Autocomplete Popup Menu */
+    .slash-autocomplete-menu {
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      max-height: 196px;
+      overflow-y: auto;
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .slash-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+    }
+
+    .slash-menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .slash-menu-item:hover, .slash-menu-item:active, .slash-menu-item.active-item {
+      background: rgba(56, 189, 248, 0.14);
+    }
+
+    .slash-menu-cmd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #38bdf8;
+      white-space: nowrap;
+    }
+
+    .slash-menu-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      text-align: right;
+    }
+
+    /* Pending Image Attachment Thumbnail Strip */
+    .steer-attachment-strip {
       display: flex;
       gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: none;
+    }
+
+    .steer-attachment-strip::-webkit-scrollbar { display: none; }
+
+    .pending-thumb-wrap {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      flex-shrink: 0;
+      background: #090d16;
+    }
+
+    .pending-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .pending-thumb-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(9, 13, 22, 0.88);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .steer-input-row {
+      display: flex;
+      gap: 6px;
       align-items: flex-end;
+    }
+
+    .steer-composer-box {
+      flex: 1;
+      min-width: 0;
+      background: #0b1120;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 5px 9px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      transition: border-color 0.15s ease;
+    }
+
+    .steer-composer-box:focus-within {
+      border-color: var(--accent-cyan);
+    }
+
+    .steer-cmd-pills {
+      display: contents;
+    }
+
+    .cmd-pill-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.3));
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      color: #e0f2fe;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 7px;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
+      user-select: none;
+    }
+
+    .cmd-pill-chip button {
+      background: transparent;
+      border: none;
+      color: #93c5fd;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 0 0 0 2px;
+      cursor: pointer;
+      line-height: 1;
     }
 
     .steer-input {
@@ -825,6 +1103,16 @@
       font-size: 13.5px;
       line-height: 20px;
       outline: none;
+    }
+
+    .steer-composer-box textarea.steer-input {
+      border: none;
+      background: transparent;
+      padding: 4px 2px;
+      min-height: 30px;
+      max-height: 76px;
+      min-width: 110px;
+      flex: 1;
     }
 
     textarea.steer-input {
@@ -843,7 +1131,7 @@
     }
 
     .icon-btn {
-      width: 42px;
+      width: 38px;
       height: 42px;
       border-radius: 10px;
       border: 1px solid var(--border-subtle);
@@ -852,9 +1140,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 17px;
+      font-size: 16px;
       cursor: pointer;
       flex-shrink: 0;
+    }
+
+    .icon-btn.active-toggle {
+      border-color: rgba(56, 189, 248, 0.55);
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--accent-cyan);
     }
 
     .icon-btn.send {
@@ -1120,16 +1414,26 @@
 
       <!-- One-Handed Quick Steer Dock -->
       <div class="steer-dock">
-        <div class="quick-chips">
+        <div id="slashAutocompleteMenu" class="slash-autocomplete-menu" style="display:none;"></div>
+        <div id="quickChipsBar" class="quick-chips collapsed-bar">
           <button class="quick-chip" onclick="sendQuickSteer('APPROVE', 'Proceed with the recommended plan.')">✅ Approve & Proceed</button>
           <button class="quick-chip" onclick="sendQuickSteer('STEER', 'Compile findings into a clean PDF report in the workspace.')">📄 Export PDF</button>
           <button class="quick-chip" onclick="sendQuickSteer('STEER', 'Run tests and verify deterministic output.')">🧪 Run Tests</button>
+          <button class="quick-chip" onclick="lockSlashCommandPill('/boost')">🚀 /boost</button>
+          <button class="quick-chip" onclick="lockSlashCommandPill('/grill-me')">🔥 /grill-me</button>
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/compact')">🗜️ /compact</button>
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/goal')">🎯 /goal</button>
         </div>
+        <div id="steerAttachmentStrip" class="steer-attachment-strip" style="display:none;"></div>
+        <input type="file" id="steerImageInput" accept="image/*" multiple style="display:none;" onchange="handleSteerImageSelect(event)" />
         <div class="steer-input-row">
+          <button id="quickChipsToggleBtn" class="icon-btn" onclick="toggleQuickChipsBar()" title="Toggle Quick Commands">⚡</button>
           <button id="micBtn" class="icon-btn" onclick="toggleVoiceInput()" title="Push-to-Talk Voice Steer">🎙️</button>
-          <textarea id="steerInput" class="steer-input" rows="1" enterkeyhint="enter" placeholder="Steer agent or type /command…" oninput="autoResizeChatBox(this)"></textarea>
+          <button id="attachImgBtn" class="icon-btn" onclick="triggerSteerImagePicker()" title="Attach Picture or Screenshot">📷</button>
+          <div class="steer-composer-box" onclick="document.getElementById('steerInput').focus()">
+            <div id="steerCommandPills" class="steer-cmd-pills"></div>
+            <textarea id="steerInput" class="steer-input" rows="1" enterkeyhint="send" placeholder="Steer agent or type /command…" oninput="handleSteerInputChange(this)" onkeydown="handleSteerInputKeydown(event)"></textarea>
+          </div>
           <button class="icon-btn send" onclick="submitSteerInput()">↑</button>
         </div>
       </div>
@@ -1215,12 +1519,15 @@
     </section>
   </div>
 
-  <!-- Artifact Preview Bottom Sheet -->
+  <!-- Artifact & Image Preview Bottom Sheet -->
   <div id="previewModal" class="modal-backdrop" onclick="if(event.target===this) closeModal()">
     <div class="modal-sheet">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <strong id="modalTitle" style="font-size:14px;">Artifact Preview</strong>
         <button class="pill-btn" onclick="closeModal()">✕ Close</button>
+      </div>
+      <div id="modalImageWrap" style="display:none;text-align:center;margin-bottom:8px;">
+        <img id="modalImage" src="" alt="Preview" style="max-width:100%;max-height:70vh;border-radius:10px;border:1px solid var(--border-subtle);" />
       </div>
       <pre id="modalBody" style="white-space:pre-wrap;word-break:break-word;font-size:12.5px;color:#e2e8f0;background:#090d16;padding:12px;border-radius:10px;border:1px solid var(--border-subtle);"></pre>
     </div>
@@ -1250,7 +1557,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_CLOUD_TUNNEL_URL = 'https://outcomes-uniprotkb-catherine-fought.trycloudflare.com';
+    const DEFAULT_CLOUD_TUNNEL_URL = 'https://unexpected-computing-director-atmosphere.trycloudflare.com';
     const WORK_PC_LAN_URL = 'http://10.0.0.91:8765';
     const HOME_PC_LAN_URL = 'http://192.168.86.47:8765';
     function resolveDefaultLanUrl() {
@@ -1475,6 +1782,8 @@
       if (btn) btn.classList.add('active');
       if (tabName !== 'trajectory') {
         scrollToTopImmediate();
+      } else {
+        loadSkillsCatalog();
       }
       if (tabName === 'vault') loadVault();
       if (tabName === 'ops') {
@@ -1484,19 +1793,25 @@
     }
 
     let skillsCatalogLoaded = false;
+    window._installedSkillCommands = [];
     async function loadSkillsCatalog() {
       if (skillsCatalogLoaded) return;
       const sel = document.getElementById('skillQuickSelect');
-      if (!sel) return;
       try {
         const res = await gravityFetch(`${getActiveHostBase()}/api/v1/skills`);
         const data = await res.json();
         const skills = data.skills || [];
-        for (const s of skills) {
-          const opt = document.createElement('option');
-          opt.value = s.slug;
-          opt.textContent = `🛠 ${s.slug}${s.has_cli ? ' [CLI]' : ''}`;
-          sel.appendChild(opt);
+        window._installedSkillCommands = skills.map(s => ({
+          cmd: '/' + s.slug,
+          desc: s.description || 'Installed Antigravity Skill'
+        }));
+        if (sel) {
+          for (const s of skills) {
+            const opt = document.createElement('option');
+            opt.value = s.slug;
+            opt.textContent = `🛠 ${s.slug}${s.has_cli ? ' [CLI]' : ''}`;
+            sel.appendChild(opt);
+          }
         }
         skillsCatalogLoaded = true;
       } catch (e) {}
@@ -2367,12 +2682,39 @@
         pendingPlumbing = [];
       }
 
-      const rawSteps = data.steps || [];
+      window._expandedUserMsgs = window._expandedUserMsgs || new Set();
+      window._optimisticUserSteps = window._optimisticUserSteps || [];
+
+      // Merge any optimistic mobile steps for this conversation that have not yet appeared in server steps
+      const serverSteps = Array.isArray(data.steps) ? data.steps.slice() : [];
+      const activeOpt = [];
+      for (const opt of window._optimisticUserSteps) {
+        if (opt.conversation_id !== currentConversationId) {
+          if (Date.now() - (opt.added_ms || 0) < 60000) activeOpt.push(opt);
+          continue;
+        }
+        const optText = String(opt.content || '').trim();
+        const matchedOnServer = serverSteps.some(s => {
+          if (s.type !== 'USER_INPUT') return false;
+          const sText = String(s.content || '').trim();
+          if (optText && (sText === optText || sText.includes(optText))) return true;
+          if (!optText && opt.media && opt.media.length > 0 && s.media && s.media.length > 0) return true;
+          return false;
+        });
+        if (!matchedOnServer && Date.now() - (opt.added_ms || 0) < 45000) {
+          activeOpt.push(opt);
+          serverSteps.push(opt);
+        }
+      }
+      window._optimisticUserSteps = activeOpt;
+
+      const rawSteps = serverSteps;
       for (let idx = 0; idx < rawSteps.length; idx++) {
         const st = rawSteps[idx];
-        if (st.type === 'USER_INPUT' && st.content) {
+        const hasMedia = Array.isArray(st.media) && st.media.length > 0;
+        if (st.type === 'USER_INPUT' && (st.content || hasMedia)) {
           flushPlumbingGroup(false, st.created_at);
-          html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(st.content)}</div></div>`);
+          html.push(renderUserMessageCard(st, idx));
         } else {
           if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {
             pendingPlumbing.push(st);
@@ -2395,50 +2737,499 @@
       }
     }
 
-    async function sendQuickSteer(action, message) {
+    const BUILT_IN_SLASH_COMMANDS = [
+      { cmd: '/boost', desc: 'Boost reasoning depth & verification rigor' },
+      { cmd: '/grill-me', desc: 'Interactive design challenge & decision lock' },
+      { cmd: '/plan', desc: 'Create structured implementation plan' },
+      { cmd: '/compact', desc: 'Compact conversation context window' },
+      { cmd: '/goal', desc: 'Set or refine primary session goal' },
+      { cmd: '/learn', desc: 'Log lesson into Knowledge Playbook' },
+      { cmd: '/schedule', desc: 'Schedule recurring or delayed task' },
+      { cmd: '/browser', desc: 'Inspect or automate via browser' },
+      { cmd: '/automation', desc: 'Audit or design workflow automation' }
+    ];
+
+    function getAllSlashCommands() {
+      const seen = new Set();
+      const out = [];
+      for (const item of [...BUILT_IN_SLASH_COMMANDS, ...(window._installedSkillCommands || [])]) {
+        const key = item.cmd.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push(item);
+        }
+      }
+      return out;
+    }
+
+    function matchRecognizedSlashCommand(token) {
+      const clean = String(token || '').trim().toLowerCase();
+      if (!clean.startsWith('/') || clean.length < 2) return null;
+      const all = getAllSlashCommands();
+      const exact = all.find(c => c.cmd.toLowerCase() === clean);
+      return exact ? exact.cmd : null;
+    }
+
+    function formatUserTextWithSlashPills(rawText, singleLine = false) {
+      let text = String(rawText || '').trim();
+      if (!text) return '';
+      if (singleLine) {
+        text = text.replace(/\s+/g, ' ');
+      }
+      const escaped = escapeHtml(text);
+      return escaped.replace(/(^|\s)(\/[a-zA-Z0-9_-]+)(?=\s|$)/g, (m, pre, cmd) => {
+        return `${pre}<span class="slash-pill-inline">${cmd}</span>`;
+      });
+    }
+
+    function renderUserMessageCard(st, idx) {
+      window._expandedUserMsgs = window._expandedUserMsgs || new Set();
+      const rawText = String(st.content || '').trim();
+      const mediaList = Array.isArray(st.media) ? st.media : [];
+      const isQueued = st.status === 'QUEUED' || st.source === 'USER_MOBILE_QUEUED';
+      const msgKey = `${currentConversationId || 'conv'}_umsg_${st.step_index !== undefined ? st.step_index : idx}_${rawText.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '')}`;
+      const isOpen = window._expandedUserMsgs.has(msgKey);
+
+      const badgeHtml = isQueued
+        ? `<span class="user-msg-badge queued">⏳ Queued</span>`
+        : `<span class="user-msg-badge sent">✓ Sent</span>`;
+
+      const imgIndicatorHtml = mediaList.length > 0
+        ? `<span class="user-msg-img-indicator" title="${mediaList.length} attached image(s)">🖼️${mediaList.length > 1 ? '×' + mediaList.length : ''}</span>`
+        : '';
+
+      const previewHtml = rawText
+        ? formatUserTextWithSlashPills(rawText, true)
+        : `<span style="color:#93c5fd;font-style:italic;">Attached ${mediaList.length} image${mediaList.length > 1 ? 's' : ''}</span>`;
+
+      const fullTextHtml = rawText
+        ? `<div>${formatUserTextWithSlashPills(rawText, false)}</div>`
+        : '';
+
+      let mediaGridHtml = '';
+      if (mediaList.length > 0) {
+        const thumbs = mediaList.map((m, mIdx) => {
+          const imgSrc = m.data_url
+            ? m.data_url
+            : `${getActiveHostBase()}/api/v1/file?path=${encodeURIComponent(m.uri || '')}`;
+          return `<img class="user-msg-thumb" src="${escapeHtml(imgSrc)}" alt="Attachment ${mIdx + 1}" loading="lazy" onclick="openImageLightbox('${escapeHtml(imgSrc)}', 'Attached Image ${mIdx + 1}', event)" />`;
+        }).join('');
+        mediaGridHtml = `<div class="user-msg-media-grid">${thumbs}</div>`;
+      }
+
+      return `
+        <div class="step-item">
+          <div id="umsg_${escapeHtml(msgKey)}" class="user-msg-card ${isQueued ? 'queued' : ''} ${isOpen ? 'open' : ''}">
+            <div class="user-msg-1line" onclick="toggleUserMsgCard('${escapeHtml(msgKey)}', event)">
+              ${badgeHtml}
+              ${imgIndicatorHtml}
+              <div class="user-msg-preview">${previewHtml}</div>
+              <span class="user-msg-chev">${isOpen ? '▴' : '▾'}</span>
+            </div>
+            <div class="user-msg-drawer">
+              ${fullTextHtml}
+              ${mediaGridHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleUserMsgCard(msgKey, ev) {
+      if (ev) ev.stopPropagation();
+      window._expandedUserMsgs = window._expandedUserMsgs || new Set();
+      const card = document.getElementById('umsg_' + msgKey);
+      if (!card) return;
+      const nowOpen = !card.classList.contains('open');
+      card.classList.toggle('open', nowOpen);
+      if (nowOpen) {
+        window._expandedUserMsgs.add(msgKey);
+      } else {
+        window._expandedUserMsgs.delete(msgKey);
+      }
+      const chev = card.querySelector('.user-msg-chev');
+      if (chev) chev.textContent = nowOpen ? '▴' : '▾';
+    }
+
+    function openImageLightbox(imgUrl, title, ev) {
+      if (ev) ev.stopPropagation();
+      document.getElementById('modalTitle').textContent = title || 'Attached Image';
+      const wrap = document.getElementById('modalImageWrap');
+      const img = document.getElementById('modalImage');
+      const body = document.getElementById('modalBody');
+      if (wrap && img) {
+        img.src = imgUrl;
+        wrap.style.display = 'block';
+      }
+      if (body) {
+        body.style.display = 'none';
+        body.textContent = '';
+      }
+      document.getElementById('previewModal').classList.add('open');
+    }
+
+    function initQuickChipsBar() {
+      const isOpen = localStorage.getItem('gravity_quick_chips_open') === '1';
+      const bar = document.getElementById('quickChipsBar');
+      const btn = document.getElementById('quickChipsToggleBtn');
+      if (bar) bar.classList.toggle('collapsed-bar', !isOpen);
+      if (btn) btn.classList.toggle('active-toggle', isOpen);
+    }
+
+    function toggleQuickChipsBar() {
+      const bar = document.getElementById('quickChipsBar');
+      const btn = document.getElementById('quickChipsToggleBtn');
+      if (!bar) return;
+      const nowOpen = bar.classList.contains('collapsed-bar');
+      bar.classList.toggle('collapsed-bar', !nowOpen);
+      if (btn) btn.classList.toggle('active-toggle', nowOpen);
+      localStorage.setItem('gravity_quick_chips_open', nowOpen ? '1' : '0');
+    }
+
+    // Picture / Screenshot Attachment Handling
+    window._pendingAttachments = [];
+
+    function triggerSteerImagePicker() {
+      const fileInp = document.getElementById('steerImageInput');
+      if (fileInp) fileInp.click();
+    }
+
+    function handleSteerImageSelect(ev) {
+      const files = ev && ev.target && ev.target.files ? Array.from(ev.target.files) : [];
+      if (files.length > 0) {
+        addFilesToPendingAttachments(files);
+      }
+      if (ev && ev.target) ev.target.value = '';
+    }
+
+    function compressOrReadImageFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = String(e.target.result || '');
+          if (!dataUrl) return resolve(null);
+          if (file.size <= 700 * 1024) {
+            return resolve({
+              filename: file.name || 'image.png',
+              mime_type: file.type || 'image/png',
+              data_url: dataUrl,
+              data_base64: dataUrl.split(',')[1] || ''
+            });
+          }
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1600;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const outMime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const compressedUrl = canvas.toDataURL(outMime, 0.86);
+            resolve({
+              filename: file.name || 'image.jpg',
+              mime_type: outMime,
+              data_url: compressedUrl,
+              data_base64: compressedUrl.split(',')[1] || ''
+            });
+          };
+          img.onerror = () => {
+            resolve({
+              filename: file.name || 'image.png',
+              mime_type: file.type || 'image/png',
+              data_url: dataUrl,
+              data_base64: dataUrl.split(',')[1] || ''
+            });
+          };
+          img.src = dataUrl;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function addFilesToPendingAttachments(files) {
+      for (const f of files) {
+        if (!f || !String(f.type || '').startsWith('image/')) continue;
+        const item = await compressOrReadImageFile(f);
+        if (item && item.data_base64) {
+          window._pendingAttachments.push(item);
+        }
+      }
+      renderPendingAttachments();
+    }
+
+    function removePendingAttachment(idx) {
+      window._pendingAttachments.splice(idx, 1);
+      renderPendingAttachments();
+    }
+
+    function renderPendingAttachments() {
+      const strip = document.getElementById('steerAttachmentStrip');
+      if (!strip) return;
+      if (!window._pendingAttachments || window._pendingAttachments.length === 0) {
+        strip.style.display = 'none';
+        strip.innerHTML = '';
+        return;
+      }
+      strip.style.display = 'flex';
+      strip.innerHTML = window._pendingAttachments.map((att, idx) => `
+        <div class="pending-thumb-wrap">
+          <img src="${escapeHtml(att.data_url)}" alt="${escapeHtml(att.filename)}" onclick="openImageLightbox('${escapeHtml(att.data_url)}', '${escapeHtml(att.filename)}', event)" />
+          <button class="pending-thumb-remove" onclick="removePendingAttachment(${idx})" title="Remove image">✕</button>
+        </div>
+      `).join('');
+    }
+
+    // Clipboard Paste Image Support
+    document.addEventListener('paste', (ev) => {
+      if (!document.getElementById('tab-trajectory').classList.contains('active')) return;
+      const items = (ev.clipboardData && ev.clipboardData.items) ? Array.from(ev.clipboardData.items) : [];
+      const imgFiles = [];
+      for (const item of items) {
+        if (item.type && item.type.startsWith('image/')) {
+          const f = item.getAsFile();
+          if (f) imgFiles.push(f);
+        }
+      }
+      if (imgFiles.length > 0) {
+        ev.preventDefault();
+        addFilesToPendingAttachments(imgFiles);
+        showToast(`📷 Attached ${imgFiles.length} pasted image${imgFiles.length > 1 ? 's' : ''}`);
+      }
+    });
+
+    // Slash Command Pill Chips & Autocomplete Popup
+    window._activeCommandPills = [];
+
+    function renderSteerCommandPills() {
+      const container = document.getElementById('steerCommandPills');
+      const inp = document.getElementById('steerInput');
+      if (!container) return;
+      container.innerHTML = (window._activeCommandPills || []).map((cmd, idx) => `
+        <span class="cmd-pill-chip">
+          <span>${escapeHtml(cmd)}</span>
+          <button type="button" onclick="removeSteerCommandPill(${idx}, event)" title="Remove command">×</button>
+        </span>
+      `).join('');
+      if (inp) {
+        inp.placeholder = window._activeCommandPills.length > 0
+          ? 'Add instructions or /command…'
+          : 'Steer agent or type /command…';
+      }
+    }
+
+    function removeSteerCommandPill(idx, ev) {
+      if (ev) ev.stopPropagation();
+      window._activeCommandPills.splice(idx, 1);
+      renderSteerCommandPills();
+    }
+
+    function lockSlashCommandPill(cmd, removeTokenFromInput = true) {
+      const canonical = matchRecognizedSlashCommand(cmd) || String(cmd || '').trim().toLowerCase();
+      if (!canonical.startsWith('/')) return;
+      if (!window._activeCommandPills.includes(canonical)) {
+        window._activeCommandPills.push(canonical);
+      }
+      const inp = document.getElementById('steerInput');
+      if (inp && removeTokenFromInput) {
+        inp.value = inp.value.replace(/(?:^|\s)\/[a-zA-Z0-9_-]*\s*$/, ' ').trimStart();
+        autoResizeChatBox(inp);
+      }
+      renderSteerCommandPills();
+      hideSlashAutocompleteMenu();
+      if (inp) inp.focus();
+    }
+
+    function hideSlashAutocompleteMenu() {
+      const menu = document.getElementById('slashAutocompleteMenu');
+      if (menu) {
+        menu.style.display = 'none';
+        menu.innerHTML = '';
+      }
+    }
+
+    function updateSlashAutocompleteMenu(queryToken) {
+      const menu = document.getElementById('slashAutocompleteMenu');
+      if (!menu) return;
+      if (queryToken === null || queryToken === undefined || !queryToken.startsWith('/')) {
+        hideSlashAutocompleteMenu();
+        return;
+      }
+      const q = queryToken.toLowerCase();
+      const all = getAllSlashCommands();
+      const matches = all.filter(item =>
+        item.cmd.toLowerCase().startsWith(q) ||
+        item.cmd.toLowerCase().includes(q.slice(1))
+      ).slice(0, 7);
+
+      if (matches.length === 0) {
+        hideSlashAutocompleteMenu();
+        return;
+      }
+
+      menu.style.display = 'block';
+      menu.innerHTML = matches.map((item, i) => `
+        <div class="slash-menu-item ${i === 0 ? 'active-item' : ''}" onclick="lockSlashCommandPill('${escapeHtml(item.cmd)}', true)">
+          <span class="slash-menu-cmd">${escapeHtml(item.cmd)}</span>
+          <span class="slash-menu-desc">${escapeHtml(item.desc)}</span>
+        </div>
+      `).join('');
+    }
+
+    function handleSteerInputChange(el) {
+      if (!el) return;
+      const val = el.value;
+      // Check if user just completed a recognized "/command " followed by space (works on both desktop & Android soft keyboards)
+      const spaceMatch = val.match(/(^|\s)(\/[a-zA-Z0-9_-]+)\s$/);
+      if (spaceMatch) {
+        const candidate = spaceMatch[2];
+        const canonical = matchRecognizedSlashCommand(candidate);
+        if (canonical) {
+          if (!window._activeCommandPills.includes(canonical)) {
+            window._activeCommandPills.push(canonical);
+          }
+          el.value = (val.slice(0, spaceMatch.index) + (spaceMatch[1] || '')).replace(/^\s+/, '');
+          renderSteerCommandPills();
+          hideSlashAutocompleteMenu();
+          autoResizeChatBox(el);
+          return;
+        }
+      }
+
+      // Check if user is actively typing a /command token at the end
+      const activeSlash = val.match(/(?:^|\s)(\/[a-zA-Z0-9_-]*)$/);
+      if (activeSlash) {
+        updateSlashAutocompleteMenu(activeSlash[1]);
+      } else {
+        hideSlashAutocompleteMenu();
+      }
+      autoResizeChatBox(el);
+    }
+
+    function handleSteerInputKeydown(ev) {
+      const inp = ev.target;
+      if (ev.key === 'Backspace' && inp && inp.selectionStart === 0 && inp.selectionEnd === 0 && window._activeCommandPills.length > 0) {
+        ev.preventDefault();
+        window._activeCommandPills.pop();
+        renderSteerCommandPills();
+        return;
+      }
+      if (ev.key === 'Escape') {
+        hideSlashAutocompleteMenu();
+      }
+    }
+
+    async function sendQuickSteer(action, message, attachments = []) {
       if (!currentConversationId) {
         showToast('Select a conversation first');
         return;
       }
-      const res = await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idempotency_key: uuid4(),
-          conversation_id: currentConversationId,
-          action: action,
-          message: message
-        })
+      const cleanMsg = String(message || '').trim();
+      const attList = Array.isArray(attachments) ? attachments : [];
+      if (!cleanMsg && attList.length === 0) return;
+
+      // Optimistic immediate queued rendering in trajectory view
+      window._optimisticUserSteps = window._optimisticUserSteps || [];
+      window._optimisticUserSteps.push({
+        conversation_id: currentConversationId,
+        step_index: (window._lastTrajData ? (window._lastTrajData.step_count || 0) : 0) + window._optimisticUserSteps.length + 100,
+        source: 'USER_MOBILE_QUEUED',
+        type: 'USER_INPUT',
+        status: 'QUEUED',
+        created_at: new Date().toISOString(),
+        added_ms: Date.now(),
+        content: cleanMsg,
+        media: attList.map(a => ({ mime_type: a.mime_type, data_url: a.data_url, uri: a.filename }))
       });
-      const data = await res.json();
-      if (data.status === 'dispatched') {
-        showToast(`✅ Sent to Antigravity: ${message.slice(0, 24)}`);
-      } else {
-        showToast(`⚡ Queued: ${message.slice(0, 24)}`);
+      if (window._lastTrajData && document.getElementById('tab-trajectory').classList.contains('active')) {
+        window._lastRenderedTrajEtag = null;
+        renderTrajectory(window._lastTrajData, true);
+      }
+
+      const payload = {
+        idempotency_key: uuid4(),
+        conversation_id: currentConversationId,
+        action: action,
+        message: cleanMsg
+      };
+      if (attList.length > 0) {
+        payload.attachments = attList.map(a => ({
+          filename: a.filename,
+          mime_type: a.mime_type,
+          data_base64: a.data_base64
+        }));
+      }
+
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          timeoutMs: attList.length > 0 ? 12000 : 5000,
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        const labelPreview = cleanMsg ? cleanMsg.slice(0, 24) : `${attList.length} image(s)`;
+        if (data.status === 'dispatched') {
+          showToast(`✅ Sent to Antigravity: ${labelPreview}`);
+        } else {
+          showToast(`⏳ Queued: ${labelPreview}`);
+        }
+      } catch (err) {
+        showToast('⏳ Queued (awaiting workstation sync)');
       }
       fetchPulse();
       if (document.getElementById('tab-trajectory').classList.contains('active')) {
-        setTimeout(() => syncActiveConversation(false), 600);
+        setTimeout(() => syncActiveConversation(false), 500);
       }
     }
 
     function autoResizeChatBox(el) {
       if (!el) return;
       el.style.height = 'auto';
-      const maxH = 82; // 3 lines (3 * 20px line-height + 22px vertical padding/border)
+      const maxH = 76;
       const nextH = Math.min(el.scrollHeight, maxH);
-      el.style.height = Math.max(42, nextH) + 'px';
+      el.style.height = Math.max(30, nextH) + 'px';
       el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
     }
 
     function submitSteerInput() {
       const inp = document.getElementById('steerInput');
-      const val = inp.value.trim();
-      if (!val) return;
-      const action = val.startsWith('/') ? 'SLASH_COMMAND' : 'STEER';
-      sendQuickSteer(action, val);
-      inp.value = '';
-      autoResizeChatBox(inp);
+      let rawVal = inp ? inp.value.trim() : '';
+
+      // If rawVal itself is a single recognized slash command, canonicalize it
+      if (rawVal.startsWith('/') && !rawVal.includes(' ')) {
+        const canon = matchRecognizedSlashCommand(rawVal);
+        if (canon) rawVal = canon;
+      }
+
+      const combinedText = [...(window._activeCommandPills || []), rawVal].filter(Boolean).join(' ').trim();
+      const pendingAtts = (window._pendingAttachments || []).slice();
+
+      if (!combinedText && pendingAtts.length === 0) return;
+
+      const action = (combinedText.startsWith('/') && pendingAtts.length === 0) ? 'SLASH_COMMAND' : 'STEER';
+      window._activeCommandPills = [];
+      window._pendingAttachments = [];
+      renderSteerCommandPills();
+      renderPendingAttachments();
+      hideSlashAutocompleteMenu();
+      if (inp) {
+        inp.value = '';
+        autoResizeChatBox(inp);
+      }
+      sendQuickSteer(action, combinedText, pendingAtts);
     }
 
     function toggleVoiceInput() {
@@ -2453,7 +3244,9 @@
       micBtn.classList.add('recording');
       rec.onresult = (e) => {
         const transcript = e.results[0][0].transcript;
-        const sInp = document.getElementById('steerInput'); sInp.value = transcript; autoResizeChatBox(sInp);
+        const sInp = document.getElementById('steerInput');
+        sInp.value = transcript;
+        handleSteerInputChange(sInp);
         micBtn.classList.remove('recording');
       };
       rec.onerror = () => micBtn.classList.remove('recording');
@@ -2506,7 +3299,13 @@
       const res = await gravityFetch(url);
       const data = await res.json();
       document.getElementById('modalTitle').textContent = name;
-      document.getElementById('modalBody').textContent = data.content || '';
+      const wrap = document.getElementById('modalImageWrap');
+      const body = document.getElementById('modalBody');
+      if (wrap) wrap.style.display = 'none';
+      if (body) {
+        body.style.display = 'block';
+        body.textContent = data.content || '';
+      }
       document.getElementById('previewModal').classList.add('open');
     }
 
@@ -2577,8 +3376,12 @@
       history.scrollRestoration = 'manual';
     }
     scrollToTopImmediate();
+    initQuickChipsBar();
     initRollupCartridgeBridge();
-    refreshDynamicEndpoints().finally(() => fetchPulse());
+    refreshDynamicEndpoints().finally(() => {
+      fetchPulse();
+      loadSkillsCatalog();
+    });
     setInterval(async () => {
       await fetchPulse();
       if (

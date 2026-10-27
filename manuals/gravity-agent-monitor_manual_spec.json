@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.3.4",
-  "build_hash": "7ae6cc3844",
+  "version": "1.3.5",
+  "build_hash": "e5fd2a2a65",
   "visibility": "admin_only",
-  "updated_at": "2026-10-26T20:01:39.388520",
-  "generated_at": "2026-10-26 20:01",
+  "updated_at": "2026-10-26T22:17:36.322607",
+  "generated_at": "2026-10-26 22:17",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,8 +71,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://outcomes-uniprotkb-catherine-fought.trycloudflare.com",
-      "defaultForAdmin": "https://outcomes-uniprotkb-catherine-fought.trycloudflare.com"
+      "default": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
+      "defaultForAdmin": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
@@ -93,7 +93,12 @@
     "apps/gravity-agent-monitor/index.html",
     "apps/gravity-agent-monitor/endpoints.json"
   ],
-  "newly_added_buttons": [],
+  "newly_added_buttons": [
+    "\ud83d\ude80 /boost",
+    "\ud83d\udd25 /grill-me",
+    "\u26a1",
+    "\ud83d\udcf7"
+  ],
   "ai_release_note": null,
   "inspected": {
     "app_id": "gravity-agent-monitor",
@@ -156,6 +161,14 @@
         "action": "sendQuickSteer('STEER', 'Run tests and verify deterministic output.')"
       },
       {
+        "label": "\ud83d\ude80 /boost",
+        "action": "lockSlashCommandPill('/boost')"
+      },
+      {
+        "label": "\ud83d\udd25 /grill-me",
+        "action": "lockSlashCommandPill('/grill-me')"
+      },
+      {
         "label": "\ud83d\udddc\ufe0f /compact",
         "action": "sendQuickSteer('SLASH_COMMAND', '/compact')"
       },
@@ -164,33 +177,27 @@
         "action": "sendQuickSteer('SLASH_COMMAND', '/goal')"
       },
       {
+        "label": "\u26a1",
+        "action": "toggleQuickChipsBar()"
+      },
+      {
         "label": "\ud83c\udf99\ufe0f",
         "action": "toggleVoiceInput()"
       },
       {
+        "label": "\ud83d\udcf7",
+        "action": "triggerSteerImagePicker()"
+      },
+      {
         "label": "\u2191",
         "action": "submitSteerInput()"
-      },
-      {
-        "label": "\u21bb Refresh",
-        "action": "loadVault()"
-      },
-      {
-        "label": "\u2795 Add Workstation Node",
-        "action": "addPeerNode()"
-      },
-      {
-        "label": "\ud83d\ude80 Dispatch Live",
-        "action": "launchNewTask()"
-      },
-      {
-        "label": "\u2615 Toggle Keep-Awake",
-        "action": "toggleWakeLock()"
       }
     ],
     "modals": [
       "previewModal",
       "modalTitle",
+      "modalImageWrap",
+      "modalImage",
       "modalBody"
     ],
     "inputs": [

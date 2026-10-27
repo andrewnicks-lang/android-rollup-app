@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-10-26T20:01:39.259709",
-  "active_tunnel_url": "https://outcomes-uniprotkb-catherine-fought.trycloudflare.com",
+  "updated_at": "2026-10-26T22:17:36.156708",
+  "active_tunnel_url": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
   "primary_lan_url": "http://192.168.86.47:8765",
   "work_lan_url": "http://10.0.0.91:8765",
   "home_lan_url": "http://192.168.86.47:8765",
   "nodes": [
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
-      "url": "https://outcomes-uniprotkb-catherine-fought.trycloudflare.com"
+      "url": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
     },
     {
       "name": "Active Workstation (192.168.86.47)",
