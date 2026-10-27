@@ -1499,8 +1499,13 @@ function renderUnitFeed() {
 
   if (filtered.length === 0) {
     listEl.innerHTML = `
-      <div style="text-align:center;padding:28px 16px;background:var(--bg-card);border-radius:12px;border:1px dashed var(--border-col);color:var(--text-muted);">
-        No units match this filter yet. Tap <strong>📸 + SNAP NEW UNIT</strong> below to capture equipment!
+      <div style="text-align:center;padding:24px 16px;background:var(--bg-card);border-radius:12px;border:1.5px dashed var(--border-col);color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div style="font-size:14px;font-weight:800;color:var(--text-main);">Ready for Field Discovery (0 Units)</div>
+        <div style="font-size:12px;">Tap <strong>📸 + SNAP NEW UNIT</strong> below to snap your first nameplate photo!</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+          <button class="btn" onclick="startSnapNewUnitWizard()">📸 + Snap First Unit</button>
+          <button class="btn btn-secondary" onclick="resetToGoldenDemoWalk()">🧪 Load KC Demo Walk</button>
+        </div>
       </div>
     `;
     return;
@@ -1547,7 +1552,10 @@ function renderUnitFeed() {
         <div class="unit-card-body">
           <div class="unit-card-top">
             <div class="unit-card-title">${escapeHtml(displayTitle)}</div>
-            <span class="cond-badge ${stStatus.cond}">${stStatus.label}</span>
+            <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+              <span class="cond-badge ${stStatus.cond}">${stStatus.label}</span>
+              <button class="card-del-btn" onclick="event.stopPropagation(); deleteUnitById('${st.id}', false)" title="Delete this unit">🗑️</button>
+            </div>
           </div>
           <div class="unit-card-spec">${escapeHtml(specLine)}</div>
           <div class="unit-card-loc">📍 ${escapeHtml(st.room || st.autoLocationBreadcrumb || st.floorId)}</div>
@@ -1599,6 +1607,10 @@ function _autoIncrementEquipmentTag(tagStr) {
 
 function cloneActiveStation() {
   const src = getActiveStation();
+  if (!src) {
+    startSnapNewUnitWizard();
+    return;
+  }
   const newNum = state.stations.length + 1;
   const newId = `STN-${String(newNum).padStart(2, "0")}`;
   const nextTag = _autoIncrementEquipmentTag(src.tag);
@@ -2021,16 +2033,48 @@ function selectStation(stationId) {
   renderStationStrip();
 }
 
-function deleteActiveStation() {
-  if (state.stations.length <= 1) {
-    alert("At least one unit must remain in the walk.");
-    return;
-  }
-  const st = getActiveStation();
-  state.stations = state.stations.filter((x) => x.id !== st.id);
-  state.activeStationId = state.stations[0].id;
+function deleteUnitById(stationId, fromSheet = false) {
+  const target = state.stations.find((s) => s.id === stationId) || getActiveStation();
+  if (!target) return;
+  const label = target.tag || target.id;
+  state.stations = state.stations.filter((x) => x.id !== target.id);
+  delete allStationThumbs[target.id];
+  state.activeStationId = state.stations[0] ? state.stations[0].id : "";
   persistWalkState();
-  renderAll(false);
+  if (fromSheet) {
+    const modal = document.getElementById("tagAndGoModal");
+    if (modal) modal.style.display = "none";
+  }
+  renderAll(true);
+  showBannerToast(`🗑️ <strong>Deleted ${escapeHtml(label)}</strong> (${state.stations.length} unit${state.stations.length === 1 ? '' : 's'} remaining).`);
+}
+
+function deleteActiveStation() {
+  const st = getActiveStation();
+  if (st) deleteUnitById(st.id, true);
+}
+
+function openQuickStartModal() {
+  const cntEl = document.getElementById("qsContinueCount");
+  if (cntEl && state && Array.isArray(state.stations)) {
+    cntEl.textContent = String(state.stations.length);
+  }
+  const m = document.getElementById("quickStartModal");
+  if (m) m.style.display = "flex";
+}
+
+function closeQuickStartModal() {
+  const m = document.getElementById("quickStartModal");
+  if (m) m.style.display = "none";
+}
+
+function startFreshFromQuickStart() {
+  closeQuickStartModal();
+  startBlankSiteWalk(true);
+}
+
+function confirmStartOverWalk() {
+  startBlankSiteWalk(true);
 }
 
 // ============================================================================
@@ -2111,6 +2155,8 @@ function _recommendAlcFromIoJS(st) {
 async function loadActiveStationBurstPhotos() {
   const st = getActiveStation();
   cachedSlotPhotos = { 1: null, 2: null, 3: null };
+  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
+  if (!st) return;
   cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
   for (const slot of [1, 2, 3]) {
     const key = `photo::${state.sessionId}::${st.id}::slot${slot}`;
@@ -2513,19 +2559,26 @@ function saveVaultAndProjectMeta() {
   showBannerToast("💾 <strong>Job Info &amp; Settings Saved!</strong>");
 }
 
-function startBlankSiteWalk() {
-  const proj = document.getElementById("newWalkProjectInput").value.trim() || "New Field Discovery Walk";
-  const job = document.getElementById("newWalkJobInput").value.trim() || "CSC-26-NEW";
-  const contact = document.getElementById("newWalkContactInput").value.trim() || "";
-  const addr = document.getElementById("newWalkAddressInput").value.trim() || "";
+function startBlankSiteWalk(zeroUnits = true) {
+  const projEl = document.getElementById("newWalkProjectInput");
+  const jobEl = document.getElementById("newWalkJobInput");
+  const contEl = document.getElementById("newWalkContactInput");
+  const addrEl = document.getElementById("newWalkAddressInput");
+
+  const proj = (projEl && projEl.value.trim()) || "New Field Discovery Walk";
+  const job = (jobEl && jobEl.value.trim()) || "CSC-26-NEW";
+  const contact = (contEl && contEl.value.trim()) || "";
+  const addr = (addrEl && addrEl.value.trim()) || "";
   const sid = "CSC-WALK-" + Date.now();
   pdrSteps = [];
   walkStepCounter = 0;
   stepCounterAtLastSnap = 0;
   allStationThumbs = {};
+  cachedSlotPhotos = { 1: null, 2: null, 3: null };
+  cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
 
   state = _migrateLoadedState({
-    schemaVersion: "CSC-DISCOVERY-v3.0",
+    schemaVersion: "CSC-DISCOVERY-v3.1",
     sessionId: sid,
     projectName: proj,
     jobNumber: job,
@@ -2536,7 +2589,7 @@ function startBlankSiteWalk() {
     uiMode: "quick",
     rfi23011TempConditioningFlag: false,
     activeFloorId: "FLR-01",
-    activeStationId: "STN-01",
+    activeStationId: zeroUnits ? "" : "STN-01",
     activeTab: "checklist",
     showVideoCrumb: true,
     barometricHpa: 989.30,
@@ -2547,7 +2600,7 @@ function startBlankSiteWalk() {
       { id: "FLR-02", name: "Floor 2", elev: 14.0, hpa: 988.80, source: "Auto-Estimated Grid", hasCustomMap: false },
       { id: "FLR-ROOF", name: "Roof", elev: 28.0, hpa: 988.30, source: "Outdoor GPS + Compass", hasCustomMap: false }
     ],
-    stations: [
+    stations: zeroUnits ? [] : [
       {
         id: "STN-01",
         tag: "Unit #1",
@@ -2582,8 +2635,8 @@ function startBlankSiteWalk() {
   });
   persistWalkState();
   closeSessionManagerModal();
-  renderAll(false);
-  showBannerToast(`🆕 <strong>Started New Walk:</strong> Tap <strong>📸 + SNAP NEW UNIT</strong> to begin!`);
+  renderAll(true);
+  showBannerToast(`🆕 <strong>Started Fresh Walk (0 Units):</strong> Tap <strong>📸 + SNAP NEW UNIT</strong> to capture Unit #1!`);
 }
 
 function resetToGoldenDemoWalk() {
@@ -2694,6 +2747,10 @@ async function importWalkBundleFile(inputEl) {
 }
 
 async function exportScheduleCsv() {
+  if (!state.stations || state.stations.length === 0) {
+    showBannerToast("⚠️ No equipment units to export yet — snap Unit #1 first!", true);
+    return;
+  }
   const rows = state.stations.map((st, idx) => {
     const dec = decodeSerialDeterministic(st.mfg, st.serial, st.archetype, st.model);
     const mdl = decodeModelDeterministic(st.mfg, st.model);
@@ -2779,4 +2836,5 @@ window.addEventListener("DOMContentLoaded", () => {
   loadInitialWalkState();
   startAutoBackgroundSensors();
   renderAll(false);
+  openQuickStartModal();
 });

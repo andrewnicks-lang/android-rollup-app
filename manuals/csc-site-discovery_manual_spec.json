@@ -6,11 +6,11 @@
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "3.0.0",
-  "build_hash": "3e6a4ddf8e",
+  "version": "3.1.0",
+  "build_hash": "cd3a2299a1",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T16:54:33.502164",
-  "generated_at": "2026-10-26 16:54",
+  "updated_at": "2026-10-26T19:57:52.259077",
+  "generated_at": "2026-10-26 19:57",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -93,21 +93,12 @@
     "apps/csc-site-discovery/js/app.js"
   ],
   "newly_added_buttons": [
-    "\ud83d\udccb Units (6)",
-    "\ud83d\uddfa\ufe0f Map",
-    "\u2600\ufe0f",
-    "\u2699\ufe0f",
-    "Recalibrate GPS",
-    "All Units",
-    "\ud83d\udd34 Caution / Replace",
-    "\ud83d\udfe2 Good",
-    "\ud83d\udccb Clone Last +1",
-    "\ud83d\udcf7 Snap Wall Map",
-    "\ud83d\uddbc\ufe0f Load Plan",
-    "\ud83d\uddd1\ufe0f",
-    "\u2795 Area/Floor",
-    "\ud83d\udccd Move Pin",
-    "\ud83d\udcf8 + SNAP NEW UNIT"
+    "\u2753",
+    "\ud83d\udccd GPS",
+    "All",
+    "\ud83d\udd34 Issues",
+    "\ud83d\udccb +1 Clone",
+    "\ud83d\udd04 Start Over"
   ],
   "ai_release_note": null,
   "inspected": {
@@ -123,8 +114,9 @@
       "mapMainView"
     ],
     "headings": [
+      "\u26a1 3-Step Field Quick Start",
       "Captured Photo",
-      "\u2699\ufe0f Job Info & Export Package"
+      "\u2699\ufe0f Job Info, Start Over & Export"
     ],
     "buttons": [
       {
@@ -136,23 +128,23 @@
         "action": "switchMainView('map')"
       },
       {
-        "label": "\u2600\ufe0f",
-        "action": "toggleSunlightMode()"
+        "label": "\u2753",
+        "action": "openQuickStartModal()"
       },
       {
         "label": "\u2699\ufe0f",
         "action": "openSessionManagerModal()"
       },
       {
-        "label": "Recalibrate GPS",
+        "label": "\ud83d\udccd GPS",
         "action": "toggleLiveSensors()"
       },
       {
-        "label": "All Units",
+        "label": "All",
         "action": "setFeedFilter('all')"
       },
       {
-        "label": "\ud83d\udd34 Caution / Replace",
+        "label": "\ud83d\udd34 Issues",
         "action": "setFeedFilter('issues')"
       },
       {
@@ -160,8 +152,12 @@
         "action": "setFeedFilter('good')"
       },
       {
-        "label": "\ud83d\udccb Clone Last +1",
+        "label": "\ud83d\udccb +1 Clone",
         "action": "cloneActiveStation()"
+      },
+      {
+        "label": "\ud83d\udd04 Start Over",
+        "action": "confirmStartOverWalk()"
       },
       {
         "label": "\ud83d\udcf7 Snap Wall Map",
@@ -194,13 +190,10 @@
       {
         "label": "\ud83d\udccd Move Pin",
         "action": "toggleMapInteractionMode()"
-      },
-      {
-        "label": "\ud83d\udcf8 + SNAP NEW UNIT",
-        "action": "startSnapNewUnitWizard()"
       }
     ],
     "modals": [
+      "quickStartModal",
       "tagAndGoModal",
       "photoZoomModal",
       "zoomModalTitle",
@@ -233,6 +226,11 @@
       "Encrypted On-Device Secret Vault"
     ],
     "recent_commits": [
+      {
+        "sha": "3be8955",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 16:54)"
+      },
       {
         "sha": "fe98244",
         "date": "2026-10-26",

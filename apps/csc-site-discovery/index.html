@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1120" />
-  <title>CSC Field Snap &amp; Go v3.0 — Site Discovery Companion</title>
+  <title>CSC Field Snap &amp; Go v3.1 — Site Discovery Companion</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./css/field_ui.css?v=30" />
+  <link rel="stylesheet" href="./css/field_ui.css?v=31" />
 </head>
 <body>
 
@@ -24,7 +24,10 @@
   <!-- Ultra-Clean 1-Line Top Bar -->
   <header class="clean-header">
     <div class="job-header-left" onclick="openSessionManagerModal()" title="Tap to rename job or export walk">
-      <div class="job-title-main" id="jobHeaderTitle">Lee's Summit West Walk</div>
+      <div class="job-title-main">
+        <span id="jobHeaderTitle">Lee's Summit West Walk</span>
+        <span class="version-mini-chip">v3.1</span>
+      </div>
       <div class="job-title-sub" id="jobHeaderSub">CSC-26-4182 • 6 Units • Tap for Job/Export</div>
     </div>
 
@@ -38,17 +41,17 @@
           🗺️ Map
         </button>
       </div>
-      <button class="icon-btn" onclick="toggleSunlightMode()" title="Sunlight / Dark Mode">☀️</button>
+      <button class="icon-btn" onclick="openQuickStartModal()" title="Quick Start &amp; Version Info">❓</button>
       <button class="icon-btn" onclick="openSessionManagerModal()" title="Export &amp; Job Menu">⚙️</button>
     </div>
   </header>
 
   <!-- Subtle Background Telemetry Bar (Auto-GPS + Compass + Step Counter) -->
   <div class="auto-telemetry-strip">
-    <span id="liveSensorReadout">📡 Auto-Location: GPS + Step/Compass Tracking Active</span>
+    <span id="liveSensorReadout">📡 Auto-Location: GPS + Step/Compass Active</span>
     <div style="display:flex;gap:6px;align-items:center;">
       <span id="stepBreadcrumbBadge" class="telemetry-mini-pill">👣 0 steps</span>
-      <button id="sensorLockBtn" class="telemetry-mini-btn" onclick="toggleLiveSensors()">Recalibrate GPS</button>
+      <button id="sensorLockBtn" class="telemetry-mini-btn" onclick="toggleLiveSensors()">📍 GPS</button>
     </div>
   </div>
 
@@ -60,16 +63,21 @@
   <!-- ==================================================================== -->
   <main id="feedMainView" class="feed-container">
 
-    <!-- Quick Filter Pills -->
+    <!-- Quick Filter & Top Action Pills (Including Visible Start Over / Clear!) -->
     <div class="feed-filter-bar">
-      <div style="display:flex;gap:6px;overflow-x:auto;">
-        <button id="fltAllBtn" class="filter-chip active" onclick="setFeedFilter('all')">All Units</button>
-        <button id="fltIssueBtn" class="filter-chip" onclick="setFeedFilter('issues')">🔴 Caution / Replace</button>
+      <div style="display:flex;gap:5px;overflow-x:auto;">
+        <button id="fltAllBtn" class="filter-chip active" onclick="setFeedFilter('all')">All</button>
+        <button id="fltIssueBtn" class="filter-chip" onclick="setFeedFilter('issues')">🔴 Issues</button>
         <button id="fltGoodBtn" class="filter-chip" onclick="setFeedFilter('good')">🟢 Good</button>
       </div>
-      <button class="filter-chip clone-chip" onclick="cloneActiveStation()" title="Duplicate last unit and auto-increment tag (+1)">
-        📋 Clone Last +1
-      </button>
+      <div style="display:flex;gap:5px;">
+        <button class="filter-chip clone-chip" onclick="cloneActiveStation()" title="Duplicate last unit (+1)">
+          📋 +1 Clone
+        </button>
+        <button class="filter-chip reset-chip" onclick="confirmStartOverWalk()" title="Clear all units and start a fresh walk">
+          🔄 Start Over
+        </button>
+      </div>
     </div>
 
     <!-- Scrollable Equipment Cards List -->
@@ -154,23 +162,69 @@
   </div>
 
   <!-- ==================================================================== -->
+  <!-- COMPACT NO-SCROLL QUICK-START & VERSION POPUP MODAL (ON LAUNCH)      -->
+  <!-- ==================================================================== -->
+  <div id="quickStartModal" class="modal-backdrop" style="display:none;" onclick="closeQuickStartModal()">
+    <div class="quickstart-card" onclick="event.stopPropagation()">
+      <div class="qs-top-row">
+        <div>
+          <span class="qs-version-pill">CSC Snap &amp; Go v3.1.0</span>
+          <h3 style="margin:4px 0 0 0;font-size:16px;">⚡ 3-Step Field Quick Start</h3>
+        </div>
+        <button class="icon-btn" onclick="closeQuickStartModal()" title="Close">✕</button>
+      </div>
+
+      <div class="qs-steps-box">
+        <div class="qs-step-item">
+          <span class="qs-num">1</span>
+          <div><strong>Snap Photo First:</strong> Tap <code>📸 + SNAP NEW UNIT</code> to snap the nameplate. Auto-numbers <code>Unit #1, #2...</code> &amp; reads specs in the background.</div>
+        </div>
+        <div class="qs-step-item">
+          <span class="qs-num">2</span>
+          <div><strong>Tap Condition:</strong> Pick <code>🟢 Good</code>, <code>🟡 Caution</code>, or <code>🔴 Replace</code> + tap any issue tiles.</div>
+        </div>
+        <div class="qs-step-item">
+          <span class="qs-num">3</span>
+          <div><strong>Speak &amp; Go:</strong> Hold <code>🎙️ Hold to Talk</code> to say the floor/room/issue (auto-maps rough location), then hit <strong>Save</strong>!</div>
+        </div>
+      </div>
+
+      <div class="qs-safety-mini">
+        ⚠️ <strong>LOTO Reminder:</strong> Verify zero energy (NFPA 70E) before opening live panels.
+      </div>
+
+      <div class="qs-action-row">
+        <button class="btn-qs-fresh" onclick="startFreshFromQuickStart()">
+          🆕 Start Fresh Walk (0 Units)
+        </button>
+        <button class="btn-qs-continue" onclick="closeQuickStartModal()">
+          ▶️ Continue (<span id="qsContinueCount">6</span> Units)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
   <!-- FULL-SCREEN "TAG & GO" CAPTURE SHEET (POST-SNAP 1-SCREEN MODAL)      -->
   <!-- ==================================================================== -->
   <div id="tagAndGoModal" class="tag-go-backdrop" style="display:none;">
     <div class="tag-go-sheet">
 
-      <!-- Sheet Top Header -->
+      <!-- Sheet Top Header (Now includes visible 🗑️ Delete Button right at the top!) -->
       <div class="tag-go-header">
-        <div>
+        <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span id="tgUnitBadge" class="unit-num-pill">Unit #1</span>
-            <strong id="tgAutoTitle" style="font-size:16px;">Auto-Tagged Equipment</strong>
+            <strong id="tgAutoTitle" style="font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Auto-Tagged Equipment</strong>
           </div>
           <div id="tgAutoLocationSub" style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">
             📍 Estimating rough location from GPS, steps &amp; voice...
           </div>
         </div>
-        <button class="icon-btn" onclick="closeTagAndGoSheet()" title="Close &amp; Save">✕</button>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="icon-btn btn-del-icon" onclick="deleteUnitById(state.activeStationId, true)" title="Delete this unit">🗑️</button>
+          <button class="icon-btn" onclick="closeTagAndGoSheet()" title="Close &amp; Save">✕</button>
+        </div>
       </div>
 
       <!-- Auto-Decoded Nameplate Status Banner -->
@@ -229,7 +283,7 @@
         </div>
       </div>
 
-      <!-- Optional Collapsed Manual Override (Hidden unless tech wants to type Tag/Serial) -->
+      <!-- Optional Collapsed Manual Override -->
       <details class="tg-manual-details">
         <summary>✏️ Optional: Edit Tag, Equipment Type or Nameplate Text Manually</summary>
         <div class="tg-manual-grid">
@@ -260,9 +314,6 @@
           <div>
             <label>Existing Controller</label>
             <input id="qwLegacyInput" type="text" oninput="syncQuickWalkLegacy()" placeholder="Symbio, DX-9100, Pneumatic..." />
-          </div>
-          <div style="display:flex;align-items:flex-end;">
-            <button class="btn btn-danger" style="width:100%;" onclick="deleteActiveStation(); closeTagAndGoSheet();">🗑️ Delete Unit</button>
           </div>
         </div>
       </details>
@@ -299,20 +350,30 @@
   <div id="sessionModal" class="modal-backdrop" style="display:none;" onclick="closeSessionManagerModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 style="margin:0;color:var(--accent-teal);">⚙️ Job Info &amp; Export Package</h3>
+        <h3 style="margin:0;color:var(--accent-teal);">⚙️ Job Info, Start Over &amp; Export</h3>
         <button class="btn btn-secondary" style="padding:4px 10px;min-height:30px;" onclick="closeSessionManagerModal()">✕</button>
       </div>
 
-      <!-- Primary Export Actions First! -->
+      <!-- Start Over / Reset Bar right at top of menu too! -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <button class="btn btn-amber" style="min-height:42px;" onclick="startBlankSiteWalk(true)">
+          🆕 Start Blank Walk (0 Units)
+        </button>
+        <button class="btn btn-secondary" style="min-height:42px;" onclick="resetToGoldenDemoWalk()">
+          🧪 Load KC Demo Walk
+        </button>
+      </div>
+
+      <!-- Primary Export Actions -->
       <div style="background:var(--bg-main);padding:10px;border-radius:8px;border:1px solid var(--border-col);margin-bottom:12px;">
         <div style="font-size:12px;font-weight:800;color:var(--accent-teal);margin-bottom:8px;">
-          📦 Send Walk to Desktop Python Processor (Calculates Valves, I/O, VA &amp; PDF Report)
+          📦 Export Walk to Desktop Python Processor
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="btn btn-blue" style="min-height:44px;font-size:13px;" onclick="exportFullWalkZipBundle()">
+          <button class="btn btn-blue" style="min-height:42px;font-size:12.5px;" onclick="exportFullWalkZipBundle()">
             📦 Export .cscwalk.zip
           </button>
-          <button class="btn btn-secondary" style="min-height:44px;font-size:13px;" onclick="exportScheduleCsv()">
+          <button class="btn btn-secondary" style="min-height:42px;font-size:12.5px;" onclick="exportScheduleCsv()">
             📊 Export CSV List
           </button>
         </div>
@@ -360,10 +421,9 @@
         </label>
       </div>
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:10px;border-top:1px solid var(--border-col);">
-        <button class="btn" style="flex:1;" onclick="saveVaultAndProjectMeta()">💾 Save Settings</button>
-        <button class="btn btn-amber" onclick="startBlankSiteWalk()">🆕 Start Blank Walk</button>
-        <button class="btn btn-secondary" onclick="resetToGoldenDemoWalk()">🧪 Load KC Demo</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-col);">
+        <button class="btn" style="flex:1;" onclick="saveVaultAndProjectMeta()">💾 Save Job Settings</button>
+        <button class="btn btn-secondary" onclick="toggleSunlightMode()">☀️ Light/Dark Theme</button>
       </div>
 
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-col);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;">
@@ -375,7 +435,7 @@
 
   <!-- RollupOS Multi-User Bridge & Local IndexedDB Hardware Adapter -->
   <script src="../../bridge/rollup-bridge.js"></script>
-  <script src="./js/discovery_storage_adapter.js?v=30"></script>
-  <script src="./js/app.js?v=30"></script>
+  <script src="./js/discovery_storage_adapter.js?v=31"></script>
+  <script src="./js/app.js?v=31"></script>
 </body>
 </html>

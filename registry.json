@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T16:54:34.743554",
+    "updated_at": "2026-10-26T19:57:53.488254",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -110,7 +110,7 @@
     "apk_version": "1.1.0",
     "build_hash": "2b3112af07",
     "stamped_version": "1.0.6",
-    "ota_etag": "26957aab13"
+    "ota_etag": "32a0596ac1"
   },
   "apps": [
     {
@@ -213,7 +213,7 @@
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -238,13 +238,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "3e6a4ddf8e",
-      "stamped_version": "3.0.0",
-      "updated_at": "2026-10-26T16:54:33.502164",
+      "build_hash": "cd3a2299a1",
+      "stamped_version": "3.1.0",
+      "updated_at": "2026-10-26T19:57:52.259077",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "3e6a4ddf8e",
-      "manual_updated_at": "2026-10-26T16:54:34.595305"
+      "manual_source_hash": "cd3a2299a1",
+      "manual_updated_at": "2026-10-26T19:57:53.338115"
     },
     {
       "id": "field-snap",
