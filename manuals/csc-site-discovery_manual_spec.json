@@ -10,7 +10,7 @@
   "build_hash": "cd3a2299a1",
   "visibility": "restricted",
   "updated_at": "2026-10-26T19:57:52.259077",
-  "generated_at": "2026-10-26 19:57",
+  "generated_at": "2026-10-26 20:00",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -92,14 +92,7 @@
     "apps/csc-site-discovery/js/discovery_storage_adapter.js",
     "apps/csc-site-discovery/js/app.js"
   ],
-  "newly_added_buttons": [
-    "\u2753",
-    "\ud83d\udccd GPS",
-    "All",
-    "\ud83d\udd34 Issues",
-    "\ud83d\udccb +1 Clone",
-    "\ud83d\udd04 Start Over"
-  ],
+  "newly_added_buttons": [],
   "ai_release_note": null,
   "inspected": {
     "app_id": "csc-site-discovery",
@@ -227,6 +220,11 @@
     ],
     "recent_commits": [
       {
+        "sha": "ab3e896",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 19:57)"
+      },
+      {
         "sha": "3be8955",
         "date": "2026-10-26",
         "subject": "RollupOS Hub & Mini-App sync (2026-10-26 16:54)"
@@ -245,11 +243,6 @@
         "sha": "22d612c",
         "date": "2026-10-24",
         "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
-      },
-      {
-        "sha": "0c21c6e",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 16:38)"
       }
     ]
   }

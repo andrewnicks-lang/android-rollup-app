@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T19:57:53.488254",
+    "updated_at": "2026-10-26T20:00:24.639204",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -244,7 +244,7 @@
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
       "manual_source_hash": "cd3a2299a1",
-      "manual_updated_at": "2026-10-26T19:57:53.338115"
+      "manual_updated_at": "2026-10-26T20:00:24.509679"
     },
     {
       "id": "field-snap",
