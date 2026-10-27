@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T23:32:09.596194",
+    "updated_at": "2026-10-26T23:35:14.893011",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -110,7 +110,7 @@
     "apk_version": "1.1.0",
     "build_hash": "2b3112af07",
     "stamped_version": "1.0.6",
-    "ota_etag": "f8c3603bb8"
+    "ota_etag": "f63b77681e"
   },
   "apps": [
     {
@@ -151,13 +151,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "7e3ba53425",
+      "build_hash": "28fd0841d0",
       "stamped_version": "1.4.0",
-      "updated_at": "2026-10-26T23:32:10.421659",
+      "updated_at": "2026-10-26T23:35:15.674182",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "7e3ba53425",
-      "manual_updated_at": "2026-10-26T23:32:20.561850"
+      "manual_source_hash": "28fd0841d0",
+      "manual_updated_at": "2026-10-26T23:35:23.223444"
     },
     {
       "id": "fantasy-manager",

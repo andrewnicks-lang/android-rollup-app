@@ -1965,10 +1965,11 @@
       try {
         const res = await gravityFetch(`${getActiveHostBase()}/api/v1/push-config`);
         if (res.ok) {
-          const cfg = await res.json();
+          const raw = await res.json();
+          const cfg = raw.config || raw;
           window._pushSettings = {
             enabled: cfg.enabled !== undefined ? Boolean(cfg.enabled) : true,
-            ntfy_topic: cfg.ntfy_topic || '',
+            ntfy_topic: cfg.ntfy_topic_or_url || cfg.ntfy_topic || '',
             notify_on_approval: cfg.notify_on_approval !== undefined ? Boolean(cfg.notify_on_approval) : true,
             notify_on_done: cfg.notify_on_done !== undefined ? Boolean(cfg.notify_on_done) : true,
             notify_on_error: cfg.notify_on_error !== undefined ? Boolean(cfg.notify_on_error) : true
@@ -1994,9 +1995,11 @@
       const dnEl = document.getElementById('pushOnDoneToggle');
       const erEl = document.getElementById('pushOnErrorToggle');
       const tpEl = document.getElementById('pushNtfyTopicInput');
+      const topicVal = tpEl ? tpEl.value.trim() : '';
       const payload = {
         enabled: enEl ? Boolean(enEl.checked) : true,
-        ntfy_topic: tpEl ? tpEl.value.trim() : '',
+        ntfy_topic: topicVal,
+        ntfy_topic_or_url: topicVal,
         notify_on_approval: apEl ? Boolean(apEl.checked) : true,
         notify_on_done: dnEl ? Boolean(dnEl.checked) : true,
         notify_on_error: erEl ? Boolean(erEl.checked) : true
