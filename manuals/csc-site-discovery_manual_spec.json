@@ -1,16 +1,16 @@
 {
   "app_id": "csc-site-discovery",
   "title": "CSC Site Discovery",
-  "subtitle": "Snap & Go v3.3: Field Capture + Instant Nameplate Age/A2L & PC Companion Sync",
-  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.3: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload to the Desktop Engineering Compute Workbench (Valve Cv, Damper Torque, ALC I/O & TCP 24VAC VA Sizer), Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, and Instant On-Capture ASHRAE Ch. 38 Age + EPA A2L Safety Badges.",
+  "subtitle": "Snap & Go v3.4: 2-Way Office PC Sync, Job Pull & Portrait Watermarks",
+  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.4: 2-Way Office PC Connectivity over LAN (10.0.0.91:8766) & Cloudflare HTTPS Tunnel, 1-Tap PC Preloaded Job Catalog Pull, Portrait-Safe Burned-In CSC Evidence Footer Watermark Toggle with CLAHE Preservation, Gallery Photo Save & Multi-Photo Native Share, Self-Contained .cscwalk.zip Export, and Desktop Engineering Compute Workbench.",
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "3.3.1",
-  "build_hash": "2debfaf71d",
+  "version": "3.4.0",
+  "build_hash": "9c955671e5",
   "visibility": "restricted",
-  "updated_at": "2026-10-27T08:16:16.313188",
-  "generated_at": "2026-10-27 08:16",
+  "updated_at": "2026-10-27T09:24:32.654088",
+  "generated_at": "2026-10-27 09:24",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -88,20 +88,28 @@
   ],
   "offline_assets": [
     "apps/csc-site-discovery/index.html",
+    "apps/csc-site-discovery/workbench.html",
     "apps/csc-site-discovery/css/field_ui.css",
     "apps/csc-site-discovery/js/discovery_storage_adapter.js",
-    "apps/csc-site-discovery/js/app.js"
+    "apps/csc-site-discovery/js/app.js",
+    "apps/csc-site-discovery/js/workbench.js",
+    "apps/csc-site-discovery/endpoints.json"
   ],
-  "newly_added_buttons": [],
+  "newly_added_buttons": [
+    "\ud83d\udce5 Pull Job"
+  ],
   "ai_release_note": null,
   "inspected": {
     "app_id": "csc-site-discovery",
     "file_inventory": [
       "css/field_ui.css",
+      "endpoints.json",
       "index.html",
       "js/app.js",
       "js/discovery_storage_adapter.js",
-      "manifest.json"
+      "js/workbench.js",
+      "manifest.json",
+      "workbench.html"
     ],
     "tabs": [
       "mapMainView"
@@ -109,7 +117,8 @@
     "headings": [
       "\u26a1 3-Step Field Quick Start",
       "Captured Photo",
-      "\ud83d\udce6 Dump Walk.zip, Office Wi-Fi Sync & Job Setup"
+      "\ud83d\udce6 PC Job Sync, Walk.zip & Watermarked Photos",
+      "\ud83e\uddee CSC PC Companion Engineering Compute Workbench v3.3 \u2022 Desktop Companion"
     ],
     "buttons": [
       {
@@ -149,6 +158,10 @@
         "action": "setFeedFilter('good')"
       },
       {
+        "label": "\ud83d\udce5 Pull Job",
+        "action": "openSessionManagerAndBrowsePcJobs()"
+      },
+      {
         "label": "\ud83d\udce6 Dump Walk",
         "action": "openSessionManagerModal()"
       },
@@ -179,10 +192,6 @@
       {
         "label": "\u2795",
         "action": "zoomMap(1.35)"
-      },
-      {
-        "label": "\u2796",
-        "action": "zoomMap(0.74)"
       }
     ],
     "modals": [
@@ -192,7 +201,10 @@
       "zoomModalTitle",
       "zoomModalImg",
       "sessionModal",
-      "rfi11ModalCheck"
+      "rfi11ModalCheck",
+      "wbPhotoModal",
+      "wbPhotoModalTitle",
+      "wbPhotoModalImg"
     ],
     "inputs": [
       "Or tap here to type a quick note / room (optional)...",
@@ -202,14 +214,17 @@
       "Model #",
       "Serial #",
       "Symbio, DX-9100, Pneumatic...",
-      "http://192.168.1.50:8765 (PC Office Wi-Fi Drop URL)",
+      "Auto-Discover PC (or http://10.0.0.91:8766 / https://...trycloudflare.com)",
       "e.g. Lee's Summit West HS",
       "e.g. CSC-26-4182",
       "e.g. Danny Miller (Chief Eng)",
       "Lee's Summit, MO"
     ],
     "storage_keys": [],
-    "vault_secrets": [],
+    "vault_secrets": [
+      "GRAVITY_SIDECAR_TOKEN",
+      "office_pc_sync_token"
+    ],
     "capabilities": [
       "Isolated Per-User Storage (RollupBridge)",
       "Mobile Camera / Multimodal Capture",

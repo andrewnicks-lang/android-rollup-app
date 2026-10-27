@@ -959,13 +959,75 @@
   }
 
   // ============================================================================
-  // v3.2.0: Burned-In CSC Field Evidence Watermark Renderer (<canvas>)
-  // Stamps Job #, Unit #/Tag, Condition Pill, Location, Decoded Nameplate Specs,
-  // ALC Target, Quick Issues & Voice Notes onto the bottom of full-color photos.
+  // v3.4.0: Burned-In CSC Field Evidence Watermark Renderer (<canvas>)
+  // Portrait-9:16-safe layout: zero header overlap, deduplicated Unit/Tag title,
+  // wrapped title clear of Condition Pill, wrapped Location & ALC rows,
+  // ellipsis-safe Spec/Notes wrapping, and dynamic footer height.
   // ============================================================================
-  function _wrapCanvasText(ctx, text, maxWidth) {
-    const words = String(text || '').split(/\s+/).filter(Boolean);
-    if (!words.length) return [];
+  function _formatStampTimestamp(rawTs) {
+    if (!rawTs) {
+      return new Date().toISOString().slice(0, 16).replace('T', ' ');
+    }
+    const s = String(rawTs).trim();
+    // EXIF format "YYYY:MM:DD HH:MM:SS"
+    const exifMatch = s.match(/^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}:\d{2})/);
+    if (exifMatch) {
+      return `${exifMatch[1]}-${exifMatch[2]}-${exifMatch[3]} ${exifMatch[4]}`;
+    }
+    // ISO format "YYYY-MM-DDTHH:MM..."
+    const isoMatch = s.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[1]} ${isoMatch[2]}`;
+    }
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      const pad2 = (n) => String(n).padStart(2, '0');
+      return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(parsed.getDate())} ${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}`;
+    }
+    return s.slice(0, 19);
+  }
+
+  function _fitTextWithEllipsis(ctx, text, maxWidth) {
+    const str = String(text || '').trim();
+    if (!str || maxWidth <= 0) return '';
+    if (ctx.measureText(str).width <= maxWidth) return str;
+    const ell = '…';
+    let lo = 0;
+    let hi = str.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (ctx.measureText(str.slice(0, mid).trimEnd() + ell).width <= maxWidth) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return lo > 0 ? (str.slice(0, lo).trimEnd() + ell) : ell;
+  }
+
+  function _wrapCanvasText(ctx, text, maxWidth, maxLines = 0) {
+    const rawTokens = String(text || '').split(/\s+/).filter(Boolean);
+    if (!rawTokens.length || maxWidth <= 0) return [];
+
+    // Break any single ultra-long unbroken token so it can never overflow maxWidth
+    const words = [];
+    for (const tok of rawTokens) {
+      if (ctx.measureText(tok).width <= maxWidth) {
+        words.push(tok);
+      } else {
+        let chunk = '';
+        for (const ch of tok) {
+          if (chunk && ctx.measureText(chunk + ch).width > maxWidth) {
+            words.push(chunk);
+            chunk = ch;
+          } else {
+            chunk += ch;
+          }
+        }
+        if (chunk) words.push(chunk);
+      }
+    }
+
     const lines = [];
     let current = words[0];
     for (let i = 1; i < words.length; i++) {
@@ -978,6 +1040,13 @@
       }
     }
     lines.push(current);
+
+    if (maxLines > 0 && lines.length > maxLines) {
+      const kept = lines.slice(0, maxLines);
+      const overflowRemainder = lines.slice(maxLines - 1).join(' ');
+      kept[maxLines - 1] = _fitTextWithEllipsis(ctx, overflowRemainder, maxWidth);
+      return kept;
+    }
     return lines;
   }
 
@@ -991,28 +1060,41 @@
       img.onload = () => {
         const w = Math.max(640, img.width || 1200);
         const h = Math.max(480, img.height || 900);
-        const scale = w / 1200;
-        const padX = Math.round(22 * scale);
-        const padY = Math.round(16 * scale);
+        // Scale smoothly using effective width clamped so 810x1440 portrait stays crisp & readable
+        const scale = Math.max(0.68, Math.min(1.35, w / 1200));
+        const padX = Math.max(14, Math.round(22 * scale));
+        const padY = Math.max(12, Math.round(16 * scale));
         const fontMain = Math.max(15, Math.round(21 * scale));
         const fontSub = Math.max(13, Math.round(17 * scale));
         const fontSmall = Math.max(12, Math.round(15 * scale));
-        const lineHeight = Math.round(fontSub * 1.38);
+        const titleLineH = Math.round(fontMain * 1.28);
+        const subLineH = Math.round(fontSub * 1.34);
+        const smallLineH = Math.round(fontSmall * 1.38);
 
-        const jobNum = stampMeta.jobNumber || 'CSC-26-WALK';
-        const projName = stampMeta.projectName || 'CSC Site Discovery';
-        const unitLabel = stampMeta.unitNumber ? `Unit #${stampMeta.unitNumber}` : (stampMeta.stationId || 'UNIT');
-        const eqTag = stampMeta.tag || unitLabel;
-        const slotName = stampMeta.slotLabel || 'FIELD PHOTO';
+        const jobNum = String(stampMeta.jobNumber || 'CSC-26-WALK').trim();
+        const projName = String(stampMeta.projectName || 'CSC Site Discovery').trim();
+        const unitLabel = stampMeta.unitNumber ? `Unit #${stampMeta.unitNumber}` : String(stampMeta.stationId || 'UNIT').trim();
+        const rawTag = String(stampMeta.tag || stampMeta.stationTag || '').trim();
+        const slotName = String(stampMeta.slotLabel || (stampMeta.photoSlot === 1 ? 'WIDE CONTEXT' : 'FIELD PHOTO')).trim();
+
+        // Prevent duplicate "Unit #1: Unit #1" when default tag matches unitLabel
+        let unitDisplay = unitLabel;
+        if (rawTag && rawTag.toLowerCase() !== unitLabel.toLowerCase()) {
+          unitDisplay = rawTag.toLowerCase().startsWith('unit #') ? rawTag : `${unitLabel}: ${rawTag}`;
+        }
+        const titleStr = `${unitDisplay}  [${slotName}]`;
+
         const condRaw = String(stampMeta.condition || 'good').toUpperCase();
         const condColors = {
-          GOOD: { bg: '#059669', border: '#34d399', text: '🟢 GOOD — OVERLAY READY' },
-          CAUTION: { bg: '#d97706', border: '#fbbf24', text: '🟡 CAUTION — VERIFY / REPAIR' },
-          REPLACE: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED' }
+          GOOD: { bg: '#059669', border: '#34d399', text: '🟢 GOOD — OVERLAY READY', shortText: '🟢 GOOD' },
+          CAUTION: { bg: '#d97706', border: '#fbbf24', text: '🟡 CAUTION — VERIFY / REPAIR', shortText: '🟡 CAUTION' },
+          REPLACE: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED', shortText: '🔴 REPLACE' },
+          ACTION: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED', shortText: '🔴 REPLACE' }
         };
         const condStyle = condColors[condRaw] || condColors.GOOD;
 
-        const locLine = `📍 ${stampMeta.floorName || stampMeta.floorId || 'Floor 1'} • ${stampMeta.location || 'Field Pin'}${stampMeta.gpsText ? ' (' + stampMeta.gpsText + ')' : ''}`;
+        const locVal = stampMeta.location || stampMeta.room || 'Field Pin';
+        const locLine = `📍 ${stampMeta.floorName || stampMeta.floorId || 'Floor 1'} • ${locVal}${stampMeta.gpsText ? ' (' + stampMeta.gpsText + ')' : ''}`;
         const specParts = [];
         if (stampMeta.mfg || stampMeta.model) specParts.push(`Make/Model: ${[stampMeta.mfg, stampMeta.model].filter(Boolean).join(' ')}`);
         if (stampMeta.serial) specParts.push(`S/N: ${stampMeta.serial}`);
@@ -1022,101 +1104,150 @@
         const specLine = specParts.length ? `⚙️ ${specParts.join('  |  ')}` : '⚙️ Specs: Pending Nameplate Decode / Manual Review';
 
         const alcLine = stampMeta.alcTarget ? `🎛️ ALC WebCTRL Target: ${stampMeta.alcTarget}` : '';
+        const fieldNoteVal = stampMeta.fieldNote || stampMeta.userNote || '';
         const notesRaw = [
           ...(Array.isArray(stampMeta.quickIssues) && stampMeta.quickIssues.length ? [`Issues: ${stampMeta.quickIssues.join(', ')}`] : []),
-          stampMeta.fieldNote ? `Notes: ${stampMeta.fieldNote}` : '',
+          fieldNoteVal ? `Notes: ${fieldNoteVal}` : '',
           stampMeta.voiceTranscript ? `🎙️ "${stampMeta.voiceTranscript}"` : ''
         ].filter(Boolean).join('  •  ');
 
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
         const maxTextW = w - padX * 2;
-        const wrappedSpec = _wrapCanvasText(tempCtx, specLine, maxTextW).slice(0, 2);
-        const wrappedNotes = notesRaw ? _wrapCanvasText(tempCtx, notesRaw, maxTextW).slice(0, 2) : [];
 
-        const totalLines = 2 + wrappedSpec.length + (alcLine ? 1 : 0) + wrappedNotes.length;
-        const bannerH = padY * 2 + Math.round(fontMain * 1.55) + totalLines * lineHeight + Math.round(10 * scale);
+        // Measure Condition Pill first so Row 1 Title never collides with it on 9:16 portrait photos
+        tempCtx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        let condTxt = condStyle.text;
+        let pillW = Math.ceil(tempCtx.measureText(condTxt).width + Math.round(24 * scale));
+        if (pillW > w * 0.42) {
+          condTxt = condStyle.shortText;
+          pillW = Math.ceil(tempCtx.measureText(condTxt).width + Math.round(20 * scale));
+        }
+        const pillGap = Math.round(14 * scale);
+        const availTitleW = Math.max(180, maxTextW - pillW - pillGap);
+
+        tempCtx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
+        const wrappedTitle = _wrapCanvasText(tempCtx, titleStr, availTitleW, 2);
+
+        tempCtx.font = `700 ${fontSub}px "Segoe UI", Arial, sans-serif`;
+        const wrappedLoc = _wrapCanvasText(tempCtx, locLine, maxTextW, 2);
+
+        tempCtx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const wrappedSpec = _wrapCanvasText(tempCtx, specLine, maxTextW, 2);
+
+        tempCtx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const wrappedAlc = alcLine ? _wrapCanvasText(tempCtx, alcLine, maxTextW, 2) : [];
+        const wrappedNotes = notesRaw ? _wrapCanvasText(tempCtx, notesRaw, maxTextW, 2) : [];
+
+        const pillH = Math.round(fontMain * 1.35);
+        const titleBlockH = Math.max(pillH, wrappedTitle.length * titleLineH);
+        const sectionGap = Math.max(4, Math.round(6 * scale));
+        const bannerH =
+          padY * 2 +
+          titleBlockH +
+          sectionGap +
+          wrappedLoc.length * subLineH +
+          wrappedSpec.length * smallLineH +
+          wrappedAlc.length * smallLineH +
+          wrappedNotes.length * smallLineH +
+          Math.round(8 * scale);
 
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h + bannerH;
         const ctx = canvas.getContext('2d');
 
-        // 1. Draw original full-color photo at top
+        // 1. Draw full-resolution source photo (raw or CLAHE-enhanced) at top
         ctx.drawImage(img, 0, 0, w, h);
 
-        // 2. Top-left subtle unit badge overlay on the photo corner
-        const topChipH = Math.round(36 * scale);
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.86)';
+        // 2. Top header bar with guaranteed left/right separation on narrow portrait photos
+        const topChipH = Math.max(28, Math.round(36 * scale));
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
         ctx.fillRect(0, 0, w, topChipH);
-        ctx.fillStyle = '#2dd4bf';
-        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
-        ctx.fillText(`🧭 CONTROL SERVICE COMPANY (CSC)  •  ${jobNum}  •  ${projName}`, padX, Math.round(topChipH * 0.68));
-        const tsStr = stampMeta.capturedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
-        const tsWidth = ctx.measureText(tsStr).width;
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(tsStr, w - padX - tsWidth, Math.round(topChipH * 0.68));
 
-        // 3. Draw high-contrast footer banner below the photo (never covers up equipment details!)
+        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const tsStr = _formatStampTimestamp(stampMeta.capturedAt);
+        const tsWidth = Math.ceil(ctx.measureText(tsStr).width);
+        const tsX = w - padX - tsWidth;
+        const topBaselineY = Math.round(topChipH * 0.68);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(tsStr, tsX, topBaselineY);
+
+        const maxLeftHeaderW = Math.max(120, tsX - padX - Math.round(16 * scale));
+        let leftHeaderCandidate = `🧭 CONTROL SERVICE COMPANY (CSC)  •  ${jobNum}  •  ${projName}`;
+        if (ctx.measureText(leftHeaderCandidate).width > maxLeftHeaderW) {
+          leftHeaderCandidate = `🧭 CSC  •  ${jobNum}  •  ${projName}`;
+        }
+        ctx.fillStyle = '#2dd4bf';
+        ctx.fillText(_fitTextWithEllipsis(ctx, leftHeaderCandidate, maxLeftHeaderW), padX, topBaselineY);
+
+        // 3. High-contrast footer banner below the photo (never covers equipment details)
         const by = h;
         ctx.fillStyle = '#090e1a';
         ctx.fillRect(0, by, w, bannerH);
 
         // Accent top border bar in Condition color
+        const borderBarH = Math.max(4, Math.round(5 * scale));
         ctx.fillStyle = condStyle.border;
-        ctx.fillRect(0, by, w, Math.max(4, Math.round(5 * scale)));
+        ctx.fillRect(0, by, w, borderBarH);
 
-        let curY = by + padY + fontMain;
-
-        // Row 1: Unit # + Tag + Slot Label on left, Condition Pill on right
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
-        const titleStr = `${unitLabel}: ${eqTag}  [${slotName}]`;
-        ctx.fillText(titleStr, padX, curY);
-
-        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
-        const condTxt = condStyle.text;
-        const pillW = ctx.measureText(condTxt).width + Math.round(24 * scale);
-        const pillH = Math.round(fontMain * 1.35);
+        // Condition Pill on top-right of footer
         const pillX = w - padX - pillW;
-        const pillY = curY - Math.round(fontMain * 0.92);
+        const pillY = by + padY;
         ctx.fillStyle = condStyle.bg;
         ctx.fillRect(pillX, pillY, pillW, pillH);
         ctx.strokeStyle = condStyle.border;
         ctx.lineWidth = Math.max(1.5, 2 * scale);
         ctx.strokeRect(pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(condTxt, pillX + Math.round(12 * scale), curY - Math.round(fontMain * 0.08));
+        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        ctx.fillText(condTxt, pillX + Math.round((pillW - ctx.measureText(condTxt).width) / 2), pillY + Math.round(pillH * 0.70));
 
-        // Row 2: Floor & Location
-        curY += Math.round(lineHeight * 1.1);
+        // Row 1+: Wrapped Unit / Tag / Slot title on left (strictly <= availTitleW)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
+        let titleY = by + padY + Math.round(fontMain * 0.92);
+        for (let i = 0; i < wrappedTitle.length; i++) {
+          if (i > 0) titleY += titleLineH;
+          ctx.fillText(wrappedTitle[i], padX, titleY);
+        }
+
+        let curY = by + padY + titleBlockH + sectionGap;
+
+        // Row 2+: Wrapped Floor & Location
         ctx.fillStyle = '#5eead4';
         ctx.font = `700 ${fontSub}px "Segoe UI", Arial, sans-serif`;
-        ctx.fillText(locLine, padX, curY);
+        for (const ll of wrappedLoc) {
+          curY += Math.round(subLineH * 0.88);
+          ctx.fillText(ll, padX, curY);
+          curY += Math.round(subLineH * 0.12);
+        }
 
-        // Row 3+: Decoded Nameplate Specs
+        // Row 3+: Wrapped Decoded Nameplate Specs
         ctx.fillStyle = '#e2e8f0';
         ctx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
         for (const sl of wrappedSpec) {
-          curY += lineHeight;
+          curY += smallLineH;
           ctx.fillText(sl, padX, curY);
         }
 
-        // Row 4: ALC Target
-        if (alcLine) {
-          curY += lineHeight;
+        // Row 4+: Wrapped ALC WebCTRL Target
+        if (wrappedAlc.length) {
           ctx.fillStyle = '#93c5fd';
           ctx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
-          ctx.fillText(alcLine, padX, curY);
+          for (const al of wrappedAlc) {
+            curY += smallLineH;
+            ctx.fillText(al, padX, curY);
+          }
         }
 
-        // Row 5+: Field Issues & Voice Notes
+        // Row 5+: Wrapped Field Issues & Voice Notes
         if (wrappedNotes.length) {
           ctx.fillStyle = '#fde68a';
           ctx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
           for (const nl of wrappedNotes) {
-            curY += lineHeight;
+            curY += smallLineH;
             ctx.fillText(nl, padX, curY);
           }
         }
@@ -1128,26 +1259,46 @@
     });
   }
 
+  function dataUrlToBlob(dataUrl, fallbackMime = 'image/jpeg') {
+    const str = String(dataUrl || '');
+    const commaIdx = str.indexOf(',');
+    let mime = fallbackMime;
+    if (commaIdx > 0) {
+      const m = str.slice(0, commaIdx).match(/data:([^;]+)/i);
+      if (m && m[1]) mime = m[1];
+    }
+    const bytes = dataUrlToUint8Array(str);
+    return new Blob([bytes], { type: mime });
+  }
+
   // ============================================================================
   // Native Android APK (`window.RollupNative`), Web Share & Browser Download Bridge
   // ============================================================================
   async function saveOrShareBlob(filename, mimeType, blob, shareTitle) {
-    // 1. Inside RollupOS Android WebView APK -> Direct Kotlin MediaStore/Downloads + Share!
+    // 1. Inside RollupOS Android WebView APK:
+    //    - If shareTitle is provided, launch native Android Share Sheet via shareBase64File!
+    //    - Otherwise save directly to Gallery (Pictures/CSC_Site_Discovery for images) or Downloads!
     if (hasRollupNative()) {
       try {
         const ab = await blob.arrayBuffer();
         const b64 = uint8ArrayToBase64(new Uint8Array(ab));
-        global.RollupNative.saveBase64File(filename, mimeType, b64);
-        return { ok: true, channel: 'RollupNative.saveBase64File' };
+        if (shareTitle && typeof global.RollupNative.shareBase64File === 'function') {
+          const shared = global.RollupNative.shareBase64File(filename, mimeType, b64, String(shareTitle));
+          if (shared !== false) {
+            return { ok: true, channel: 'RollupNative.shareBase64File' };
+          }
+        }
+        const savedUri = global.RollupNative.saveBase64File(filename, mimeType, b64);
+        return { ok: Boolean(savedUri !== ''), channel: 'RollupNative.saveBase64File', uri: savedUri };
       } catch (e) {
-        console.warn('[CSCDiscoveryAdapter] RollupNative save error:', e);
+        console.warn('[CSCDiscoveryAdapter] RollupNative save/share error:', e);
       }
     }
 
     // 2. Mobile Browser Web Share Level 2 (Files) when supported & explicitly requested
     if (shareTitle && navigator.canShare && typeof File !== 'undefined') {
       try {
-        const f = new File([blob], filename, { type: mimeType });
+        const f = blob instanceof File ? blob : new File([blob], filename, { type: mimeType });
         if (navigator.canShare({ files: [f] })) {
           await navigator.share({ title: shareTitle, text: filename, files: [f] });
           return { ok: true, channel: 'navigator.share(files)' };
@@ -1161,11 +1312,17 @@
     }
 
     // 3. RollupBridge.files base64 helper if present
-    if (hasRollupBridge() && global.RollupBridge.files && typeof global.RollupBridge.files.downloadBase64 === 'function') {
+    if (hasRollupBridge() && global.RollupBridge.files) {
       const ab = await blob.arrayBuffer();
       const b64 = uint8ArrayToBase64(new Uint8Array(ab));
-      global.RollupBridge.files.downloadBase64(filename, b64, mimeType);
-      return { ok: true, channel: 'RollupBridge.files.downloadBase64' };
+      if (shareTitle && typeof global.RollupBridge.files.shareBase64 === 'function') {
+        const ok = global.RollupBridge.files.shareBase64(filename, b64, mimeType, shareTitle);
+        if (ok) return { ok: true, channel: 'RollupBridge.files.shareBase64' };
+      }
+      if (typeof global.RollupBridge.files.downloadBase64 === 'function') {
+        global.RollupBridge.files.downloadBase64(filename, b64, mimeType);
+        return { ok: true, channel: 'RollupBridge.files.downloadBase64' };
+      }
     }
 
     // 4. Standard Desktop / Chrome Browser Anchor Download
@@ -1184,6 +1341,75 @@
 
   async function shareFilesNative(filesArray, title, text) {
     if (!filesArray || !filesArray.length) return { ok: false, reason: 'no_files' };
+
+    // 1. Inside RollupOS Android APK: use native ACTION_SEND_MULTIPLE / ACTION_SEND bridge!
+    if (hasRollupNative()) {
+      try {
+        const encodedItems = [];
+        for (const f of filesArray) {
+          const ab = await f.arrayBuffer();
+          encodedItems.push({
+            filename: f.name || 'CSC_Stamped_Photo.jpg',
+            mimeType: f.type || 'image/jpeg',
+            base64: uint8ArrayToBase64(new Uint8Array(ab))
+          });
+        }
+        if (encodedItems.length === 1 && typeof global.RollupNative.shareBase64File === 'function') {
+          // Also save image to Gallery if saveBase64File is present so user keeps a local copy in Gallery
+          if (encodedItems[0].mimeType.startsWith('image/')) {
+            try { global.RollupNative.saveBase64File(encodedItems[0].filename, encodedItems[0].mimeType, encodedItems[0].base64); } catch (e) {}
+          }
+          const ok = global.RollupNative.shareBase64File(
+            encodedItems[0].filename,
+            encodedItems[0].mimeType,
+            encodedItems[0].base64,
+            String(title || 'CSC Field Discovery')
+          );
+          if (ok !== false) return { ok: true, channel: 'RollupNative.shareBase64File' };
+        }
+        if (typeof global.RollupNative.shareMultipleBase64Files === 'function') {
+          const ok = global.RollupNative.shareMultipleBase64Files(
+            JSON.stringify(encodedItems),
+            String(title || 'CSC Field Discovery')
+          );
+          if (ok !== false) return { ok: true, channel: 'RollupNative.shareMultipleBase64Files' };
+        }
+        // Fallback for older APK without shareMultipleBase64Files: save all to Gallery/Downloads and share first
+        for (const item of encodedItems) {
+          global.RollupNative.saveBase64File(item.filename, item.mimeType, item.base64);
+        }
+        if (typeof global.RollupNative.shareBase64File === 'function') {
+          global.RollupNative.shareBase64File(
+            encodedItems[0].filename,
+            encodedItems[0].mimeType,
+            encodedItems[0].base64,
+            String(title || 'CSC Field Discovery')
+          );
+        }
+        return { ok: true, channel: 'RollupNative.saveAndShareFallback' };
+      } catch (e) {
+        console.warn('[CSCDiscoveryAdapter] Native multi-file share error:', e);
+      }
+    }
+
+    // 2. RollupBridge.files.shareMultipleBase64Files if present
+    if (hasRollupBridge() && global.RollupBridge.files && typeof global.RollupBridge.files.shareMultipleBase64Files === 'function') {
+      try {
+        const encodedItems = [];
+        for (const f of filesArray) {
+          const ab = await f.arrayBuffer();
+          encodedItems.push({
+            filename: f.name || 'CSC_Stamped_Photo.jpg',
+            mimeType: f.type || 'image/jpeg',
+            base64: uint8ArrayToBase64(new Uint8Array(ab))
+          });
+        }
+        const ok = await global.RollupBridge.files.shareMultipleBase64Files(encodedItems, title || 'CSC Field Discovery');
+        if (ok) return { ok: true, channel: 'RollupBridge.files.shareMultipleBase64Files' };
+      } catch (e) {}
+    }
+
+    // 3. Web Share API Level 2 (Mobile Chrome / Edge PWA)
     if (navigator.canShare && typeof File !== 'undefined') {
       try {
         if (navigator.canShare({ files: filesArray })) {
@@ -1244,10 +1470,12 @@
     captureImage,
     enhanceStampedPlateDataUrl,
     renderStampedFieldPhotoDataUrl,
+    _formatStampTimestamp,
     computeCanvasLaplacianSharpness,
     parseEquipmentBarcodeText,
     detectBarcodeFromImage,
     dataUrlToUint8Array,
+    dataUrlToBlob,
     uint8ArrayToBase64,
     buildCscWalkZipBlob,
     parseCscWalkZipBuffer,

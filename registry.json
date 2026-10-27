@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.9",
-    "updated_at": "2026-10-27T09:22:57.472448",
+    "updated_at": "2026-10-27T09:24:34.388079",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -107,10 +107,10 @@
         }
       ]
     },
-    "apk_version": "1.2.0",
+    "apk_version": "1.3.0",
     "build_hash": "970db01240",
     "stamped_version": "1.0.9",
-    "ota_etag": "18b2fef1d5"
+    "ota_etag": "f8e35051b3"
   },
   "apps": [
     {
@@ -208,19 +208,22 @@
     {
       "id": "csc-site-discovery",
       "title": "CSC Site Discovery",
-      "subtitle": "Snap & Go v3.3: Field Capture + Instant Nameplate Age/A2L & PC Companion Sync",
-      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.3: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload to the Desktop Engineering Compute Workbench (Valve Cv, Damper Torque, ALC I/O & TCP 24VAC VA Sizer), Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, and Instant On-Capture ASHRAE Ch. 38 Age + EPA A2L Safety Badges.",
+      "subtitle": "Snap & Go v3.4: 2-Way Office PC Sync, Job Pull & Portrait Watermarks",
+      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.4: 2-Way Office PC Connectivity over LAN (10.0.0.91:8766) & Cloudflare HTTPS Tunnel, 1-Tap PC Preloaded Job Catalog Pull, Portrait-Safe Burned-In CSC Evidence Footer Watermark Toggle with CLAHE Preservation, Gallery Photo Save & Multi-Photo Native Share, Self-Contained .cscwalk.zip Export, and Desktop Engineering Compute Workbench.",
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.3.1",
+      "version": "3.4.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
         "apps/csc-site-discovery/index.html",
+        "apps/csc-site-discovery/workbench.html",
         "apps/csc-site-discovery/css/field_ui.css",
         "apps/csc-site-discovery/js/discovery_storage_adapter.js",
-        "apps/csc-site-discovery/js/app.js"
+        "apps/csc-site-discovery/js/app.js",
+        "apps/csc-site-discovery/js/workbench.js",
+        "apps/csc-site-discovery/endpoints.json"
       ],
       "userConfigSchema": [
         {
@@ -238,13 +241,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "2debfaf71d",
-      "stamped_version": "3.3.1",
-      "updated_at": "2026-10-27T08:16:16.313188",
+      "build_hash": "9c955671e5",
+      "stamped_version": "3.4.0",
+      "updated_at": "2026-10-27T09:24:32.654088",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "2debfaf71d",
-      "manual_updated_at": "2026-10-27T08:16:18.131782"
+      "manual_source_hash": "9c955671e5",
+      "manual_updated_at": "2026-10-27T09:24:34.250672"
     },
     {
       "id": "field-snap",
