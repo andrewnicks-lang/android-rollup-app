@@ -2246,23 +2246,9 @@ function setChecklistOptionIndex(itemId, optIdx) {
   renderInteractiveMap();
 }
 
-function _recommendAlcFromIoJS(st) {
-  const io = (st && st.ioTally) || { ui: 0, bi: 0, bo: 0, ao: 0 };
-  const totalIn = (io.ui || 0) + (io.bi || 0);
-  if (st && st.archetype === "VAV_TERMINAL" && totalIn <= 5 && (io.bo || 0) <= 3 && (io.ao || 0) <= 2) {
-    return { model: "ALC ZN341v Integrated VAV Controller", opti: 0, zn: 1, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-  }
-  if (totalIn <= 5 && (io.bo || 0) <= 5 && (io.ao || 0) <= 3) {
-    return { model: "ALC ZN551 Equipment Controller", opti: 0, zn: 1, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-  }
-  if (totalIn <= 12 && (io.bo || 0) <= 8 && (io.ao || 0) <= 4) {
-    return { model: "ALC OptiFlex OF1628 Plant/AHU Controller", opti: 1, zn: 0, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-  }
-  const extraIn = Math.max(0, totalIn - 12);
-  const extraOut = Math.max(0, (io.bo || 0) - 8) + Math.max(0, (io.ao || 0) - 4);
-  const xpio = Math.max(1, Math.ceil(Math.max(extraIn / 8, extraOut / 8)));
-  return { model: `ALC OptiFlex OF1628 + (${xpio}) FIO-812 / XPIO Expander(s)`, opti: 1, zn: 0, xpio, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-}
+// Note: Engineering sizing calculators (Valve Cv, Damper Torque, ALC I/O Tally, Labor Multiplier, TCP 24VAC VA)
+// execute on the Desktop PC Companion Compute Workbench (`app/js/workbench.js` & `backend/companion_compute_engine.py`),
+// while mobile field capture retains instant Nameplate Age (ASHRAE Ch. 38) & EPA AIM Act A2L badges.
 
 // ============================================================================
 // CAMERA CAPTURE, 8x8 CLAHE, BINARY EXIF, WATERMARK STAMP & AUTO-OCR
@@ -2898,7 +2884,7 @@ async function pushWalkToOfficeWifiServer(silentAuto = false) {
     cfg.lastSyncedAt = new Date().toISOString();
     window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", cfg);
     updateWifiSyncBadgesUI("🟢 Synced to Office PC!", true);
-    showBannerToast(`✅ <strong>Pushed to Office PC over Wi-Fi!</strong> Unpacked photos &amp; compiled PDF/Excel/Word dossier in <code>${escapeHtml(resJson.savedDir || resJson.dest_folder || 'output')}</code>.`);
+    showBannerToast(`✅ <strong>Pushed to Office PC over Wi-Fi!</strong> Unpacked photos, compiled PDF/Excel/Word dossier &amp; PC Engineering Workbench in <code>${escapeHtml(resJson.savedDir || resJson.dest_folder || 'output')}</code>.`);
     return { ok: true, response: resJson };
   } catch (err) {
     if (cfg.autoUpload) {

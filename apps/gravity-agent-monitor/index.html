@@ -243,6 +243,7 @@
     .state-RUNNING_TOOL, .state-THINKING { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
     .state-DONE { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
     .state-ERROR { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+    .state-IDLE { background: rgba(148, 163, 184, 0.14); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
 
     /* Antigravity Left-Sidebar Replica Styles */
     .agy-sidebar-section {
@@ -1201,7 +1202,7 @@
       transition: all 0.14s ease;
     }
 
-    .model-tier-pill.active-model-pill {
+    .model-tier-pill.active, .model-tier-pill.active-model-pill {
       background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.28));
       border-color: var(--accent-cyan);
       color: #f8fafc;
@@ -1569,15 +1570,15 @@
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text-secondary);">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-            <input type="checkbox" id="pushOnApprovalToggle" checked />
+            <input type="checkbox" id="pushOnApprovalToggle" checked onchange="savePushConfigFromUI()" />
             <span>⚠️ Approval Gate</span>
           </label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-            <input type="checkbox" id="pushOnDoneToggle" checked />
+            <input type="checkbox" id="pushOnDoneToggle" checked onchange="savePushConfigFromUI()" />
             <span>✅ Response Done</span>
           </label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-            <input type="checkbox" id="pushOnErrorToggle" checked />
+            <input type="checkbox" id="pushOnErrorToggle" checked onchange="savePushConfigFromUI()" />
             <span>🚨 Error</span>
           </label>
         </div>
@@ -1823,14 +1824,17 @@
     let selectedModelTier = localStorage.getItem('gravity_model_tier') || 'inherit';
 
     function syncModelTierPillsUI() {
+      const normTier = (!selectedModelTier || selectedModelTier === 'auto') ? 'inherit' : selectedModelTier;
       document.querySelectorAll('.model-tier-pill').forEach(btn => {
         const m = btn.getAttribute('data-model') || 'inherit';
-        btn.classList.toggle('active', m === selectedModelTier);
+        const isActive = (m === normTier);
+        btn.classList.toggle('active', isActive);
+        btn.classList.toggle('active-model-pill', isActive);
       });
     }
 
     function selectModelTier(tier) {
-      selectedModelTier = tier || 'inherit';
+      selectedModelTier = (!tier || tier === 'auto') ? 'inherit' : tier;
       localStorage.setItem('gravity_model_tier', selectedModelTier);
       syncModelTierPillsUI();
       const labels = {
@@ -1910,6 +1914,7 @@
       } catch (e) {
         showToast('🛑 Stop signal dispatched');
       }
+      window._lastRenderedTrajEtag = null;
       await syncActiveConversation(false);
       await fetchPulse();
     }
@@ -1959,6 +1964,7 @@
         } catch (e) {}
       }
       updatePushPermissionBadge();
+      await savePushConfigFromUI();
     }
 
     async function loadPushConfig() {
@@ -2255,7 +2261,9 @@
       const sel = document.getElementById('skillQuickSelect');
       const inp = document.getElementById('launchPrompt');
       if (!sel || !inp || !sel.value) return;
-      inp.value = `Activate the ${sel.value} skill and `;
+      const slugCmd = `/${sel.value}`;
+      const cur = inp.value.trim();
+      inp.value = cur.startsWith(slugCmd) ? cur + ' ' : `${slugCmd} ${cur}`.trim() + ' ';
       autoResizeChatBox(inp);
       inp.focus();
     }

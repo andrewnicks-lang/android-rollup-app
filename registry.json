@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.6",
-    "updated_at": "2026-10-26T23:38:05.329267",
+    "updated_at": "2026-10-26T23:49:04.962700",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -110,7 +110,7 @@
     "apk_version": "1.1.0",
     "build_hash": "2b3112af07",
     "stamped_version": "1.0.6",
-    "ota_etag": "a8f7ecf865"
+    "ota_etag": "c9cf0d17a5"
   },
   "apps": [
     {
@@ -151,13 +151,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "3f8c7addf3",
+      "build_hash": "8be8f4015a",
       "stamped_version": "1.4.0",
-      "updated_at": "2026-10-26T23:38:06.341050",
+      "updated_at": "2026-10-26T23:49:05.976309",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "3f8c7addf3",
-      "manual_updated_at": "2026-10-26T23:38:15.165352"
+      "manual_source_hash": "8be8f4015a",
+      "manual_updated_at": "2026-10-26T23:49:34.649205"
     },
     {
       "id": "fantasy-manager",
@@ -208,12 +208,12 @@
     {
       "id": "csc-site-discovery",
       "title": "CSC Site Discovery",
-      "subtitle": "Snap & Go v3.2: Stamped Unit Photos, Self-Contained Walk.zip & Office Wi-Fi Sync",
-      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.2: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload, Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, ASHRAE Ch. 38 + EPA A2L Decoder, and BAS Overlay Sizers.",
+      "subtitle": "Snap & Go v3.3: Field Capture + Instant Nameplate Age/A2L & PC Companion Sync",
+      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.3: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload to the Desktop Engineering Compute Workbench (Valve Cv, Damper Torque, ALC I/O & TCP 24VAC VA Sizer), Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, and Instant On-Capture ASHRAE Ch. 38 Age + EPA A2L Safety Badges.",
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.2.1",
+      "version": "3.3.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -238,13 +238,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "93176e9687",
-      "stamped_version": "3.2.1",
-      "updated_at": "2026-10-26T22:50:18.712366",
+      "build_hash": "516c8e3f82",
+      "stamped_version": "3.3.0",
+      "updated_at": "2026-10-26T23:49:05.976309",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "93176e9687",
-      "manual_updated_at": "2026-10-26T22:50:38.521545"
+      "manual_source_hash": "516c8e3f82",
+      "manual_updated_at": "2026-10-26T23:49:44.394425"
     },
     {
       "id": "field-snap",

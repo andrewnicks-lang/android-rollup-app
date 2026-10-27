@@ -7,10 +7,10 @@
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
   "version": "1.4.0",
-  "build_hash": "3f8c7addf3",
+  "build_hash": "8be8f4015a",
   "visibility": "admin_only",
-  "updated_at": "2026-10-26T23:38:06.341050",
-  "generated_at": "2026-10-26 23:38",
+  "updated_at": "2026-10-26T23:49:05.976309",
+  "generated_at": "2026-10-26 23:49",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {

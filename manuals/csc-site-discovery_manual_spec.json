@@ -1,16 +1,16 @@
 {
   "app_id": "csc-site-discovery",
   "title": "CSC Site Discovery",
-  "subtitle": "Snap & Go v3.2: Stamped Unit Photos, Self-Contained Walk.zip & Office Wi-Fi Sync",
-  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.2: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload, Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, ASHRAE Ch. 38 + EPA A2L Decoder, and BAS Overlay Sizers.",
+  "subtitle": "Snap & Go v3.3: Field Capture + Instant Nameplate Age/A2L & PC Companion Sync",
+  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.3: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload to the Desktop Engineering Compute Workbench (Valve Cv, Damper Torque, ALC I/O & TCP 24VAC VA Sizer), Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, and Instant On-Capture ASHRAE Ch. 38 Age + EPA A2L Safety Badges.",
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "3.2.1",
-  "build_hash": "93176e9687",
+  "version": "3.3.0",
+  "build_hash": "516c8e3f82",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T22:50:18.712366",
-  "generated_at": "2026-10-26 22:50",
+  "updated_at": "2026-10-26T23:49:05.976309",
+  "generated_at": "2026-10-26 23:49",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -220,6 +220,11 @@
     ],
     "recent_commits": [
       {
+        "sha": "babdcfe",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:50)"
+      },
+      {
         "sha": "61ab551",
         "date": "2026-10-26",
         "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:40)"
@@ -238,11 +243,6 @@
         "sha": "fe98244",
         "date": "2026-10-26",
         "subject": "RollupOS v1.1.0 + CSC Site Discovery v2.0.0 (2026-10-26 15:13)"
-      },
-      {
-        "sha": "9ac185f",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
       }
     ]
   }
