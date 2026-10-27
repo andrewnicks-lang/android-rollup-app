@@ -3192,23 +3192,22 @@ async function _discoverOfficePcCandidates(explicitUrl = "") {
       clearTimeout(t);
       if (r.ok) {
         const ep = await r.json();
-        const preferHttpsFirst = window.location.protocol === "https:" && !(window.RollupNative && typeof window.RollupNative.lanSyncRequest === "function");
-        if (preferHttpsFirst) {
-          if (ep.active_tunnel_url) addCandidate(ep.active_tunnel_url);
-          if (ep.nodes && typeof ep.nodes === "object") {
-            Object.values(ep.nodes).forEach((n) => { if (n && n.tunnel_url) addCandidate(n.tunnel_url); });
-          }
-        }
-        if (ep.office_wifi_drop_lan_url) addCandidate(ep.office_wifi_drop_lan_url);
+        const nodeList = (ep.nodes && typeof ep.nodes === "object") ? Object.values(ep.nodes) : [];
         if (ep.active_tunnel_url) addCandidate(ep.active_tunnel_url);
+        nodeList.forEach((n) => {
+          if (!n) return;
+          if (n.tunnel_url) addCandidate(n.tunnel_url);
+          if (typeof n.url === "string" && n.url.startsWith("https://")) addCandidate(n.url);
+        });
+        if (ep.office_wifi_drop_lan_url) addCandidate(ep.office_wifi_drop_lan_url);
         if (ep.primary_lan_url) addCandidate(ep.primary_lan_url);
-        if (ep.nodes && typeof ep.nodes === "object") {
-          Object.values(ep.nodes).forEach((n) => {
-            if (!n) return;
-            if (n.tunnel_url) addCandidate(n.tunnel_url);
-            if (n.lan_url) addCandidate(n.lan_url);
-          });
-        }
+        if (ep.work_lan_url) addCandidate(ep.work_lan_url);
+        if (ep.home_lan_url) addCandidate(ep.home_lan_url);
+        nodeList.forEach((n) => {
+          if (!n) return;
+          if (n.lan_url) addCandidate(n.lan_url);
+          if (typeof n.url === "string") addCandidate(n.url);
+        });
         break;
       }
     } catch (e) {}
