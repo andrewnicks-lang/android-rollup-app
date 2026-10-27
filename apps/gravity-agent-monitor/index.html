@@ -556,29 +556,221 @@
       white-space: nowrap;
     }
 
-    .plumbing-pill {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px dashed rgba(148, 163, 184, 0.25);
-      border-radius: 10px;
-      padding: 7px 11px;
-      font-size: 12px;
-      color: var(--text-secondary);
+    /* AI Studio Financial Research Agent Cognitive Stepper Timeline */
+    .aistudio-thought-card {
+      background: linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(11, 15, 25, 0.98));
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+
+    .aistudio-thought-card.active-live {
+      border-left-color: var(--accent-amber);
+      border-color: rgba(245, 158, 11, 0.32);
+    }
+
+    .aistudio-header {
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(56, 189, 248, 0.05);
       cursor: pointer;
-      margin-bottom: 6px;
+      user-select: none;
     }
 
-    .plumbing-details {
-      display: none;
-      margin-top: 6px;
-      padding-top: 6px;
-      border-top: 1px solid var(--border-subtle);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    .aistudio-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .spark-icon {
+      width: 21px;
+      height: 21px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 11.5px;
-      color: #94a3b8;
-      white-space: pre-wrap;
+      flex-shrink: 0;
     }
 
-    .plumbing-pill.open .plumbing-details {
+    .aistudio-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .aistudio-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .duration-pill {
+      background: rgba(16, 185, 129, 0.14);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.32);
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .duration-pill.live {
+      background: rgba(245, 158, 11, 0.16);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .timeline-body {
+      display: none;
+      padding: 10px 12px 8px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .aistudio-thought-card.open .timeline-body {
+      display: block;
+    }
+
+    .timeline-step {
+      position: relative;
+      padding-left: 25px;
+      padding-bottom: 9px;
+    }
+
+    .timeline-step:last-child {
+      padding-bottom: 2px;
+    }
+
+    .timeline-step::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 18px;
+      bottom: 0;
+      width: 1.5px;
+      background: rgba(148, 163, 184, 0.22);
+    }
+
+    .timeline-step:last-child::before {
+      display: none;
+    }
+
+    .step-node {
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-weight: 800;
+    }
+
+    .step-node.thought {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.45);
+    }
+
+    .step-node.tool {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .step-node.active {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.55);
+    }
+
+    .step-row-1line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      cursor: pointer;
+      padding: 1px 4px;
+      border-radius: 6px;
+      min-height: 20px;
+    }
+
+    .step-row-1line:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .step-headline {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .step-badges {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .tool-chip {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.16);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.32);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: 0.03em;
+    }
+
+    .step-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .step-drawer {
+      display: none;
+      margin-top: 5px;
+      padding: 7px 9px;
+      background: rgba(9, 13, 22, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 8px;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .timeline-step.step-open .step-drawer {
       display: block;
     }
 
@@ -1058,7 +1250,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_CLOUD_TUNNEL_URL = 'https://bob-mega-ensuring-thanks.trycloudflare.com';
+    const DEFAULT_CLOUD_TUNNEL_URL = 'https://outcomes-uniprotkb-catherine-fought.trycloudflare.com';
     const WORK_PC_LAN_URL = 'http://10.0.0.91:8765';
     const HOME_PC_LAN_URL = 'http://192.168.86.47:8765';
     function resolveDefaultLanUrl() {
@@ -1863,6 +2055,33 @@
       if (chev) chev.textContent = window._auxOverviewExpanded ? '▴' : '▾';
     }
 
+    function toggleThoughtGroup(grpId) {
+      window._thoughtGroupOverrides = window._thoughtGroupOverrides || new Map();
+      const card = document.getElementById('grp_' + grpId);
+      if (!card) return;
+      const nowOpen = !card.classList.contains('open');
+      card.classList.toggle('open', nowOpen);
+      window._thoughtGroupOverrides.set(grpId, nowOpen);
+      const chev = document.getElementById('chev_' + grpId);
+      if (chev) chev.textContent = nowOpen ? '▴' : '▾';
+    }
+
+    function toggleTimelineStep(stepKey, ev) {
+      if (ev) ev.stopPropagation();
+      window._expandedStepItems = window._expandedStepItems || new Set();
+      const row = document.getElementById('step_' + stepKey);
+      if (!row) return;
+      const nowOpen = !row.classList.contains('step-open');
+      row.classList.toggle('step-open', nowOpen);
+      if (nowOpen) {
+        window._expandedStepItems.add(stepKey);
+      } else {
+        window._expandedStepItems.delete(stepKey);
+      }
+      const chev = row.querySelector('.step-chev');
+      if (chev) chev.textContent = nowOpen ? '▴' : '▾';
+    }
+
     function renderTrajectory(data, forceScroll = false) {
       window._lastTrajData = data;
       document.getElementById('trajTitle').textContent = data.title || 'Conversation';
@@ -1958,72 +2177,218 @@
       const hadPreviousEtag = Boolean(window._lastRenderedTrajEtag);
       window._lastRenderedTrajEtag = newEtag;
 
+      window._thoughtGroupOverrides = window._thoughtGroupOverrides || new Map();
+      window._expandedStepItems = window._expandedStepItems || new Set();
+
       const stepsEl = document.getElementById('stepsContainer');
       const html = [];
       let pendingPlumbing = [];
+      const isAgentWorking = Boolean(
+        data.sidebar_indicator === 'BOUNCING_DOTS' ||
+        data.state === 'THINKING' ||
+        data.state === 'RUNNING_TOOL'
+      );
 
-      function flushPlumbingGroup() {
-        if (pendingPlumbing.length === 0) return;
-        let thoughtCount = 0;
-        const toolList = [];
-        const detailLines = [];
-        for (const p of pendingPlumbing) {
+      function parseIsoMs(ts) {
+        if (!ts) return 0;
+        const ms = Date.parse(ts);
+        return Number.isNaN(ms) ? 0 : ms;
+      }
+
+      function formatDeltaSec(sec) {
+        if (!sec || sec <= 0) return '';
+        if (sec < 1) return `+${sec.toFixed(1)}s`;
+        if (sec < 60) return `+${sec.toFixed(1)}s`;
+        const m = Math.floor(sec / 60);
+        const s = Math.round(sec % 60);
+        return `+${m}m ${s}s`;
+      }
+
+      function inferToolCategory(name, fallbackCat, fallbackIcon) {
+        if (fallbackCat && fallbackIcon) return { cat: fallbackCat, icon: fallbackIcon };
+        const n = String(name || '').toLowerCase();
+        if (n.includes('read') || n.includes('view')) return { cat: 'READ', icon: '📄' };
+        if (n.includes('write') || n.includes('edit') || n.includes('replace')) return { cat: 'EDIT', icon: '✏️' };
+        if (n.includes('command') || n.includes('task')) return { cat: 'EXEC', icon: '⚡' };
+        if (n.includes('search') || n.includes('grep') || n.includes('find')) return { cat: 'SEARCH', icon: '🔍' };
+        if (n.includes('subagent') || n.includes('message')) return { cat: 'AGENT', icon: '🤖' };
+        return { cat: 'TOOL', icon: '🔧' };
+      }
+
+      function extractClientTitle(preview) {
+        const raw = String(preview || '').trim();
+        if (!raw) return 'Reasoning step';
+        const bm = raw.slice(0, 260).match(/\*\*([^*\n]{4,80})\*\*/);
+        if (bm) return bm[1].trim().replace(/[:.\-]+$/, '');
+        const firstLn = (raw.split(/\r?\n/).find(l => l.trim()) || '').replace(/^[#*>-]+\s*/, '').trim();
+        const sent = firstLn.split(/(?<=[.!?])\s+/)[0] || firstLn;
+        return sent.length > 68 ? sent.slice(0, 68) + '…' : sent;
+      }
+
+      function flushPlumbingGroup(isTrailingGroup = false, nextStepCreatedAt = '') {
+        if (pendingPlumbing.length === 0 && !(isTrailingGroup && isAgentWorking)) return;
+
+        const firstIdx = pendingPlumbing.length > 0 ? pendingPlumbing[0].step_index : 'live';
+        const grpId = `${currentConversationId || 'conv'}_grp_${firstIdx}`;
+        const isLiveActive = Boolean(isTrailingGroup && isAgentWorking);
+
+        // Rule 1 from user: Default to FULLY EXPANDED while actively working; collapsed once response completes
+        const defaultOpen = isLiveActive;
+        const isOpen = window._thoughtGroupOverrides.has(grpId)
+          ? window._thoughtGroupOverrides.get(grpId)
+          : defaultOpen;
+
+        const timelineItems = [];
+        let totalSec = 0;
+
+        for (let i = 0; i < pendingPlumbing.length; i++) {
+          const p = pendingPlumbing[i];
+          const curMs = parseIsoMs(p.created_at);
+          const nextCompareIso = (i + 1 < pendingPlumbing.length)
+            ? pendingPlumbing[i + 1].created_at
+            : nextStepCreatedAt;
+          const nextMs = parseIsoMs(nextCompareIso);
+          let stepSec = (curMs && nextMs && nextMs >= curMs) ? (nextMs - curMs) / 1000 : 0;
+          if (stepSec > 180) stepSec = 0; // guard against idle user gaps
+          totalSec += stepSec;
+
           if (p.has_thinking) {
-            thoughtCount++;
-            if (p.thinking_preview) detailLines.push(`🧠 ${p.thinking_preview}`);
+            const headline = p.thinking_title || extractClientTitle(p.thinking_preview);
+            const sKey = `${grpId}_th_${p.step_index}`;
+            const isStepOpen = window._expandedStepItems.has(sKey);
+            timelineItems.push({
+              key: sKey,
+              nodeClass: 'thought',
+              nodeIcon: '✓',
+              headline: headline,
+              chip: 'THOUGHT',
+              timeLabel: formatDeltaSec(stepSec),
+              drawerText: p.thinking_preview || '',
+              isOpen: isStepOpen
+            });
           }
-          for (const t of (p.tool_calls || [])) {
-            toolList.push(t.summary || t.name);
-            detailLines.push(`🔧 ${t.name}: ${t.summary}`);
+
+          const tools = p.tool_calls || [];
+          const toolShareSec = tools.length > 0 ? (stepSec / tools.length) : 0;
+          for (let ti = 0; ti < tools.length; ti++) {
+            const t = tools[ti];
+            const meta = inferToolCategory(t.name, t.category, t.icon);
+            const sKey = `${grpId}_tl_${p.step_index}_${ti}`;
+            const isStepOpen = window._expandedStepItems.has(sKey);
+            const prevItem = timelineItems.length > 0 ? timelineItems[timelineItems.length - 1] : null;
+            const cleanSum = t.summary || t.name;
+
+            // Coalesce consecutive identical tool calls on the same target to prevent mobile clutter
+            if (prevItem && prevItem.chip === meta.cat && prevItem.baseHeadline === cleanSum) {
+              prevItem.repeatCount = (prevItem.repeatCount || 1) + 1;
+              prevItem.headline = `${cleanSum} (×${prevItem.repeatCount})`;
+              if (t.detail) {
+                prevItem.drawerText = prevItem.drawerText
+                  ? `${prevItem.drawerText}\n${t.name}: ${t.detail}`
+                  : `${t.name}: ${t.detail}`;
+              }
+              continue;
+            }
+
+            timelineItems.push({
+              key: sKey,
+              nodeClass: 'tool',
+              nodeIcon: meta.icon,
+              baseHeadline: cleanSum,
+              headline: cleanSum,
+              chip: meta.cat,
+              timeLabel: (!p.has_thinking && ti === 0) ? formatDeltaSec(toolShareSec) : '',
+              drawerText: t.detail ? `${t.name}: ${t.detail}` : `${t.name} (${cleanSum})`,
+              isOpen: isStepOpen
+            });
           }
         }
-        const labelParts = [];
-        if (thoughtCount > 0) labelParts.push(`🧠 Thought (${thoughtCount})`);
-        if (toolList.length > 0) {
-          const previewTools = toolList.slice(0, 2).join(', ') + (toolList.length > 2 ? ` +${toolList.length - 2} more` : '');
-          labelParts.push(`🔧 ${toolList.length} tool${toolList.length > 1 ? 's' : ''}: ${previewTools}`);
+
+        if (isLiveActive) {
+          timelineItems.push({
+            key: `${grpId}_live_active`,
+            nodeClass: 'active',
+            nodeIcon: '⏳',
+            headline: data.state_label || 'Agent is working…',
+            chip: 'LIVE',
+            timeLabel: 'now',
+            drawerText: '',
+            isOpen: false,
+            isLiveRow: true
+          });
         }
-        const summaryHeader = labelParts.join(' • ') || `⚙️ ${pendingPlumbing.length} intermediate steps`;
-        html.push(`
-          <div class="plumbing-pill" onclick="this.classList.toggle('open')">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(summaryHeader)}</span>
-              <span style="font-size:10px;color:var(--accent-cyan);flex-shrink:0;">Details ▾</span>
+
+        const totalBadge = isLiveActive
+          ? `<span class="duration-pill live">⏳ Live</span>`
+          : (totalSec >= 0.2
+              ? `<span class="duration-pill">✓ ${totalSec < 60 ? totalSec.toFixed(1) + 's' : Math.floor(totalSec / 60) + 'm ' + Math.round(totalSec % 60) + 's'}</span>`
+              : `<span class="duration-pill">✓ Done</span>`);
+
+        const headerTitle = isLiveActive
+          ? (data.state_label || 'Thinking & executing steps…')
+          : 'Agent Reasoning & Execution';
+
+        const stepsHtml = timelineItems.map(item => {
+          const hasDrawer = Boolean(item.drawerText && item.drawerText.trim());
+          const clickAttr = hasDrawer ? `onclick="toggleTimelineStep('${escapeHtml(item.key)}', event)"` : '';
+          return `
+            <div id="step_${escapeHtml(item.key)}" class="timeline-step ${item.isOpen ? 'step-open' : ''}">
+              <div class="step-node ${item.nodeClass}">${item.nodeIcon}</div>
+              <div class="step-row-1line" ${clickAttr}>
+                <span class="step-headline" style="${item.isLiveRow ? 'color:#fbbf24;' : ''}">${escapeHtml(item.headline)}</span>
+                <div class="step-badges">
+                  <span class="tool-chip">${escapeHtml(item.chip)}</span>
+                  ${item.timeLabel ? `<span class="step-time">${escapeHtml(item.timeLabel)}</span>` : ''}
+                  ${hasDrawer ? `<span class="step-chev" style="font-size:10px;color:var(--accent-cyan);">${item.isOpen ? '▴' : '▾'}</span>` : ''}
+                </div>
+              </div>
+              ${hasDrawer ? `<div class="step-drawer">${escapeHtml(item.drawerText)}</div>` : ''}
             </div>
-            <div class="plumbing-details">${escapeHtml(detailLines.join('\n\n'))}</div>
+          `;
+        }).join('');
+
+        html.push(`
+          <div id="grp_${escapeHtml(grpId)}" class="aistudio-thought-card ${isOpen ? 'open' : ''} ${isLiveActive ? 'active-live' : ''}">
+            <div class="aistudio-header" onclick="toggleThoughtGroup('${escapeHtml(grpId)}')">
+              <div class="aistudio-header-left">
+                <div class="spark-icon">${isLiveActive ? '⚡' : '✨'}</div>
+                <div class="aistudio-title">${escapeHtml(headerTitle)}</div>
+              </div>
+              <div class="aistudio-meta">
+                ${totalBadge}
+                <span>${timelineItems.length} step${timelineItems.length !== 1 ? 's' : ''} <span id="chev_${escapeHtml(grpId)}" style="color:var(--accent-cyan);">${isOpen ? '▴' : '▾'}</span></span>
+              </div>
+            </div>
+            <div class="timeline-body">
+              ${stepsHtml}
+            </div>
           </div>
         `);
         pendingPlumbing = [];
       }
 
-      for (const st of (data.steps || [])) {
+      const rawSteps = data.steps || [];
+      for (let idx = 0; idx < rawSteps.length; idx++) {
+        const st = rawSteps[idx];
         if (st.type === 'USER_INPUT' && st.content) {
-          flushPlumbingGroup();
+          flushPlumbingGroup(false, st.created_at);
           html.push(`<div class="step-item"><div class="bubble-user">${escapeHtml(st.content)}</div></div>`);
         } else {
           if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {
             pendingPlumbing.push(st);
           }
           if (st.type === 'PLANNER_RESPONSE' && st.content) {
-            flushPlumbingGroup();
+            flushPlumbingGroup(false, st.created_at);
             html.push(`<div class="step-item"><div class="bubble-agent">${renderMarkdownFlow(st.content)}</div></div>`);
           }
         }
       }
-      flushPlumbingGroup();
-
-      if (data.sidebar_indicator === 'BOUNCING_DOTS' || data.state === 'THINKING' || data.state === 'RUNNING_TOOL') {
-        html.push(`
-          <div class="step-item" style="display:flex;align-items:center;gap:8px;padding:8px 12px;color:var(--accent-cyan);font-size:12px;">
-            <div class="status-bouncing-dots"><span></span><span></span><span></span></div>
-            <span>${escapeHtml(data.state_label || 'Agent is working…')}</span>
-          </div>
-        `);
-      }
+      flushPlumbingGroup(true, '');
 
       stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
 
-      if (forceScroll || hadPreviousEtag) {
+      const distanceFromBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+      if (forceScroll || (hadPreviousEtag && distanceFromBottom < 260)) {
         scrollToTrajectoryBottom(!forceScroll);
         requestAnimationFrame(() => scrollToTrajectoryBottom(!forceScroll));
         setTimeout(() => scrollToTrajectoryBottom(!forceScroll), 60);
@@ -2218,8 +2583,7 @@
       await fetchPulse();
       if (
         currentConversationId &&
-        document.getElementById('tab-trajectory').classList.contains('active') &&
-        document.querySelectorAll('.plumbing-pill.open').length === 0
+        document.getElementById('tab-trajectory').classList.contains('active')
       ) {
         await syncActiveConversation(false);
       }

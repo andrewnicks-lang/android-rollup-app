@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-10-26T16:42:16.774987",
-  "active_tunnel_url": "https://bob-mega-ensuring-thanks.trycloudflare.com",
+  "updated_at": "2026-10-26T20:01:39.259709",
+  "active_tunnel_url": "https://outcomes-uniprotkb-catherine-fought.trycloudflare.com",
   "primary_lan_url": "http://192.168.86.47:8765",
   "work_lan_url": "http://10.0.0.91:8765",
   "home_lan_url": "http://192.168.86.47:8765",
   "nodes": [
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
-      "url": "https://bob-mega-ensuring-thanks.trycloudflare.com"
+      "url": "https://outcomes-uniprotkb-catherine-fought.trycloudflare.com"
     },
     {
       "name": "Active Workstation (192.168.86.47)",
