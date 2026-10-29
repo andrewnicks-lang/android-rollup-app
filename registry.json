@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.9",
-    "updated_at": "2026-10-28T08:57:46.381546",
+    "version": "1.0.10",
+    "updated_at": "2026-10-28T23:03:38.341659",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -39,8 +39,8 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-              "tailscale_workstation_url": "http://10.0.0.91:8765",
+              "primary_workstation_url": "https://oclc-sleeping-fountain-clusters.trycloudflare.com",
+              "tailscale_workstation_url": "http://192.168.86.47:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
             "csc-site-discovery": {
@@ -108,9 +108,9 @@
       ]
     },
     "apk_version": "1.3.0",
-    "build_hash": "970db01240",
-    "stamped_version": "1.0.9",
-    "ota_etag": "01fcab71f0"
+    "build_hash": "322a902198",
+    "stamped_version": "1.0.10",
+    "ota_etag": "e5da111ee0"
   },
   "apps": [
     {
@@ -121,7 +121,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.4.1",
+      "version": "1.4.0",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -133,15 +133,15 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-          "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+          "default": "https://oclc-sleeping-fountain-clusters.trycloudflare.com",
+          "defaultForAdmin": "https://oclc-sleeping-fountain-clusters.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
           "label": "Secondary / Tailscale Workstation URL (Optional)",
           "type": "text",
-          "default": "http://10.0.0.91:8765",
-          "defaultForAdmin": "http://10.0.0.91:8765"
+          "default": "http://192.168.86.47:8765",
+          "defaultForAdmin": "http://192.168.86.47:8765"
         },
         {
           "key": "sidecar_token",
@@ -151,13 +151,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "e84c3a9e49",
-      "stamped_version": "1.4.1",
-      "updated_at": "2026-10-27T09:22:57.683857",
+      "build_hash": "fcfb9ea6a4",
+      "stamped_version": "1.4.0",
+      "updated_at": "2026-10-28T23:03:38.341659",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "e84c3a9e49",
-      "manual_updated_at": "2026-10-27T09:23:01.106488"
+      "manual_source_hash": "fcfb9ea6a4",
+      "manual_updated_at": "2026-10-28T23:03:41.236634"
     },
     {
       "id": "fantasy-manager",
@@ -241,13 +241,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "dee169a55d",
-      "stamped_version": "3.4.1",
-      "updated_at": "2026-10-27T09:25:36.785240",
+      "build_hash": "d16ca5d80a",
+      "stamped_version": "3.4.0",
+      "updated_at": "2026-10-28T23:03:38.341659",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "dee169a55d",
-      "manual_updated_at": "2026-10-27T09:25:39.318071"
+      "manual_source_hash": "d16ca5d80a",
+      "manual_updated_at": "2026-10-28T23:03:43.235485"
     },
     {
       "id": "field-snap",

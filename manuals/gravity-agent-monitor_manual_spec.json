@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.1",
-  "build_hash": "e84c3a9e49",
+  "version": "1.4.0",
+  "build_hash": "fcfb9ea6a4",
   "visibility": "admin_only",
-  "updated_at": "2026-10-27T09:22:57.683857",
-  "generated_at": "2026-10-27 09:22",
+  "updated_at": "2026-10-28T23:03:38.341659",
+  "generated_at": "2026-10-28 23:03",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,15 +71,15 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-      "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+      "default": "https://oclc-sleeping-fountain-clusters.trycloudflare.com",
+      "defaultForAdmin": "https://oclc-sleeping-fountain-clusters.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
       "label": "Secondary / Tailscale Workstation URL (Optional)",
       "type": "text",
-      "default": "http://10.0.0.91:8765",
-      "defaultForAdmin": "http://10.0.0.91:8765"
+      "default": "http://192.168.86.47:8765",
+      "defaultForAdmin": "http://192.168.86.47:8765"
     },
     {
       "key": "sidecar_token",
@@ -214,29 +214,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "40e1064",
-        "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 23:51)"
+        "sha": "53daf0c",
+        "date": "2026-10-28",
+        "subject": "Auto-reconcile local work on DESKTOP-UHI3BO3 before pulling origin/main"
       },
       {
-        "sha": "5451a48",
+        "sha": "49441bd",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 23:41)"
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 22:34)"
       },
       {
-        "sha": "6537ac7",
+        "sha": "fb38d7c",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:35)"
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 22:33)"
       },
       {
-        "sha": "c0874e1",
+        "sha": "9a2de8d",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:18)"
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 22:17)"
       },
       {
-        "sha": "76f709e",
+        "sha": "4610b5b",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 20:02)"
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 20:01)"
       }
     ]
   }

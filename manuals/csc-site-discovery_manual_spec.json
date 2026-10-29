@@ -6,11 +6,11 @@
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "3.4.1",
-  "build_hash": "dee169a55d",
+  "version": "3.4.0",
+  "build_hash": "d16ca5d80a",
   "visibility": "restricted",
-  "updated_at": "2026-10-27T09:25:36.785240",
-  "generated_at": "2026-10-27 09:25",
+  "updated_at": "2026-10-28T23:03:38.341659",
+  "generated_at": "2026-10-28 23:03",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -233,29 +233,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "3d436f7",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-10-27 09:25)"
+        "sha": "53daf0c",
+        "date": "2026-10-28",
+        "subject": "Auto-reconcile local work on DESKTOP-UHI3BO3 before pulling origin/main"
       },
       {
-        "sha": "56eceb3",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:11)"
-      },
-      {
-        "sha": "40e1064",
+        "sha": "babdcfe",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 23:51)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:50)"
       },
       {
-        "sha": "83adf70",
+        "sha": "61ab551",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:52)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:40)"
       },
       {
-        "sha": "cc43275",
+        "sha": "ab3e896",
         "date": "2026-10-26",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:43)"
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 19:57)"
+      },
+      {
+        "sha": "3be8955",
+        "date": "2026-10-26",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 16:54)"
       }
     ]
   }
