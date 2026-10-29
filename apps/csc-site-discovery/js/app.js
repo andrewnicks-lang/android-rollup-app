@@ -610,23 +610,122 @@ let liveSpeechBuffer = "";
 let isRecordingAudio = false;
 let pttDownTimeMs = 0;
 
+function _stripHeavyBlobsFromStateSnapshot(srcState) {
+  if (!srcState || typeof srcState !== "object") return srcState;
+  const clean = JSON.parse(JSON.stringify(srcState));
+  for (const key of ["floors", "floor_plans"]) {
+    if (Array.isArray(clean[key])) {
+      clean[key].forEach((flr) => {
+        if (flr && typeof flr === "object") {
+          if (flr.custom_map_data_url) flr.hasCustomMap = true;
+          delete flr.custom_map_data_url;
+        }
+      });
+    }
+  }
+  if (Array.isArray(clean.stations)) {
+    clean.stations.forEach((st) => {
+      if (st && typeof st === "object") {
+        delete st.photo_data_urls;
+        delete st.thumbDataUrl;
+      }
+    });
+  }
+  return clean;
+}
+
 function persistWalkState() {
   if (!state) return;
-  window.CSCDiscoveryAdapter.writeState("active_walk_v1", state);
+  state.walkRevision = (Number(state.walkRevision) || 0) + 1;
+  if (!state.walkDate) {
+    state.walkDate = new Date().toISOString().slice(0, 10);
+  }
+  window.CSCDiscoveryAdapter.writeState("active_walk_v1", _stripHeavyBlobsFromStateSnapshot(state));
 }
 
 function _migrateLoadedState(s) {
-  if (!s.uiMode) {
-    s.uiMode = window.innerWidth <= 1024 ? "quick" : "quick";
+  if (!s || typeof s !== "object") return s;
+
+  // Support importing desktop-exported CSC_Site_Discovery_Export.json (walk_meta + equipment_stations)
+  if (!Array.isArray(s.stations) && Array.isArray(s.equipment_stations)) {
+    const wm = s.walk_meta || {};
+    s.sessionId = s.sessionId || wm.session_id || ("CSC-WALK-" + Date.now());
+    s.projectName = s.projectName || wm.project_name || "Imported Field Walk";
+    s.jobNumber = s.jobNumber || wm.csc_job_number || "CSC-26-WALK";
+    s.siteAddress = s.siteAddress || wm.site_address || "";
+    s.walkDate = s.walkDate || wm.walk_date || new Date().toISOString().slice(0, 10);
+    if (Array.isArray(s.floors)) {
+      s.floors = s.floors.map((fl, i) => ({
+        id: fl.id || fl.floor_id || `FLR-0${i + 1}`,
+        name: fl.name || fl.floor_name || `Floor ${i + 1}`,
+        elev: Number(fl.elev ?? fl.elevation_ft ?? 0),
+        hpa: Number(fl.hpa ?? fl.barometric_hpa ?? 989.3),
+        source: fl.source || fl.map_source || "Imported Plan",
+        hasCustomMap: Boolean(fl.hasCustomMap || fl.custom_map_data_url),
+        ...(fl.custom_map_data_url ? { custom_map_data_url: fl.custom_map_data_url } : {})
+      }));
+    }
+    s.stations = s.equipment_stations.map((est, i) => {
+      const npd = est.nameplate_data || {};
+      const spin = est.spatial_pin || {};
+      return {
+        id: est.id || est.station_id || `STN-${String(i + 1).padStart(2, "0")}`,
+        tag: est.tag || est.equipment_tag || `Unit #${i + 1}`,
+        archetype: est.archetype || est.archetype_id || "RTU_AHU",
+        condition: est.condition || "good",
+        quickIssues: Array.isArray(est.quickIssues) ? est.quickIssues : [],
+        floorId: est.floorId || est.floor_id || (s.floors?.[0]?.id || "FLR-01"),
+        room: est.room || est.room_zone || "",
+        xPct: Number(spin.x_pct ?? est.xPct ?? 50),
+        yPct: Number(spin.y_pct ?? est.yPct ?? 50),
+        mfg: npd.manufacturer || est.mfg || "",
+        model: npd.model_number || est.model || "",
+        serial: npd.serial_number || est.serial || "",
+        elec: npd.voltage_phase_hz || est.elec || "",
+        legacyCtrl: npd.legacy_controller_found || est.legacyCtrl || "",
+        alcTarget: npd.recommended_alc_replacement || est.alcTarget || "",
+        ambiguousNote: est.ambiguousNote || est.field_notes || "",
+        burstMeta: est.burstMeta || {},
+        checks: est.checks || {}
+      };
+    });
   }
+
+  if (!Array.isArray(s.floors) && Array.isArray(s.floor_plans)) {
+    s.floors = s.floor_plans.map((fl, i) => ({
+      id: fl.id || fl.floor_id || `FLR-0${i + 1}`,
+      name: fl.name || fl.floor_name || `Floor ${i + 1}`,
+      elev: Number(fl.elev ?? fl.elevation_ft ?? 0),
+      hpa: Number(fl.hpa ?? fl.barometric_hpa ?? 989.3),
+      source: fl.source || fl.map_source || "Imported Plan",
+      hasCustomMap: Boolean(fl.hasCustomMap || fl.custom_map_data_url),
+      ...(fl.custom_map_data_url ? { custom_map_data_url: fl.custom_map_data_url } : {})
+    }));
+  }
+
+  if (!s.uiMode) {
+    s.uiMode = "quick";
+  }
+  if (!s.walkDate) s.walkDate = new Date().toISOString().slice(0, 10);
+  if (!s.walkRevision) s.walkRevision = 1;
   if (s.verbalConsentLogged === undefined) s.verbalConsentLogged = false;
   if (s.cloudSpeechOptIn === undefined) s.cloudSpeechOptIn = false;
+  if (s.autoSavePhotosToDevice === undefined) s.autoSavePhotosToDevice = true;
   if (!Array.isArray(s.pdrSteps)) s.pdrSteps = [];
   if (!Array.isArray(s.videoKeyframes)) s.videoKeyframes = [];
+  if (!Array.isArray(s.audioSegments)) s.audioSegments = [];
+  if (!Array.isArray(s.preloadedScheduleNotes)) s.preloadedScheduleNotes = [];
   s.videoKeyframes.forEach((k) => {
     if (!k.floorId) k.floorId = "FLR-02";
   });
   (s.stations || []).forEach((st) => {
+    if (!st.condition) st.condition = "good";
+    if (!Array.isArray(st.quickIssues)) {
+      st.quickIssues = Array.isArray(st.quickFlags) ? [...st.quickFlags] : [];
+    }
+    if (!ARCHETYPES.some((a) => a.id === st.archetype)) {
+      st.archetype = "RTU_AHU";
+    }
     if (!st.thermistorCurve) st.thermistorCurve = "10k_TYPE_II";
     if (!st.ioTally) st.ioTally = { ui: 4, bi: 2, bo: 2, ao: 2 };
     if (st.parentPanel === undefined) st.parentPanel = "";
@@ -635,6 +734,12 @@ function _migrateLoadedState(s) {
     if (!st.checks) st.checks = {};
     if (!st.burstMeta) st.burstMeta = {};
   });
+  if (!s.activeFloorId && Array.isArray(s.floors) && s.floors.length) {
+    s.activeFloorId = s.floors[0].id;
+  }
+  if (!s.activeStationId && Array.isArray(s.stations) && s.stations.length) {
+    s.activeStationId = s.stations[0].id;
+  }
   return s;
 }
 
@@ -660,6 +765,8 @@ function escapeHtml(str) {
 // DETERMINISTIC SERIAL, MODEL / A2L, BOARD REFERENCE & RFI TRIGGER ENGINES
 // ============================================================================
 function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
+  const curYear = new Date().getFullYear();
+  const curYY = curYear % 100;
   const m = (mfg || "").toUpperCase().trim();
   const s = (serial || "").toUpperCase().replace(/[^A-Z0-9-]/g, "");
   const mdl = (modelStr || "").toUpperCase().trim();
@@ -671,7 +778,7 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
   if (m.includes("TRANE") && mTraneMod) {
     const yy = parseInt(mTraneMod[1], 10);
     const ww = parseInt(mTraneMod[2], 10);
-    if (yy >= 10 && yy <= 26 && ww >= 1 && ww <= 53) {
+    if (yy >= 10 && yy <= curYY && ww >= 1 && ww <= 53) {
       year = 2000 + yy;
       period = `Week ${ww}`;
       rule = "Trane Modern YYWW Serial";
@@ -687,7 +794,7 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
     if (TRANE_YEAR_LETTERS[yrLet]) {
       year = TRANE_YEAR_LETTERS[yrLet];
     } else {
-      year = midDigits <= 26 ? 2000 + midDigits : 1900 + midDigits;
+      year = midDigits <= curYY ? 2000 + midDigits : 1900 + midDigits;
     }
     period = TRANE_MONTH_LETTERS[moLet] || `Code ${moLet}`;
     rule = "Trane Commercial Letter-Year-Month";
@@ -703,7 +810,7 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
   const mMcquay = s.match(/^FB[A-Z]{2}(\d{2})(0[1-9]|1[0-2])\d+/);
   if (!year && (m.includes("DAIKIN") || m.includes("MCQUAY")) && mMcquay) {
     const yy = parseInt(mMcquay[1], 10);
-    year = yy <= 26 ? 2000 + yy : 1900 + yy;
+    year = yy <= curYY ? 2000 + yy : 1900 + yy;
     period = `Month ${mMcquay[2]}`;
     rule = "Daikin/McQuay FBOU-YYMM";
   }
@@ -712,11 +819,11 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
   if (!year && (m.includes("CARRIER") || m.includes("BRYANT") || m.includes("LOCHINVAR") || m.includes("YORK") || m.includes("DAIKIN")) && m4Dig) {
     const d1 = parseInt(m4Dig[1], 10);
     const d2 = parseInt(m4Dig[2], 10);
-    if (d1 > 26 && d1 <= 52 && d2 >= 0 && d2 <= 26) {
+    if (d1 > curYY && d1 <= 52 && d2 >= 0 && d2 <= curYY) {
       year = 2000 + d2;
       period = `Week ${d1}`;
       rule = "WWYY 4-Digit Prefix";
-    } else if (d1 >= 0 && d1 <= 26 && d2 >= 1 && d2 <= 52) {
+    } else if (d1 >= 0 && d1 <= curYY && d2 >= 1 && d2 <= 52) {
       year = 2000 + d1;
       period = `Week ${d2}`;
       rule = "YYWW 4-Digit Prefix";
@@ -727,7 +834,7 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
   if (!year && (m.includes("ABB") || m.includes("YASKAWA")) && mAbb) {
     const yy = parseInt(mAbb[1], 10);
     const ww = parseInt(mAbb[2], 10);
-    if (yy >= 5 && yy <= 26 && ww >= 1 && ww <= 53) {
+    if (yy >= 5 && yy <= curYY && ww >= 1 && ww <= 53) {
       year = 2000 + yy;
       period = `Week ${ww}`;
       rule = "ABB Country-YY-WW Serial";
@@ -737,7 +844,7 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
   const mHyph = s.match(/[A-Z]+-?(\d{2})-\d+/);
   if (!year && mHyph) {
     const yy = parseInt(mHyph[1], 10);
-    year = yy <= 26 ? 2000 + yy : 1900 + yy;
+    year = yy <= curYY ? 2000 + yy : 1900 + yy;
     rule = "Prefix-YY-Sequence";
   }
 
@@ -749,7 +856,7 @@ function decodeSerialDeterministic(mfg, serial, archetypeId, modelStr) {
     lifeLimit = ASHRAE_CH38_SERVICE_LIFE.VAV_TERMINAL; // 28 yrs for VAV box
   }
 
-  const age = year ? (2026 - year) : null;
+  const age = year ? Math.max(0, curYear - year) : null;
   const eol = age !== null && age >= lifeLimit;
   return { year, period, age, lifeLimit, eol, rule };
 }
@@ -1296,17 +1403,19 @@ async function startSnapNewUnitWizard() {
   persistWalkState();
   renderAll(true);
 
-  openTagAndGoForStation(newId);
+  await openTagAndGoForStation(newId, true);
   await captureStationBurstSlot(2, true);
 }
 
-async function openTagAndGoForStation(stationId) {
+async function openTagAndGoForStation(stationId, skipPhotoLoad = false) {
   const st = state.stations.find((s) => s.id === stationId);
   if (!st) return;
   state.activeStationId = stationId;
   state.activeFloorId = st.floorId;
   persistWalkState();
-  await loadActiveStationBurstPhotos();
+  if (!skipPhotoLoad) {
+    await loadActiveStationBurstPhotos();
+  }
   renderTagAndGoSheet(st);
   const modal = document.getElementById("tagAndGoModal");
   if (modal) modal.style.display = "flex";
@@ -1425,6 +1534,7 @@ function renderTagAndGoSheet(st) {
     if (dec.year) specs.push(`📅 <strong>${dec.year}</strong> (${dec.age} yr${dec.eol ? ' ⚠️ Past ASHRAE Life' : ''})`);
     if (mdl.capacity) specs.push(`⚙️ ${escapeHtml(mdl.capacity)}`);
     if (mdl.a2lFlag) specs.push(`🚨 <strong>A2L Refrigerant</strong>`);
+    if (st.ambiguousNote) specs.push(`📌 ${escapeHtml(st.ambiguousNote)}`);
     decodeBanner.innerHTML = specs.length > 0
       ? `✅ Auto-Decoded: ${specs.join(" &nbsp;•&nbsp; ")}`
       : `✨ Snap nameplate photo below — Make, Model, Year &amp; Tonnage decode in the background.`;
@@ -1435,7 +1545,14 @@ function renderTagAndGoSheet(st) {
     const npUrl = cachedSlotPhotos[2];
     const wideUrl = cachedSlotPhotos[1];
     const npMeta = (st.burstMeta && st.burstMeta[2]) || null;
+    const wideMeta = (st.burstMeta && st.burstMeta[1]) || null;
     const isClahe = Boolean(npMeta && npMeta.claheEnhanced);
+    const npSavedBadge = npMeta && npMeta.savedToDevice
+      ? `<div style="font-size:10px;color:#34d399;font-weight:700;">📲 Saved to App &amp; Device</div>`
+      : "";
+    const wideSavedBadge = wideMeta && wideMeta.savedToDevice
+      ? `<div style="font-size:10px;color:#34d399;font-weight:700;">📲 Saved to App &amp; Device</div>`
+      : "";
 
     photoGrid.innerHTML = `
       <div class="tg-photo-box ${npUrl ? 'has-photo' : ''}">
@@ -1444,9 +1561,13 @@ function renderTagAndGoSheet(st) {
           ? `<img src="${npUrl}" onclick="openPhotoZoomModal(2)" alt="Nameplate Photo" />`
           : `<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px 4px;">No Nameplate Photo Yet</div>`
         }
+        ${npSavedBadge}
         <div style="display:flex;gap:5px;width:100%;">
-          <button class="btn" style="flex:1;padding:6px 8px;min-height:34px;font-size:12px;" onclick="captureStationBurstSlot(2, true)">
+          <button class="btn" style="flex:1;padding:6px 8px;min-height:34px;font-size:12px;" onclick="captureStationBurstSlot(2, true, { useRearCamera: true, source: 'camera' })" title="Open live camera and save to both App &amp; Device">
             📸 ${npUrl ? 'Retake' : 'Snap Plate'}
+          </button>
+          <button class="btn btn-secondary" style="padding:6px 8px;min-height:34px;font-size:11.5px;" onclick="captureStationBurstSlot(2, true, { useRearCamera: false, source: 'file' })" title="Select an existing photo from device gallery">
+            🖼️
           </button>
           ${npUrl ? `<button class="btn ${isClahe ? 'btn-secondary' : 'btn-amber'}" style="padding:6px 8px;min-height:34px;font-size:11.5px;" onclick="toggleClaheOnSlot(2)" title="Enhance weathered metal plate">${isClahe ? '🎨 Color' : '🔦 Enhance'}</button>` : ''}
         </div>
@@ -1458,9 +1579,15 @@ function renderTagAndGoSheet(st) {
           ? `<img src="${wideUrl}" onclick="openPhotoZoomModal(1)" alt="Wide Shot" />`
           : `<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px 4px;">Optional Wide or Board Shot</div>`
         }
-        <button class="btn btn-secondary" style="width:100%;padding:6px 8px;min-height:34px;font-size:12px;" onclick="captureStationBurstSlot(1, false)">
-          📷 ${wideUrl ? 'Retake Wide Shot' : '+ Add Wide Shot'}
-        </button>
+        ${wideSavedBadge}
+        <div style="display:flex;gap:5px;width:100%;">
+          <button class="btn btn-secondary" style="flex:1;padding:6px 8px;min-height:34px;font-size:12px;" onclick="captureStationBurstSlot(1, false, { useRearCamera: true, source: 'camera' })" title="Open live camera for wide/controller photo">
+            📷 ${wideUrl ? 'Retake Wide' : '+ Snap Wide'}
+          </button>
+          <button class="btn btn-secondary" style="padding:6px 8px;min-height:34px;font-size:11.5px;" onclick="captureStationBurstSlot(1, false, { useRearCamera: false, source: 'file' })" title="Select an existing wide photo from device gallery">
+            🖼️
+          </button>
+        </div>
       </div>
     `;
   }
@@ -1547,6 +1674,26 @@ function renderUnitFeed() {
   const countEl = document.getElementById("stationSummaryCount");
   if (countEl) countEl.textContent = String(state.stations.length);
 
+  const notesBox = document.getElementById("preloadedNotesBox");
+  const notesCnt = document.getElementById("preloadedNotesCount");
+  const notesList = document.getElementById("preloadedNotesList");
+  if (notesBox && notesList) {
+    const notes = Array.isArray(state.preloadedScheduleNotes) ? state.preloadedScheduleNotes : [];
+    if (notes.length > 0) {
+      notesBox.style.display = "block";
+      if (notesCnt) notesCnt.textContent = String(notes.length);
+      notesList.innerHTML = notes.map((n) => {
+        if (typeof n === "string") return `<li>${escapeHtml(n)}</li>`;
+        const pg = n.page ? `[Pg ${escapeHtml(String(n.page))}] ` : "";
+        const cat = n.category ? `<strong>${escapeHtml(String(n.category))}:</strong> ` : "";
+        return `<li>${pg}${cat}${escapeHtml(String(n.text || n.note || JSON.stringify(n)))}</li>`;
+      }).join("");
+    } else {
+      notesBox.style.display = "none";
+      notesList.innerHTML = "";
+    }
+  }
+
   const listEl = document.getElementById("unitFeedList");
   if (!listEl) return;
 
@@ -1561,9 +1708,10 @@ function renderUnitFeed() {
     listEl.innerHTML = `
       <div style="text-align:center;padding:24px 16px;background:var(--bg-card);border-radius:12px;border:1.5px dashed var(--border-col);color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:10px;">
         <div style="font-size:14px;font-weight:800;color:var(--text-main);">Ready for Field Discovery (0 Units)</div>
-        <div style="font-size:12px;">Tap <strong>📸 + SNAP NEW UNIT</strong> below to snap your first nameplate photo!</div>
+        <div style="font-size:12px;">Tap <strong>📸 + SNAP NEW UNIT</strong> below to snap your first nameplate photo, or <strong>📥 Pull Job</strong> from your Office PC!</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
           <button class="btn" onclick="startSnapNewUnitWizard()">📸 + Snap First Unit</button>
+          <button class="btn btn-blue" onclick="openSessionManagerAndBrowsePcJobs()">📥 Pull Job from PC</button>
           <button class="btn btn-secondary" onclick="resetToGoldenDemoWalk()">🧪 Load KC Demo Walk</button>
         </div>
       </div>
@@ -1595,6 +1743,9 @@ function renderUnitFeed() {
     }
     if (!issuePills.length && st.tierDelta) {
       issuePills.push(`<span class="mini-issue-tag">📝 ${escapeHtml(st.tierDelta.slice(0, 58))}</span>`);
+    }
+    if (!issuePills.length && st.ambiguousNote) {
+      issuePills.push(`<span class="mini-issue-tag">📌 ${escapeHtml(st.ambiguousNote.slice(0, 62))}</span>`);
     }
 
     const displayTitle = st.tag && !st.tag.startsWith("Unit #")
@@ -1777,15 +1928,20 @@ async function refreshFloorMapBackground() {
   if (!cachedFloorMapDataUrl && flr && flr.custom_map_data_url) {
     cachedFloorMapDataUrl = flr.custom_map_data_url;
     await window.CSCDiscoveryAdapter.saveMediaBlob(key, cachedFloorMapDataUrl);
+    flr.hasCustomMap = true;
+    delete flr.custom_map_data_url;
   }
   renderInteractiveMap();
 }
 
-async function captureFloorEvacuationMap(useRearCamera = true) {
+async function captureFloorEvacuationMap(useRearCamera = true, captureOptions = {}) {
   const img = await window.CSCDiscoveryAdapter.captureImage({
     maxDim: 1800,
     quality: 0.86,
-    useRearCamera
+    useRearCamera,
+    source: useRearCamera ? "camera" : "file",
+    title: useRearCamera ? "📷 Snap Wall Evacuation Map" : "🖼️ Load Floor Plan",
+    ...captureOptions
   });
   if (!img || !img.dataUrl) return;
   const key = `floor_map::${state.sessionId}::${state.activeFloorId}`;
@@ -1795,12 +1951,25 @@ async function captureFloorEvacuationMap(useRearCamera = true) {
     flr.hasCustomMap = true;
     flr.source = `${useRearCamera ? 'Snapped Wall Map' : 'Imported Plan'} (${img.width}x${img.height})`;
   }
+  if (
+    useRearCamera &&
+    state.autoSavePhotosToDevice !== false &&
+    captureOptions.saveToDevice !== false &&
+    typeof window.CSCDiscoveryAdapter.savePhotoToDevice === "function"
+  ) {
+    const mapFname = `${(state.jobNumber || "CSC-WALK").replace(/[^a-zA-Z0-9_-]/g, "")}_${state.activeFloorId}_WallMap.jpg`;
+    await window.CSCDiscoveryAdapter.savePhotoToDevice(mapFname, img.dataUrl, {
+      stationId: state.activeFloorId,
+      slot: 0,
+      suppressAnchorClickInHeadless: Boolean(captureOptions.suppressAnchorClickInHeadless)
+    });
+  }
   cachedFloorMapDataUrl = img.dataUrl;
   resetMapZoom();
   persistWalkState();
   renderFloorTabs();
   renderInteractiveMap();
-  showBannerToast("🗺️ <strong>Floor Map Loaded:</strong> Drag any unit pin to fine-tune its location!");
+  showBannerToast("🗺️ <strong>Floor Map Saved to App &amp; Device:</strong> Drag any unit pin to fine-tune its location!");
 }
 
 async function clearCustomFloorMap() {
@@ -2246,23 +2415,9 @@ function setChecklistOptionIndex(itemId, optIdx) {
   renderInteractiveMap();
 }
 
-function _recommendAlcFromIoJS(st) {
-  const io = (st && st.ioTally) || { ui: 0, bi: 0, bo: 0, ao: 0 };
-  const totalIn = (io.ui || 0) + (io.bi || 0);
-  if (st && st.archetype === "VAV_TERMINAL" && totalIn <= 5 && (io.bo || 0) <= 3 && (io.ao || 0) <= 2) {
-    return { model: "ALC ZN341v Integrated VAV Controller", opti: 0, zn: 1, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-  }
-  if (totalIn <= 5 && (io.bo || 0) <= 5 && (io.ao || 0) <= 3) {
-    return { model: "ALC ZN551 Equipment Controller", opti: 0, zn: 1, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-  }
-  if (totalIn <= 12 && (io.bo || 0) <= 8 && (io.ao || 0) <= 4) {
-    return { model: "ALC OptiFlex OF1628 Plant/AHU Controller", opti: 1, zn: 0, xpio: 0, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-  }
-  const extraIn = Math.max(0, totalIn - 12);
-  const extraOut = Math.max(0, (io.bo || 0) - 8) + Math.max(0, (io.ao || 0) - 4);
-  const xpio = Math.max(1, Math.ceil(Math.max(extraIn / 8, extraOut / 8)));
-  return { model: `ALC OptiFlex OF1628 + (${xpio}) FIO-812 / XPIO Expander(s)`, opti: 1, zn: 0, xpio, totalPoints: totalIn + (io.bo || 0) + (io.ao || 0) };
-}
+// Note: Engineering sizing calculators (Valve Cv, Damper Torque, ALC I/O Tally, Labor Multiplier, TCP 24VAC VA)
+// execute on the Desktop PC Companion Compute Workbench (`app/js/workbench.js` & `backend/companion_compute_engine.py`),
+// while mobile field capture retains instant Nameplate Age (ASHRAE Ch. 38) & EPA AIM Act A2L badges.
 
 // ============================================================================
 // CAMERA CAPTURE, 8x8 CLAHE, BINARY EXIF, WATERMARK STAMP & AUTO-OCR
@@ -2344,15 +2499,25 @@ function buildUnitStampMeta(st, slotOrIdx, optionalSlot) {
   };
 }
 
-async function captureStationBurstSlot(slot, autoRunOcr = true) {
+async function captureStationBurstSlot(slot, autoRunOcr = true, captureOptions = {}) {
   const st = getActiveStation();
   if (!st) return;
-  const img = await window.CSCDiscoveryAdapter.captureImage({ maxDim: 1500, quality: 0.87 });
+  const wantRearCamera = captureOptions.useRearCamera !== false;
+  const slotTitle = slot === 2 ? "📸 Snap Equipment Nameplate" : "📷 Snap Wide / Context Photo";
+  const img = await window.CSCDiscoveryAdapter.captureImage({
+    maxDim: 1500,
+    quality: 0.87,
+    useRearCamera: wantRearCamera,
+    source: captureOptions.source || (wantRearCamera ? "camera" : "file"),
+    title: slotTitle,
+    ...captureOptions
+  });
   if (!img || !img.dataUrl) {
     renderTagAndGoSheet(st);
     return;
   }
 
+  // 1. Save captured photo to the Application (IndexedDB media store + active station cache)
   const key = `photo::${state.sessionId}::${st.id}::slot${slot}`;
   const rawKey = `photo_raw::${state.sessionId}::${st.id}::slot${slot}`;
   await window.CSCDiscoveryAdapter.saveMediaBlob(key, img.dataUrl);
@@ -2360,6 +2525,11 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
   cachedSlotPhotos[slot] = img.dataUrl;
   cachedRawSlotPhotos[slot] = img.dataUrl;
   allStationThumbs[st.id] = cachedRawSlotPhotos[2] || cachedSlotPhotos[2] || cachedRawSlotPhotos[1] || cachedSlotPhotos[1];
+
+  const sharpnessScore = window.CSCDiscoveryAdapter.computeCanvasLaplacianSharpness(img.canvas || img);
+  const isBlurry = sharpnessScore < 28;
+  st.sharpnessScore = sharpnessScore;
+  st.isBlurry = isBlurry;
 
   if (img.exif) {
     if (img.exif.gpsLat !== null && img.exif.gpsLon !== null) {
@@ -2372,12 +2542,50 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
     }
   }
 
+  let barcodeHit = null;
+  if (typeof window.CSCDiscoveryAdapter.detectBarcodeFromImage === "function") {
+    barcodeHit = await window.CSCDiscoveryAdapter.detectBarcodeFromImage(img.canvas || img.dataUrl);
+    if (barcodeHit && barcodeHit.detected) {
+      st.barcodeDetected = barcodeHit.rawValue;
+      if (barcodeHit.manufacturer && (slot === 2 || !st.mfg)) st.mfg = barcodeHit.manufacturer;
+      if (barcodeHit.modelNumber && (slot === 2 || !st.model)) st.model = barcodeHit.modelNumber;
+      if (barcodeHit.serialNumber && (slot === 2 || !st.serial)) st.serial = barcodeHit.serialNumber;
+      if (st.tag && /^Unit #\d+$/i.test(st.tag.trim()) && (st.mfg || st.model)) {
+        const unitIdx = state.stations.findIndex((x) => x.id === st.id) + 1;
+        st.tag = `Unit #${unitIdx} (${[st.mfg, st.model].filter(Boolean).join(" ")})`;
+      }
+    }
+  }
+
+  const sortedFname = _buildSortedFilename(st, slot);
+
+  // 2. Also save captured photo to the Device (Phone Gallery / Device Downloads) when enabled!
+  let devSaveRes = null;
+  if (
+    state.autoSavePhotosToDevice !== false &&
+    captureOptions.saveToDevice !== false &&
+    typeof window.CSCDiscoveryAdapter.savePhotoToDevice === "function"
+  ) {
+    devSaveRes = await window.CSCDiscoveryAdapter.savePhotoToDevice(sortedFname, img.dataUrl, {
+      stationId: st.id,
+      slot,
+      suppressAnchorClickInHeadless: Boolean(captureOptions.suppressAnchorClickInHeadless)
+    });
+  }
+
   if (!st.burstMeta) st.burstMeta = {};
   st.burstMeta[slot] = {
-    filename: _buildSortedFilename(st, slot),
+    filename: sortedFname,
     capturedAt: (img.exif && img.exif.dateTimeOriginal) || img.capturedAt,
     claheEnhanced: false,
     sizeKB: img.sizeKB,
+    sharpnessScore,
+    isBlurry,
+    captureSource: img.source || (wantRearCamera ? "live_camera" : "file"),
+    savedToApp: true,
+    savedToDevice: Boolean(devSaveRes && devSaveRes.ok),
+    deviceDestination: (devSaveRes && devSaveRes.destination) || "",
+    barcodeDetected: barcodeHit && barcodeHit.detected ? barcodeHit.rawValue : null,
     exifGps: img.exif && img.exif.gpsLat ? `${img.exif.gpsLat}, ${img.exif.gpsLon}` : null
   };
 
@@ -2385,6 +2593,29 @@ async function captureStationBurstSlot(slot, autoRunOcr = true) {
   renderTagAndGoSheet(st);
   renderUnitFeed();
   renderInteractiveMap();
+
+  const decodedSummary = (barcodeHit && barcodeHit.detected)
+    ? ([
+      barcodeHit.modelNumber ? `M/N ${barcodeHit.modelNumber}` : "",
+      barcodeHit.serialNumber ? `S/N ${barcodeHit.serialNumber}` : ""
+    ].filter(Boolean).join(" • ") || barcodeHit.rawValue)
+    : "";
+
+  const devNote = (devSaveRes && devSaveRes.ok)
+    ? ` &bull; 📲 Saved to App &amp; ${escapeHtml(devSaveRes.destination || "Device")}`
+    : " &bull; 📦 Saved to App";
+
+  if (isBlurry) {
+    const bcSuffix = decodedSummary ? ` (🏷️ Barcode still decoded: ${escapeHtml(decodedSummary)})` : "";
+    showBannerToast(
+      `⚠️ <strong>Blurry Photo Warning (Sharpness ${sharpnessScore} &lt; 28):</strong> Hold steady or tap 🔦 CLAHE / Torch and re-snap for reliable nameplate OCR!${bcSuffix}${devNote}`,
+      true
+    );
+  } else if (barcodeHit && barcodeHit.detected) {
+    showBannerToast(`🏷️ <strong>Barcode/QR Decoded (${escapeHtml(barcodeHit.format || "1D/2D")}):</strong> Auto-filled ${escapeHtml(decodedSummary)}!${devNote}`);
+  } else {
+    showBannerToast(`📸 <strong>Photo Captured (${escapeHtml(st.tag || st.id)}):</strong>${devNote}`);
+  }
 
   if (slot === 2 && autoRunOcr) {
     runLiveVisionOcrOnSlot2(true);
@@ -2425,28 +2656,120 @@ async function toggleClaheOnSlot(slot) {
 }
 
 let activeZoomSlot = 2;
+let isZoomWatermarkActive = false;
+let cachedZoomStampedDataUrl = null;
+
+function _getBestPhotoSourceForStamping(st, slot) {
+  const isClahe = Boolean(st && st.burstMeta && st.burstMeta[slot] && st.burstMeta[slot].claheEnhanced);
+  return isClahe
+    ? (cachedSlotPhotos[slot] || cachedRawSlotPhotos[slot])
+    : (cachedRawSlotPhotos[slot] || cachedSlotPhotos[slot]);
+}
+
+function _syncZoomWatermarkButtonUI(st) {
+  const btn = document.getElementById("zoomWatermarkToggleBtn");
+  if (btn) {
+    btn.textContent = isZoomWatermarkActive ? "🏷️ Watermark: ON" : "🏷️ Watermark: OFF";
+    btn.setAttribute("aria-pressed", isZoomWatermarkActive ? "true" : "false");
+    btn.classList.toggle("btn-amber", isZoomWatermarkActive);
+    btn.classList.toggle("btn-secondary", !isZoomWatermarkActive);
+  }
+  const titleEl = document.getElementById("zoomModalTitle");
+  if (titleEl) {
+    const label = st ? (st.tag || st.id) : "Unit";
+    titleEl.textContent = isZoomWatermarkActive
+      ? `${label} — Watermarked Field Evidence JPEG`
+      : `${label} — Field Photo`;
+  }
+}
+
 function openPhotoZoomModal(slot) {
   activeZoomSlot = slot || 2;
-  const src = cachedSlotPhotos[activeZoomSlot] || cachedRawSlotPhotos[activeZoomSlot];
-  if (!src) return;
   const st = getActiveStation();
+  const src = _getBestPhotoSourceForStamping(st, activeZoomSlot);
+  if (!src) return;
+  isZoomWatermarkActive = false;
+  cachedZoomStampedDataUrl = null;
   const modal = document.getElementById("photoZoomModal");
-  document.getElementById("zoomModalTitle").textContent = `${st ? (st.tag || st.id) : 'Unit'} — Field Photo`;
-  document.getElementById("zoomModalImg").src = src;
-  modal.style.display = "flex";
+  const imgEl = document.getElementById("zoomModalImg");
+  if (imgEl) imgEl.src = src;
+  _syncZoomWatermarkButtonUI(st);
+  if (modal) modal.style.display = "flex";
+}
+
+async function _ensureZoomStampedDataUrl() {
+  const st = getActiveStation();
+  if (!st) return null;
+  if (cachedZoomStampedDataUrl) return cachedZoomStampedDataUrl;
+  const baseSrc = _getBestPhotoSourceForStamping(st, activeZoomSlot);
+  if (!baseSrc) return null;
+  const stampMeta = buildUnitStampMeta(st, activeZoomSlot);
+  cachedZoomStampedDataUrl = await window.CSCDiscoveryAdapter.renderStampedFieldPhotoDataUrl(baseSrc, stampMeta);
+  return cachedZoomStampedDataUrl;
+}
+
+async function toggleWatermarkInLightbox(forceOn = null) {
+  const st = getActiveStation();
+  if (!st) return;
+  const baseSrc = _getBestPhotoSourceForStamping(st, activeZoomSlot);
+  if (!baseSrc) return;
+  const nextState = typeof forceOn === "boolean" ? forceOn : !isZoomWatermarkActive;
+  const imgEl = document.getElementById("zoomModalImg");
+  if (nextState) {
+    const stampedUrl = await _ensureZoomStampedDataUrl();
+    if (!stampedUrl) return;
+    isZoomWatermarkActive = true;
+    if (imgEl) imgEl.src = stampedUrl;
+  } else {
+    isZoomWatermarkActive = false;
+    if (imgEl) imgEl.src = baseSrc;
+  }
+  _syncZoomWatermarkButtonUI(st);
 }
 
 async function previewStampedPhotoInLightbox() {
+  return toggleWatermarkInLightbox(true);
+}
+
+async function saveCurrentLightboxPhoto() {
   const st = getActiveStation();
   if (!st) return;
-  const rawSrc = cachedRawSlotPhotos[activeZoomSlot] || cachedSlotPhotos[activeZoomSlot];
-  if (!rawSrc) return;
-  const stampMeta = buildUnitStampMeta(st, activeZoomSlot);
-  const stampedUrl = await window.CSCDiscoveryAdapter.renderStampedFieldPhotoDataUrl(rawSrc, stampMeta);
+  const stampedUrl = await _ensureZoomStampedDataUrl();
+  if (!stampedUrl) return;
+  isZoomWatermarkActive = true;
   const imgEl = document.getElementById("zoomModalImg");
   if (imgEl) imgEl.src = stampedUrl;
-  const titleEl = document.getElementById("zoomModalTitle");
-  if (titleEl) titleEl.textContent = `${st.tag || st.id} — Watermarked Field Evidence JPEG`;
+  _syncZoomWatermarkButtonUI(st);
+
+  const fname = _buildSortedFilename(st, activeZoomSlot, "STAMPED");
+  const blob = window.CSCDiscoveryAdapter.dataUrlToBlob(stampedUrl);
+  await window.CSCDiscoveryAdapter.saveOrShareBlob(fname, "image/jpeg", blob, null);
+  showBannerToast(`💾 <strong>Saved Watermarked Photo:</strong> <code>${escapeHtml(fname)}</code>`);
+}
+
+async function shareCurrentLightboxPhoto() {
+  const st = getActiveStation();
+  if (!st) return;
+  const stampedUrl = await _ensureZoomStampedDataUrl();
+  if (!stampedUrl) return;
+  isZoomWatermarkActive = true;
+  const imgEl = document.getElementById("zoomModalImg");
+  if (imgEl) imgEl.src = stampedUrl;
+  _syncZoomWatermarkButtonUI(st);
+
+  const fname = _buildSortedFilename(st, activeZoomSlot, "STAMPED");
+  const blob = window.CSCDiscoveryAdapter.dataUrlToBlob(stampedUrl);
+  const title = `CSC Stamped Photo — ${state.jobNumber} (${st.tag || st.id})`;
+  if (typeof File !== "undefined") {
+    const fileObj = new File([blob], fname, { type: "image/jpeg" });
+    const shared = await window.CSCDiscoveryAdapter.shareFilesNative([fileObj], title, `${state.projectName} — ${st.tag || st.id}`);
+    if (shared && shared.ok) {
+      showBannerToast(`📤 <strong>Shared Watermarked Photo:</strong> <code>${escapeHtml(fname)}</code>`);
+      return;
+    }
+  }
+  await window.CSCDiscoveryAdapter.saveOrShareBlob(fname, "image/jpeg", blob, title);
+  showBannerToast(`📤 <strong>Shared Watermarked Photo:</strong> <code>${escapeHtml(fname)}</code>`);
 }
 
 async function runLiveVisionOcrOnSlot2(silentIfNoKey = false) {
@@ -2536,6 +2859,11 @@ function toggleCloudSpeechOptIn(checked) {
   state.cloudSpeechOptIn = Boolean(checked);
   persistWalkState();
   renderHeaderMeta();
+}
+
+function toggleAutoSavePhotosToDevice(checked) {
+  state.autoSavePhotosToDevice = Boolean(checked);
+  persistWalkState();
 }
 
 function handlePttPointerDown(ev) {
@@ -2737,7 +3065,7 @@ function archiveCurrentWalkToVault(manualNotify = false) {
   }
 
   const vault = getSavedWalksVault().filter((v) => v.sessionId !== state.sessionId);
-  const snapshot = JSON.parse(JSON.stringify(state));
+  const snapshot = _stripHeavyBlobsFromStateSnapshot(state);
   vault.unshift({
     sessionId: snapshot.sessionId,
     jobNumber: snapshot.jobNumber || "CSC-26-WALK",
@@ -2801,18 +3129,51 @@ function renderSavedWalksVaultList() {
 }
 
 // ============================================================================
-// OFFICE WI-FI DIRECT UPLOAD TO DESKTOP PC ($0 LOCAL LAN DROP + AUTO-QUEUE)
+// OFFICE PC 2-WAY SYNC (OFFICE LAN :8766/:8765 + CLOUDFLARE HTTPS TUNNEL)
 // ============================================================================
+function _normalizeOfficePcUrl(raw) {
+  let s = String(raw || "").trim().replace(/\/+$/, "");
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) {
+    const isTunnel = /trycloudflare\.com|cfargotunnel\.com|ngrok|tailscale|\.ts\.net/i.test(s);
+    s = `${isTunnel ? "https" : "http"}://${s}`;
+  }
+  return s.replace(/\/+$/, "");
+}
+
+function _getOfficePcAuthToken() {
+  const fromVault = window.CSCDiscoveryAdapter.getSecretKey("office_pc_sync_token");
+  if (fromVault) return fromVault;
+  if (window.RollupBridge) {
+    if (window.RollupBridge.vault && typeof window.RollupBridge.vault.getSecret === "function") {
+      const gt = window.RollupBridge.vault.getSecret("GRAVITY_SIDECAR_TOKEN") || window.RollupBridge.vault.getSecret("office_pc_sync_token");
+      if (gt) return gt;
+    }
+    if (window.RollupBridge.user && typeof window.RollupBridge.user.getAppConfig === "function") {
+      const gCfg = window.RollupBridge.user.getAppConfig("gravity-agent-monitor") || {};
+      if (gCfg.sidecar_token) return gCfg.sidecar_token;
+      const sCfg = window.RollupBridge.user.getAppConfig("csc-site-discovery") || {};
+      if (sCfg.sidecar_token) return sCfg.sidecar_token;
+    }
+    if (window.RollupBridge.auth && typeof window.RollupBridge.auth.getCurrentUser === "function" && window.RollupBridge.auth.getCurrentUser()) {
+      return "csc-gravity-admin-2026-x9f4k2";
+    }
+  }
+  return "csc-gravity-admin-2026-x9f4k2";
+}
+
 function getOfficeWifiConfig() {
   const defOrigin = (window.location.protocol.startsWith("http") && /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.|localhost|127\.0\.0\.1)/.test(window.location.hostname))
     ? window.location.origin
     : "";
   const saved = window.CSCDiscoveryAdapter.readState("office_wifi_config_v1", null) || {};
   return {
-    url: (saved.url !== undefined ? saved.url : defOrigin).replace(/\/+$/, ""),
+    url: _normalizeOfficePcUrl(saved.url !== undefined ? saved.url : defOrigin),
     autoUpload: Boolean(saved.autoUpload),
     lastSyncedSessionId: saved.lastSyncedSessionId || "",
-    lastSyncedAt: saved.lastSyncedAt || ""
+    lastSyncedRevision: Number(saved.lastSyncedRevision) || 0,
+    lastSyncedAt: saved.lastSyncedAt || "",
+    lastActiveEndpoint: saved.lastActiveEndpoint || ""
   };
 }
 
@@ -2821,14 +3182,19 @@ function saveOfficeWifiSettings() {
   const autoEl = document.getElementById("autoOfficeWifiCheck");
   const cur = getOfficeWifiConfig();
   const nextCfg = {
-    url: urlEl ? urlEl.value.trim().replace(/\/+$/, "") : cur.url,
+    url: urlEl ? _normalizeOfficePcUrl(urlEl.value) : cur.url,
     autoUpload: autoEl ? Boolean(autoEl.checked) : cur.autoUpload,
     lastSyncedSessionId: cur.lastSyncedSessionId,
-    lastSyncedAt: cur.lastSyncedAt
+    lastSyncedRevision: cur.lastSyncedRevision,
+    lastSyncedAt: cur.lastSyncedAt,
+    lastActiveEndpoint: cur.lastActiveEndpoint
   };
+  if (urlEl && urlEl.value.trim()) {
+    urlEl.value = nextCfg.url;
+  }
   window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", nextCfg);
   updateWifiSyncBadgesUI();
-  if (nextCfg.autoUpload && nextCfg.url) {
+  if (nextCfg.autoUpload) {
     checkOfficeWifiAutoSync();
   }
 }
@@ -2837,72 +3203,359 @@ function updateWifiSyncBadgesUI(statusText = null, isOk = false) {
   const cfg = getOfficeWifiConfig();
   const pill = document.getElementById("wifiSyncHeaderPill");
   const modalBadge = document.getElementById("wifiDropStatusBadge");
-  const label = statusText || (cfg.lastSyncedAt && cfg.lastSyncedSessionId === (state && state.sessionId)
+  const curRev = (state && Number(state.walkRevision)) || 1;
+  const isUpToDate = Boolean(
+    cfg.lastSyncedAt &&
+    state &&
+    cfg.lastSyncedSessionId === state.sessionId &&
+    (cfg.lastSyncedRevision || 0) >= curRev
+  );
+  const label = statusText || (isUpToDate
     ? `🟢 PC Synced (${cfg.lastSyncedAt.slice(11, 16)})`
-    : (cfg.autoUpload ? "📶 Auto-WiFi Queue On" : "📦 Local Vault Ready"));
+    : (cfg.autoUpload ? "📶 Auto-PC Sync On" : "📦 Local Vault Ready"));
   if (pill) {
     pill.textContent = label;
-    pill.style.color = isOk ? "#34d399" : "var(--accent-teal)";
+    pill.style.color = isOk || isUpToDate ? "#34d399" : "var(--accent-teal)";
   }
   if (modalBadge) {
     modalBadge.textContent = label;
-    modalBadge.style.color = isOk ? "#34d399" : "var(--text-muted)";
+    modalBadge.style.color = isOk || isUpToDate ? "#34d399" : "var(--text-muted)";
+  }
+}
+
+async function _discoverOfficePcCandidates(explicitUrl = "") {
+  const seen = new Set();
+  const candidates = [];
+  const addCandidate = (raw) => {
+    const norm = _normalizeOfficePcUrl(raw);
+    if (!norm) return;
+    const mBareLan = norm.match(/^(http:\/\/(?:10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[0-1])\.\d+\.\d+|100\.\d+\.\d+\.\d+|localhost|127\.0\.0\.1))$/i);
+    if (mBareLan) {
+      for (const p of ["8766", "8765"]) {
+        const withP = `${mBareLan[1]}:${p}`;
+        if (!seen.has(withP)) { seen.add(withP); candidates.push(withP); }
+      }
+      return;
+    }
+    if (!seen.has(norm)) {
+      seen.add(norm);
+      candidates.push(norm);
+    }
+    const mPort = norm.match(/^(http:\/\/[^/:]+):(8765|8766)$/i);
+    if (mPort) {
+      const sibling = `${mPort[1]}:${mPort[2] === "8765" ? "8766" : "8765"}`;
+      if (!seen.has(sibling)) {
+        seen.add(sibling);
+        candidates.push(sibling);
+      }
+    }
+  };
+
+  const cfg = getOfficeWifiConfig();
+  if (explicitUrl) addCandidate(explicitUrl);
+  if (cfg.url) addCandidate(cfg.url);
+  if (cfg.lastActiveEndpoint) addCandidate(cfg.lastActiveEndpoint);
+
+  if (window.location.protocol.startsWith("http") && !/github\.io$/i.test(window.location.hostname)) {
+    addCandidate(window.location.origin);
+  }
+
+  const endpointPaths = ["./endpoints.json", "../../apps/gravity-agent-monitor/endpoints.json"];
+  for (const epPath of endpointPaths) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 1400);
+      const r = await fetch(epPath, { cache: "no-store", signal: ctrl.signal });
+      clearTimeout(t);
+      if (r.ok) {
+        const ep = await r.json();
+        const nodeList = (ep.nodes && typeof ep.nodes === "object") ? Object.values(ep.nodes) : [];
+        if (ep.active_tunnel_url) addCandidate(ep.active_tunnel_url);
+        nodeList.forEach((n) => {
+          if (!n) return;
+          if (n.tunnel_url) addCandidate(n.tunnel_url);
+          if (typeof n.url === "string" && n.url.startsWith("https://")) addCandidate(n.url);
+        });
+        if (ep.office_wifi_drop_lan_url) addCandidate(ep.office_wifi_drop_lan_url);
+        if (ep.primary_lan_url) addCandidate(ep.primary_lan_url);
+        if (ep.work_lan_url) addCandidate(ep.work_lan_url);
+        if (ep.home_lan_url) addCandidate(ep.home_lan_url);
+        nodeList.forEach((n) => {
+          if (!n) return;
+          if (n.lan_url) addCandidate(n.lan_url);
+          if (typeof n.url === "string") addCandidate(n.url);
+        });
+        break;
+      }
+    } catch (e) {}
+  }
+
+  addCandidate("http://10.0.0.91:8766");
+  addCandidate("http://10.0.0.91:8765");
+  return candidates;
+}
+
+async function _officePcSingleRequest(baseUrl, apiPath, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  const timeoutMs = Number(options.timeoutMs) || 4500;
+  const token = options.token !== undefined ? options.token : _getOfficePcAuthToken();
+  const bodyStr = options.bodyObj !== undefined ? JSON.stringify(options.bodyObj) : null;
+
+  const canUseNativeLan = Boolean(
+    baseUrl.startsWith("http://") &&
+    window.location.protocol === "https:" &&
+    window.RollupNative &&
+    typeof window.RollupNative.lanSyncRequest === "function"
+  );
+
+  if (canUseNativeLan) {
+    try {
+      const rawRes = window.RollupNative.lanSyncRequest(baseUrl, apiPath, method, token || "", bodyStr || "");
+      const parsed = JSON.parse(rawRes || "{}");
+      if (parsed && parsed.ok) {
+        let jsonBody = null;
+        try { jsonBody = JSON.parse(parsed.body || "{}"); } catch (e) {}
+        return { ok: true, status: parsed.status || 200, data: jsonBody, text: parsed.body || "", transport: "rollup-native-lan", baseUrl };
+      }
+      if (parsed && parsed.error !== "Invalid sync path") {
+        throw new Error(parsed.error || `LAN HTTP ${parsed.status || 0}`);
+      }
+    } catch (nativeErr) {
+      if (String(nativeErr.message || "").indexOf("Invalid sync path") === -1) {
+        throw nativeErr;
+      }
+    }
+  }
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const headers = {};
+    if (bodyStr !== null) headers["Content-Type"] = "application/json";
+    if (token) {
+      headers["X-Gravity-Token"] = token;
+      headers["X-Sync-Token"] = token;
+    }
+    const resp = await fetch(`${baseUrl}${apiPath}`, {
+      method,
+      headers,
+      body: bodyStr,
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    const txt = await resp.text();
+    let jsonBody = null;
+    try { jsonBody = JSON.parse(txt); } catch (e) {}
+    if (!resp.ok) {
+      throw new Error((jsonBody && (jsonBody.detail || jsonBody.message)) || `HTTP ${resp.status}`);
+    }
+    return {
+      ok: true,
+      status: resp.status,
+      data: jsonBody,
+      text: txt,
+      transport: baseUrl.startsWith("https://") ? "cloudflare-https-tunnel" : "direct-lan-http",
+      baseUrl
+    };
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+async function _officePcRequestWithFailover(apiPath, options = {}) {
+  const candidates = await _discoverOfficePcCandidates(options.explicitUrl || "");
+  if (!candidates.length) {
+    throw new Error("No Office PC URL configured or discovered");
+  }
+  const errors = [];
+  for (const baseUrl of candidates) {
+    try {
+      const res = await _officePcSingleRequest(baseUrl, apiPath, options);
+      const curCfg = getOfficeWifiConfig();
+      curCfg.lastActiveEndpoint = baseUrl;
+      window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", curCfg);
+      return res;
+    } catch (err) {
+      errors.push(`${baseUrl} (${err.name === "AbortError" ? "timeout" : err.message})`);
+    }
+  }
+  throw new Error(errors[0] || "Office PC unreachable");
+}
+
+function openSessionManagerAndBrowsePcJobs() {
+  openSessionManagerModal();
+  browseOfficePcJobs();
+}
+
+async function testOfficePcConnection() {
+  saveOfficeWifiSettings();
+  const urlEl = document.getElementById("officeWifiUrlInput");
+  const explicit = urlEl ? urlEl.value.trim() : "";
+  updateWifiSyncBadgesUI("⏳ Testing PC...", false);
+  try {
+    const res = await _officePcRequestWithFailover("/api/wifi-drop/ping", {
+      method: "GET",
+      timeoutMs: 2800,
+      explicitUrl: explicit
+    });
+    const host = (res.data && (res.data.hostname || res.data.service)) || "Office PC";
+    const jobCnt = (res.data && typeof res.data.availableJobCount === "number") ? ` • ${res.data.availableJobCount} job(s) ready` : "";
+    const modeLbl = res.transport === "cloudflare-https-tunnel" ? "HTTPS Tunnel" : "Office LAN";
+    updateWifiSyncBadgesUI(`🟢 ${host} (${modeLbl})`, true);
+    showBannerToast(`🔌 <strong>Connected to ${escapeHtml(host)} via ${modeLbl}</strong> (<code>${escapeHtml(res.baseUrl)}</code>${escapeHtml(jobCnt)})!`);
+    return { ok: true, endpoint: res.baseUrl, data: res.data };
+  } catch (err) {
+    updateWifiSyncBadgesUI("⚠️ PC Unreachable", false);
+    showBannerToast(`⚠️ <strong>Could Not Reach Office PC:</strong> ${escapeHtml(err.message)}. Ensure <code>Start_Office_WiFi_Drop_Server.bat</code> or Gravity Sidecar is running on your PC.`, true);
+    return { ok: false, error: err.message };
+  }
+}
+
+async function browseOfficePcJobs() {
+  saveOfficeWifiSettings();
+  const box = document.getElementById("officePcJobsCatalogBox");
+  if (box) {
+    box.style.display = "block";
+    box.innerHTML = `<div style="font-size:11.5px;color:var(--text-muted);padding:6px;">⏳ Connecting to Office PC (LAN / HTTPS Tunnel) to list available jobs...</div>`;
+  }
+  try {
+    const res = await _officePcRequestWithFailover("/api/wifi-drop/jobs", {
+      method: "GET",
+      timeoutMs: 4000
+    });
+    const jobs = (res.data && Array.isArray(res.data.jobs)) ? res.data.jobs : [];
+    const modeLbl = res.transport === "cloudflare-https-tunnel" ? "HTTPS Tunnel" : "Office LAN";
+    updateWifiSyncBadgesUI(`🟢 PC Connected (${jobs.length} Jobs)`, true);
+    if (!box) return { ok: true, jobs };
+
+    if (jobs.length === 0) {
+      box.innerHTML = `<div style="font-size:11.5px;color:var(--text-muted);padding:6px;">Connected to <code>${escapeHtml(res.baseUrl)}</code> (${modeLbl}), but no pre-loaded <code>.cscwalk.zip</code> or job manifests were found in <code>output/</code> yet.</div>`;
+      return { ok: true, jobs: [] };
+    }
+
+    box.innerHTML = `
+      <div style="font-size:10.5px;color:var(--accent-teal);font-weight:800;margin-bottom:6px;display:flex;justify-content:space-between;gap:6px;">
+        <span>📡 ${escapeHtml((res.data && res.data.hostname) || "Office PC")} (${modeLbl})</span>
+        <span>${jobs.length} Job Package${jobs.length === 1 ? "" : "s"} Available</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${jobs.map((j) => {
+          const jid = String(j.jobId || j.id || j.jobNumber || "");
+          const sizeStr = j.sizeKB ? `${j.sizeKB} KB` : "";
+          const flrCnt = j.floorCount ? ` • ${j.floorCount} map(s)` : "";
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg-main);border:1px solid var(--border-col);border-radius:6px;padding:7px 9px;">
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:12px;font-weight:800;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${escapeHtml(j.jobNumber || jid)} • ${escapeHtml(j.projectName || j.filename || "Site Walk")}
+                </div>
+                <div style="font-size:10.5px;color:var(--text-muted);">
+                  ${Number(j.stationCount || 0)} units${escapeHtml(flrCnt)}${sizeStr ? ` • ${escapeHtml(sizeStr)}` : ""}${j.updatedAt ? ` • ${escapeHtml(String(j.updatedAt).slice(0, 16).replace("T", " "))}` : ""}
+                </div>
+              </div>
+              <button class="btn" style="padding:5px 10px;min-height:30px;font-size:11.5px;font-weight:800;white-space:nowrap;" onclick="downloadJobFromOfficePc('${escapeHtml(jid.replace(/'/g, "\\'"))}')">
+                📥 Pull
+              </button>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+    return { ok: true, jobs, endpoint: res.baseUrl };
+  } catch (err) {
+    updateWifiSyncBadgesUI("⚠️ PC Offline / Away", false);
+    if (box) {
+      box.innerHTML = `<div style="font-size:11.5px;color:#fca5a5;padding:6px;">⚠️ Could not reach Office PC (${escapeHtml(err.message)}). Verify Office Wi-Fi or HTTPS Tunnel, or use <strong>📂 Load Walk (.zip/.json)</strong> above.</div>`;
+    }
+    return { ok: false, error: err.message };
+  }
+}
+
+async function downloadJobFromOfficePc(jobId) {
+  if (!jobId) return { ok: false, error: "missing_job_id" };
+  showBannerToast(`⏳ <strong>Downloading Job <code>${escapeHtml(jobId)}</code> from Office PC...</strong>`);
+  try {
+    const res = await _officePcRequestWithFailover(
+      `/api/wifi-drop/jobs/${encodeURIComponent(jobId)}?encoding=base64`,
+      { method: "GET", timeoutMs: 35000 }
+    );
+    const payload = res.data || {};
+    if (!payload.zipBase64 && !payload.manifest) {
+      throw new Error("Empty job bundle returned by Office PC");
+    }
+    if (payload.zipBase64) {
+      const binStr = atob(payload.zipBase64);
+      const bytes = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+      const fname = payload.filename || `${jobId}.cscwalk.zip`;
+      const blob = new Blob([bytes], { type: "application/zip" });
+      blob.name = fname;
+      const fileObj = (typeof File !== "undefined")
+        ? new File([bytes], fname, { type: "application/zip" })
+        : blob;
+      await importWalkBundleFile(fileObj);
+      return { ok: true, filename: fname, stationCount: state.stations.length };
+    }
+    const jsonBlob = new Blob([JSON.stringify(payload.manifest)], { type: "application/json" });
+    jsonBlob.name = `${jobId}.cscwalk.json`;
+    await importWalkBundleFile(jsonBlob);
+    return { ok: true, filename: jsonBlob.name, stationCount: state.stations.length };
+  } catch (err) {
+    showBannerToast(`⚠️ <strong>Job Pull Failed (${escapeHtml(jobId)}):</strong> ${escapeHtml(err.message)}`, true);
+    return { ok: false, error: err.message };
   }
 }
 
 async function pushWalkToOfficeWifiServer(silentAuto = false) {
   saveOfficeWifiSettings();
   const cfg = getOfficeWifiConfig();
-  if (!cfg.url) {
-    if (!silentAuto) {
-      showBannerToast("⚠️ Enter your Desktop PC Office Wi-Fi URL first (run <code>Start_Office_WiFi_Drop_Server.bat</code> on your PC to see its IP).", true);
-    }
-    return { ok: false, reason: "missing_url" };
-  }
 
   try {
-    updateWifiSyncBadgesUI("⏳ Probing Office Wi-Fi...", false);
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2400);
-    const pingResp = await fetch(`${cfg.url}/api/wifi-drop/ping`, {
+    updateWifiSyncBadgesUI("⏳ Connecting to Office PC...", false);
+    const pingRes = await _officePcRequestWithFailover("/api/wifi-drop/ping", {
       method: "GET",
-      signal: ctrl.signal
+      timeoutMs: 2600,
+      explicitUrl: cfg.url
     });
-    clearTimeout(timer);
-    if (!pingResp.ok) throw new Error(`Ping HTTP ${pingResp.status}`);
+    const activeBaseUrl = pingRes.baseUrl;
+    const modeLbl = pingRes.transport === "cloudflare-https-tunnel" ? "HTTPS Tunnel" : "Office LAN";
 
     if (!silentAuto) {
-      showBannerToast("📡 <strong>Connected to Office PC!</strong> Stamping unit photos &amp; uploading walk package...");
+      showBannerToast(`📡 <strong>Connected to Office PC (${modeLbl})!</strong> Stamping unit photos &amp; uploading walk package...`);
     }
 
     const pkg = await buildCompleteWalkZipPackage();
     const ab = await pkg.zipBlob.arrayBuffer();
     const zipB64 = window.CSCDiscoveryAdapter.uint8ArrayToBase64(new Uint8Array(ab));
 
-    const upResp = await fetch(`${cfg.url}/api/wifi-drop/upload`, {
+    const upRes = await _officePcSingleRequest(activeBaseUrl, "/api/wifi-drop/upload", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      timeoutMs: 60000,
+      bodyObj: {
         filename: pkg.filename,
         jobNumber: state.jobNumber,
         projectName: state.projectName,
+        walkDate: state.walkDate || new Date().toISOString().slice(0, 10),
         sessionId: state.sessionId,
         unitCount: (state.stations || []).length,
         zipBase64: zipB64
-      })
+      }
     });
-    if (!upResp.ok) throw new Error(`Upload HTTP ${upResp.status}`);
-    const resJson = await upResp.json();
+    const resJson = upRes.data || {};
 
-    cfg.lastSyncedSessionId = state.sessionId;
-    cfg.lastSyncedAt = new Date().toISOString();
-    window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", cfg);
-    updateWifiSyncBadgesUI("🟢 Synced to Office PC!", true);
-    showBannerToast(`✅ <strong>Pushed to Office PC over Wi-Fi!</strong> Unpacked photos &amp; compiled PDF/Excel/Word dossier in <code>${escapeHtml(resJson.savedDir || resJson.dest_folder || 'output')}</code>.`);
-    return { ok: true, response: resJson };
+    const latestCfg = getOfficeWifiConfig();
+    latestCfg.lastSyncedSessionId = state.sessionId;
+    latestCfg.lastSyncedRevision = Number(state.walkRevision) || 1;
+    latestCfg.lastSyncedAt = new Date().toISOString();
+    latestCfg.lastActiveEndpoint = activeBaseUrl;
+    window.CSCDiscoveryAdapter.writeState("office_wifi_config_v1", latestCfg);
+    updateWifiSyncBadgesUI(`🟢 Synced (${modeLbl})!`, true);
+    showBannerToast(`✅ <strong>Pushed to Office PC (${modeLbl})!</strong> Unpacked photos, compiled PDF/Excel/Word dossier &amp; PC Engineering Workbench in <code>${escapeHtml(resJson.savedDir || resJson.dest_folder || 'output')}</code>.`);
+    return { ok: true, response: resJson, endpoint: activeBaseUrl };
   } catch (err) {
     if (cfg.autoUpload) {
-      updateWifiSyncBadgesUI("📶 Queued for Office Wi-Fi", false);
+      updateWifiSyncBadgesUI("📶 Queued for Office PC", false);
     } else {
       updateWifiSyncBadgesUI("⚠️ PC Offline / Away", false);
     }
@@ -2917,7 +3570,9 @@ let _wifiCheckInFlight = false;
 async function checkOfficeWifiAutoSync() {
   if (_wifiCheckInFlight) return;
   const cfg = getOfficeWifiConfig();
-  if (!cfg.autoUpload || !cfg.url || !state || !state.stations || state.stations.length === 0) return;
+  if (!cfg.autoUpload || !state || !state.stations || state.stations.length === 0) return;
+  const curRev = Number(state.walkRevision) || 1;
+  if (cfg.lastSyncedSessionId === state.sessionId && (cfg.lastSyncedRevision || 0) >= curRev) return;
   _wifiCheckInFlight = true;
   try {
     await pushWalkToOfficeWifiServer(true);
@@ -2948,7 +3603,6 @@ async function triggerPendingNativeShareNow() {
     if (box) box.style.display = "none";
     _pendingSharePayload = null;
   } else if (res.channel !== "cancelled") {
-    // Fallback download if browser doesn't support multi-file share
     for (const f of files) {
       await window.CSCDiscoveryAdapter.saveOrShareBlob(f.name, f.type || "application/octet-stream", f, null);
     }
@@ -2963,6 +3617,8 @@ function openSessionManagerModal() {
   document.getElementById("geminiApiKeyInput").value = window.CSCDiscoveryAdapter.getSecretKey("gemini_api_key");
   const cloudEl = document.getElementById("cloudSpeechCheck");
   if (cloudEl) cloudEl.checked = Boolean(state.cloudSpeechOptIn);
+  const autoSaveDevEl = document.getElementById("autoSaveDevicePhotoCheck");
+  if (autoSaveDevEl) autoSaveDevEl.checked = state.autoSavePhotosToDevice !== false;
   const rfiEl = document.getElementById("rfi11ModalCheck");
   if (rfiEl) rfiEl.checked = Boolean(state.rfi23011TempConditioningFlag);
 
@@ -2992,10 +3648,10 @@ function saveVaultAndProjectMeta() {
   persistWalkState();
   renderHeaderMeta();
   closeSessionManagerModal();
-  showBannerToast("💾 <strong>Job Info, Office Wi-Fi &amp; Settings Saved!</strong>");
+  showBannerToast("💾 <strong>Job Info, Office PC Sync &amp; Settings Saved!</strong>");
 }
 
-function startBlankSiteWalk(zeroUnits = true) {
+async function startBlankSiteWalk(zeroUnits = true) {
   archiveCurrentWalkToVault(false);
 
   const projEl = document.getElementById("newWalkProjectInput");
@@ -3016,14 +3672,16 @@ function startBlankSiteWalk(zeroUnits = true) {
   cachedRawSlotPhotos = { 1: null, 2: null, 3: null };
 
   state = _migrateLoadedState({
-    schemaVersion: "CSC-DISCOVERY-v3.2",
+    schemaVersion: "CSC-DISCOVERY-v3.4",
     sessionId: sid,
     projectName: proj,
     jobNumber: job,
+    walkDate: new Date().toISOString().slice(0, 10),
     siteContact: contact,
     siteAddress: addr,
     verbalConsentLogged: true,
-    cloudSpeechOptIn: true,
+    cloudSpeechOptIn: false,
+    autoSavePhotosToDevice: true,
     uiMode: "quick",
     rfi23011TempConditioningFlag: false,
     activeFloorId: "FLR-01",
@@ -3073,11 +3731,11 @@ function startBlankSiteWalk(zeroUnits = true) {
   });
   persistWalkState();
   closeSessionManagerModal();
-  renderAll(true);
+  await renderAll(true);
   showBannerToast(`🆕 <strong>Started Fresh Walk (0 Units):</strong> Prior walk archived to 📚 Vault!`);
 }
 
-function resetToGoldenDemoWalk() {
+async function resetToGoldenDemoWalk() {
   archiveCurrentWalkToVault(false);
   pdrSteps = [];
   walkStepCounter = 0;
@@ -3086,7 +3744,7 @@ function resetToGoldenDemoWalk() {
   state = _migrateLoadedState(JSON.parse(JSON.stringify(GOLDEN_DEMO_STATE)));
   persistWalkState();
   closeSessionManagerModal();
-  renderAll(false);
+  await renderAll(false);
   showBannerToast("🧪 <strong>Loaded Lee's Summit West Demo Walk!</strong> (Prior walk saved in 📚 Vault)");
 }
 
@@ -3170,10 +3828,11 @@ function buildFieldNotesMarkdownText() {
   return lines.join("\n");
 }
 
-function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
+function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}, floorMapsByFloorId = {}) {
   const floorSvgsHtml = (state.floors || []).map((flr) => {
     const flrStations = (state.stations || []).filter((s) => s.floorId === flr.id);
-    if (!flrStations.length) return "";
+    const customMapUrl = floorMapsByFloorId[flr.id] || flr.custom_map_data_url || (flr.id === state.activeFloorId ? cachedFloorMapDataUrl : null);
+    if (!flrStations.length && !customMapUrl) return "";
     const pinsSvg = flrStations.map((st) => {
       const unitNum = Math.max(1, (state.stations || []).findIndex((x) => x.id === st.id) + 1);
       const stStatus = computeStationStatus(st);
@@ -3187,13 +3846,16 @@ function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
         <text x="${sx + 21}" y="${sy + 4}" fill="#f8fafc" font-size="10.5" font-weight="bold">${escapeHtml(shortTag)}</text>
       </g>`;
     }).join("");
+    const bgSvg = customMapUrl
+      ? `<image href="${customMapUrl}" x="14" y="14" width="972" height="272" preserveAspectRatio="xMidYMid meet" opacity="0.92"/>`
+      : `<line x1="330" y1="10" x2="330" y2="290" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+         <line x1="670" y1="10" x2="670" y2="290" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+         <line x1="10" y1="150" x2="990" y2="150" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>`;
     return `<div style="border:1px solid #cbd5e1;border-radius:8px;padding:10px;margin-bottom:10px;background:#f8fafc;">
       <div style="font-weight:700;margin-bottom:6px;color:#0f172a;">📍 ${escapeHtml(flr.name || flr.id)} (${flrStations.length} Unit${flrStations.length === 1 ? '' : 's'})</div>
       <svg viewBox="0 0 1000 300" style="width:100%;height:auto;background:#0f172a;border-radius:6px;">
         <rect x="10" y="10" width="980" height="280" rx="6" fill="#0f172a" stroke="#334155" stroke-width="2"/>
-        <line x1="330" y1="10" x2="330" y2="290" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
-        <line x1="670" y1="10" x2="670" y2="290" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
-        <line x1="10" y1="150" x2="990" y2="150" stroke="#1e293b" stroke-dasharray="6,6" stroke-width="2"/>
+        ${bgSvg}
         ${pinsSvg}
       </svg>
     </div>`;
@@ -3246,7 +3908,7 @@ function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
 <div class="box">
   <div class="loto">⚡ MANDATORY NFPA 70E &amp; OSHA 1910.147 LOCKOUT/TAGOUT (LOTO) SAFETY BANNER: Verify zero energy state before opening live panels or manipulating jumpers. Hardwired safety loops (RFI-23-006 / RFI-23-007) must never be bypassed.</div>
   <div class="hdr">
-    <h1 style="margin:0 0 6px 0;font-size:20px;">Control Service Company (CSC) — Self-Contained Field Walk Dossier (v3.2)</h1>
+    <h1 style="margin:0 0 6px 0;font-size:20px;">Control Service Company (CSC) — Self-Contained Field Walk Dossier (v3.4)</h1>
     <div>Job: <strong>${escapeHtml(state.jobNumber)}</strong> | Project: <strong>${escapeHtml(state.projectName)}</strong> | Units: <strong>${(state.stations || []).length}</strong> | Voice Notes: <strong>${(state.audioSegments || []).length}</strong></div>
   </div>
   ${floorSvgsHtml ? `<h2>1. Spatial Floor Map &amp; Equipment Pins</h2>${floorSvgsHtml}` : ""}
@@ -3268,20 +3930,21 @@ function buildStandaloneWalkSummaryHtml(stampedPhotosByStation = {}) {
 async function buildCompleteWalkZipPackage() {
   const enc = new TextEncoder();
   const entries = [];
-  const manifestCopy = JSON.parse(JSON.stringify(state));
-  manifestCopy.schemaVersion = "CSC-DISCOVERY-v3.2";
+  const manifestCopy = _stripHeavyBlobsFromStateSnapshot(state);
+  manifestCopy.schemaVersion = "CSC-DISCOVERY-v3.4";
   manifestCopy.stationPhotoFiles = {};
-  (manifestCopy.floors || []).forEach((f) => { delete f.custom_map_data_url; });
 
   const mediaRecords = await window.CSCDiscoveryAdapter.listSessionMediaEntries(state.sessionId);
   const rawPhotoMap = {};
   const fallbackPhotoMap = {};
+  const floorMapsByFloorId = {};
 
   for (const rec of mediaRecords) {
     if (!rec.payload || typeof rec.payload !== "string") continue;
     const mk = rec.mediaKey;
     if (mk.startsWith(`floor_map::${state.sessionId}::`)) {
       const flrId = mk.split("::")[2];
+      floorMapsByFloorId[flrId] = rec.payload;
       const ext = rec.payload.includes("image/png") ? "png" : "jpg";
       const bytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(rec.payload);
       entries.push({ name: `05_Floor_Maps/${flrId}.${ext}`, data: bytes });
@@ -3310,7 +3973,8 @@ async function buildCompleteWalkZipPackage() {
     }
   }
 
-  // Process all unit photos in station order: prefer full-color `photo_raw::` fallback `photo::`
+  // Process all unit photos: preserve pristine raw photo in `02_Raw_Photos/`,
+  // while stamping CLAHE-enhanced `photo::` into `01_Stamped_Photos/` when `claheEnhanced` is enabled!
   const allKeys = new Set([...Object.keys(rawPhotoMap), ...Object.keys(fallbackPhotoMap)]);
   const stampedPhotosByStation = {};
   const stampedFileObjects = [];
@@ -3318,28 +3982,31 @@ async function buildCompleteWalkZipPackage() {
   for (const compositeKey of allKeys) {
     const [stId, slotStr] = compositeKey.split("::");
     const slotNum = parseInt(slotStr, 10) || 2;
-    const colorDataUrl = rawPhotoMap[compositeKey] || fallbackPhotoMap[compositeKey];
-    if (!colorDataUrl) continue;
-
     const stObj = (state.stations || []).find((s) => s.id === stId) || { id: stId, tag: stId, floorId: "FLR-01", condition: "good" };
+    const isClahe = Boolean(stObj.burstMeta && stObj.burstMeta[slotNum] && stObj.burstMeta[slotNum].claheEnhanced);
+
+    const pristineRawDataUrl = rawPhotoMap[compositeKey] || fallbackPhotoMap[compositeKey];
+    const stampSourceDataUrl = isClahe
+      ? (fallbackPhotoMap[compositeKey] || rawPhotoMap[compositeKey])
+      : pristineRawDataUrl;
+    if (!pristineRawDataUrl || !stampSourceDataUrl) continue;
+
     const rawFname = _buildSortedFilename(stObj, slotNum, "RAW");
     const stampedFname = _buildSortedFilename(stObj, slotNum, "STAMPED");
 
     const stampMeta = buildUnitStampMeta(stObj, slotNum);
-    const stampedDataUrl = await window.CSCDiscoveryAdapter.renderStampedFieldPhotoDataUrl(colorDataUrl, stampMeta);
+    const stampedDataUrl = await window.CSCDiscoveryAdapter.renderStampedFieldPhotoDataUrl(stampSourceDataUrl, stampMeta);
 
-    const rawBytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(colorDataUrl);
+    const rawBytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(pristineRawDataUrl);
     const stampedBytes = window.CSCDiscoveryAdapter.dataUrlToUint8Array(stampedDataUrl);
 
     entries.push({ name: `01_Stamped_Photos/${stampedFname}`, data: stampedBytes });
     entries.push({ name: `02_Raw_Photos/${rawFname}`, data: rawBytes });
-    entries.push({ name: `photos/${stampedFname}`, data: stampedBytes });
 
     if (!manifestCopy.stationPhotoFiles[stId]) manifestCopy.stationPhotoFiles[stId] = {};
     manifestCopy.stationPhotoFiles[stId][slotNum] = {
       stamped: `01_Stamped_Photos/${stampedFname}`,
-      raw: `02_Raw_Photos/${rawFname}`,
-      legacy: `photos/${stampedFname}`
+      raw: `02_Raw_Photos/${rawFname}`
     };
 
     if (!stampedPhotosByStation[stId]) stampedPhotosByStation[stId] = [];
@@ -3351,7 +4018,7 @@ async function buildCompleteWalkZipPackage() {
   }
 
   // Self-contained root summary files inside the zip!
-  const summaryHtml = buildStandaloneWalkSummaryHtml(stampedPhotosByStation);
+  const summaryHtml = buildStandaloneWalkSummaryHtml(stampedPhotosByStation, floorMapsByFloorId);
   const csvText = buildEquipmentScheduleCsvText();
   const mdText = buildFieldNotesMarkdownText();
 
@@ -3390,12 +4057,19 @@ async function exportFullWalkZipBundle(preferShare = false) {
       showBannerToast(`📤 <strong>Shared <code>${escapeHtml(pkg.filename)}</code>!</strong>`);
       return;
     }
-    _queuePendingNativeShare(
-      [zipFile],
-      `CSC Site Discovery — ${state.jobNumber}`,
-      `${state.projectName} (${state.stations.length} units)`,
-      `✅ ${pkg.filename} (${pkg.entriesCount} files incl. Stamped Photos & Summary HTML) ready to Share:`
-    );
+    if (directRes.channel === "cancelled") {
+      return;
+    }
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      _queuePendingNativeShare(
+        [zipFile],
+        `CSC Site Discovery — ${state.jobNumber}`,
+        `${state.projectName} (${state.stations.length} units)`,
+        `✅ ${pkg.filename} (${pkg.entriesCount} files incl. Stamped Photos & Summary HTML) ready to Share:`
+      );
+      showBannerToast(`📲 <strong>Ready to Share:</strong> Tap the green Share button in the menu!`);
+      return;
+    }
   }
 
   await window.CSCDiscoveryAdapter.saveOrShareBlob(
@@ -3421,22 +4095,41 @@ async function shareStampedUnitPhotos() {
     `${pkg.stampedFileObjects.length} Watermarked Unit Photo(s) for ${state.projectName}`
   );
   if (directRes.ok) {
-    showBannerToast(`📸 <strong>Shared ${pkg.stampedFileObjects.length} Watermarked Photo(s)!</strong>`);
+    showBannerToast(`📸 <strong>Shared/Saved ${pkg.stampedFileObjects.length} Watermarked Photo(s) to Gallery!</strong>`);
+    return;
+  }
+  if (directRes.channel === "cancelled") {
     return;
   }
 
-  _queuePendingNativeShare(
-    pkg.stampedFileObjects,
-    `CSC Stamped Field Photos — ${state.jobNumber}`,
-    `${pkg.stampedFileObjects.length} Watermarked Unit Photo(s)`,
-    `✅ ${pkg.stampedFileObjects.length} Watermarked Unit Photo(s) ready — tap below to Share or Save:`
-  );
-
-  // Also download them directly if on Desktop / non-share browser
-  for (const f of pkg.stampedFileObjects) {
-    await window.CSCDiscoveryAdapter.saveOrShareBlob(f.name, "image/jpeg", f, null);
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    _queuePendingNativeShare(
+      pkg.stampedFileObjects,
+      `CSC Stamped Field Photos — ${state.jobNumber}`,
+      `${pkg.stampedFileObjects.length} Watermarked Unit Photo(s)`,
+      `✅ ${pkg.stampedFileObjects.length} Watermarked Unit Photo(s) ready — tap below to Share:`
+    );
+    showBannerToast(`📲 <strong>${pkg.stampedFileObjects.length} Watermarked Photo(s) Ready:</strong> Tap the green Share button!`);
+    return;
   }
-  showBannerToast(`🏷️ <strong>Generated ${pkg.stampedFileObjects.length} Watermarked Unit Photo(s)!</strong>`);
+
+  if (pkg.stampedFileObjects.length === 1) {
+    const single = pkg.stampedFileObjects[0];
+    await window.CSCDiscoveryAdapter.saveOrShareBlob(single.name, "image/jpeg", single, null);
+    showBannerToast(`🏷️ <strong>Saved Watermarked Photo <code>${escapeHtml(single.name)}</code>!</strong>`);
+    return;
+  }
+
+  const zipEntries = [];
+  for (const f of pkg.stampedFileObjects) {
+    const ab = await f.arrayBuffer();
+    zipEntries.push({ name: f.name, data: new Uint8Array(ab) });
+  }
+  const photosZipBlob = window.CSCDiscoveryAdapter.buildCscWalkZipBlob(zipEntries);
+  const cleanJob = (state.jobNumber || "CSC-WALK").replace(/[^a-zA-Z0-9_-]/g, "");
+  const photosZipName = `${cleanJob}_Stamped_Photos.zip`;
+  await window.CSCDiscoveryAdapter.saveOrShareBlob(photosZipName, "application/zip", photosZipBlob, null);
+  showBannerToast(`🏷️ <strong>Saved ${pkg.stampedFileObjects.length} Watermarked Photos in <code>${escapeHtml(photosZipName)}</code>!</strong>`);
 }
 
 async function importWalkBundleFile(inputOrFile) {
@@ -3462,7 +4155,10 @@ async function importWalkBundleFile(inputOrFile) {
           const durl = `data:${mime};base64,${window.CSCDiscoveryAdapter.uint8ArrayToBase64(bytes)}`;
           await window.CSCDiscoveryAdapter.saveMediaBlob(`floor_map::${state.sessionId}::${flrId}`, durl);
           const flrObj = state.floors.find((f) => f.id === flrId);
-          if (flrObj) flrObj.hasCustomMap = true;
+          if (flrObj) {
+            flrObj.hasCustomMap = true;
+            delete flrObj.custom_map_data_url;
+          }
         } else if (low.startsWith("audio/") || low.startsWith("03_voice_notes/")) {
           const fname = relPath.split("/").pop().replace(/\.[a-z0-9]+$/i, "");
           const mAud = fname.match(/(AUD-\d+)/i);
@@ -3520,6 +4216,7 @@ async function importWalkBundleFile(inputOrFile) {
         if (flr.custom_map_data_url) {
           await window.CSCDiscoveryAdapter.saveMediaBlob(`floor_map::${state.sessionId}::${flr.id}`, flr.custom_map_data_url);
           flr.hasCustomMap = true;
+          delete flr.custom_map_data_url;
         }
       }
       showBannerToast(`📥 <strong>Imported Walk (${escapeHtml(fileName)}):</strong> ${state.stations.length} units loaded!`);

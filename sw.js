@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-c7a5c1ba';
+const CACHE_NAME = 'rollup-hub-7dd08a83';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -15,9 +15,12 @@ const CORE_ASSETS = [
   './apps/fantasy-manager/data/league_945552.json',
   './manuals/fantasy-manager_User_Manual.html',
   './apps/csc-site-discovery/index.html',
+  './apps/csc-site-discovery/workbench.html',
   './apps/csc-site-discovery/css/field_ui.css',
   './apps/csc-site-discovery/js/discovery_storage_adapter.js',
   './apps/csc-site-discovery/js/app.js',
+  './apps/csc-site-discovery/js/workbench.js',
+  './apps/csc-site-discovery/endpoints.json',
   './manuals/csc-site-discovery_User_Manual.html',
   './apps/field-snap/index.html',
   './manuals/field-snap_User_Manual.html',

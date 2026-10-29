@@ -381,8 +381,13 @@
 
     set(key, value, customAppId = null) {
       const fullKey = this._key(key, customAppId);
-      localStorage.setItem(fullKey, JSON.stringify(value));
-      return value;
+      try {
+        localStorage.setItem(fullKey, JSON.stringify(value));
+        return value;
+      } catch (e) {
+        console.warn('[RollupBridge] storage.set quota/storage error for', fullKey, e);
+        return false;
+      }
     },
 
     remove(key, customAppId = null) {
@@ -516,22 +521,67 @@
     }
   };
 
-  // Camera & Photo Compression Bridge
+  // Camera & Photo Compression Bridge (Live Camera + Device Gallery Save)
   const camera = {
+    async savePhotoToDevice(filename, dataUrl, mimeType = 'image/jpeg') {
+      const safeName = String(filename || ('CSC_Photo_' + Date.now() + '.jpg')).replace(/[^A-Za-z0-9._-]/g, '_');
+      if (!dataUrl) return { ok: false, error: 'Missing image data' };
+      files.downloadBase64(safeName, dataUrl, mimeType);
+      return {
+        ok: true,
+        filename: safeName,
+        destination: (global.RollupNative && typeof global.RollupNative.saveBase64File === 'function')
+          ? 'Pictures/CSC_Site_Discovery'
+          : 'Downloads'
+      };
+    },
+
     capturePhoto(options = { maxWidth: 1280, quality: 0.82 }) {
+      // Delegate to CSCDiscoveryAdapter live camera viewfinder when loaded and not explicitly bypassed
+      if (
+        options.preferFileInput !== true &&
+        global.CSCDiscoveryAdapter &&
+        typeof global.CSCDiscoveryAdapter.captureImage === 'function'
+      ) {
+        return global.CSCDiscoveryAdapter.captureImage(options).then(async (cap) => {
+          if (!cap) return null;
+          if (options.saveToDevice) {
+            const fname = options.filename || cap.name || ('CSC_Capture_' + Date.now() + '.jpg');
+            await this.savePhotoToDevice(fname, cap.dataUrl, 'image/jpeg');
+          }
+          return cap;
+        });
+      }
+
       return new Promise((resolve, reject) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        if (options.useRearCamera !== false) {
-          input.setAttribute('capture', 'environment');
+        if (options.useRearCamera !== false && options.source !== 'file') {
+          input.setAttribute('capture', options.facingMode === 'user' ? 'user' : 'environment');
         }
         input.style.display = 'none';
         document.body.appendChild(input);
 
+        let settled = false;
+        const cleanup = () => {
+          try { input.removeEventListener('cancel', onCancel); } catch (e) {}
+          try { if (input.parentNode) input.parentNode.removeChild(input); } catch (e) {}
+        };
+        const onCancel = () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(null);
+        };
+        input.addEventListener('cancel', onCancel);
+        input.oncancel = onCancel;
+
         input.onchange = () => {
+          if (settled) return;
+          settled = true;
           const file = input.files && input.files[0];
-          document.body.removeChild(input);
+          cleanup();
           if (!file) {
             resolve(null);
             return;
@@ -539,7 +589,7 @@
           const reader = new FileReader();
           reader.onload = (ev) => {
             const img = new Image();
-            img.onload = () => {
+            img.onload = async () => {
               const maxW = options.maxWidth || 1280;
               let w = img.width;
               let h = img.height;
@@ -553,12 +603,18 @@
               const ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, w, h);
               const dataUrl = canvas.toDataURL('image/jpeg', options.quality || 0.82);
+              if (options.saveToDevice) {
+                const fname = options.filename || file.name || ('CSC_Capture_' + Date.now() + '.jpg');
+                await camera.savePhotoToDevice(fname, dataUrl, 'image/jpeg');
+              }
               resolve({
                 name: file.name,
                 width: w,
                 height: h,
                 sizeKB: Math.round((dataUrl.length * 0.75) / 1024),
                 capturedAt: new Date().toISOString(),
+                capturedFromCamera: options.source !== 'file' && options.useRearCamera !== false,
+                source: options.source === 'file' ? 'file_picker' : 'os_camera',
                 dataUrl
               });
             };
@@ -654,8 +710,365 @@
         return true;
       }
       return false;
+    },
+
+    shareBase64File(filename, base64Data, mimeType = 'application/octet-stream', title = '') {
+      const clean = String(base64Data || '').includes(',') ? String(base64Data).split(',')[1] : String(base64Data || '');
+      if (global.RollupNative && typeof global.RollupNative.shareBase64File === 'function') {
+        return global.RollupNative.shareBase64File(filename, mimeType, clean, title || filename);
+      }
+      if (navigator.share && typeof File === 'function') {
+        try {
+          const bin = atob(clean);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const fileObj = new File([bytes], filename, { type: mimeType });
+          if (!navigator.canShare || navigator.canShare({ files: [fileObj] })) {
+            navigator.share({ title: title || filename, files: [fileObj] }).catch(() => {});
+            return true;
+          }
+        } catch (e) {}
+      }
+      return this.downloadBase64(filename, clean, mimeType);
+    },
+
+    shareMultipleBase64Files(filesList, title = '') {
+      if (!Array.isArray(filesList) || filesList.length === 0) return false;
+      const normalized = filesList.map((f, idx) => {
+        const raw = String((f && f.base64Data) || (f && f.dataUrl) || '');
+        const clean = raw.includes(',') ? raw.split(',')[1] : raw;
+        return {
+          filename: String((f && f.filename) || `CSC_File_${idx + 1}.jpg`),
+          mimeType: String((f && f.mimeType) || 'image/jpeg'),
+          base64Data: clean
+        };
+      });
+      if (normalized.length === 1) {
+        const single = normalized[0];
+        return this.shareBase64File(single.filename, single.base64Data, single.mimeType, title || single.filename);
+      }
+      if (global.RollupNative && typeof global.RollupNative.shareMultipleBase64Files === 'function') {
+        return global.RollupNative.shareMultipleBase64Files(JSON.stringify(normalized), title || 'Share Files');
+      }
+      if (navigator.share && typeof File === 'function') {
+        try {
+          const fileObjs = normalized.map((item) => {
+            const bin = atob(item.base64Data);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new File([bytes], item.filename, { type: item.mimeType });
+          });
+          if (!navigator.canShare || navigator.canShare({ files: fileObjs })) {
+            navigator.share({ title: title || 'Share Files', files: fileObjs }).catch(() => {});
+            return true;
+          }
+        } catch (e) {}
+      }
+      normalized.forEach((item) => this.downloadBase64(item.filename, item.base64Data, item.mimeType));
+      return true;
+    },
+
+    shareTextFile(filename, content, mimeType = 'text/plain;charset=utf-8', title = '') {
+      if (global.RollupNative && typeof global.RollupNative.shareBase64File === 'function') {
+        const bytes = new TextEncoder().encode(String(content ?? ''));
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        return global.RollupNative.shareBase64File(filename, mimeType, btoa(binary), title || filename);
+      }
+      this.downloadText(filename, content, mimeType);
+      return true;
     }
   };
+
+  // USB-C OTG Serial Bridge (RollupOS Android Native UDS Read-Only Gate + Desktop WebSerial Fallback)
+  let _webSerialPort = null;
+  let _webSerialReader = null;
+  let _webSerialWriter = null;
+  let _webSerialPendingRead = null;
+  const _BAUD_CANDIDATES = [115200, 500000, 38400, 2000000, 230400];
+  const _BAUD_OK_RE = /(ELM|STN|OBD|VLINKER|OK|\?)/i;
+  const _PENDING_78_RE = /(?:^|[\r\n])\s*7F\s*[0-9A-F]{2}\s*78\s*(?=[\r\n])/gi;
+  const _P2_STAR_EXTEND_MS = 5500;
+  const _P2_STAR_MAX_TOTAL_MS = 15000;
+
+  const usbSerial = {
+    isNativeApk() {
+      return Boolean(global.RollupNative && typeof global.RollupNative.usbIsSupported === 'function');
+    },
+
+    isSupported() {
+      return this.isNativeApk() || Boolean(global.navigator && global.navigator.serial);
+    },
+
+    listDevices() {
+      if (this.isNativeApk()) {
+        try {
+          return JSON.parse(global.RollupNative.usbListDevices() || '{"ok":false,"devices":[]}');
+        } catch (e) {
+          return { ok: false, devices: [], error: String(e) };
+        }
+      }
+      return { ok: true, devices: [], webSerial: Boolean(global.navigator && global.navigator.serial) };
+    },
+
+    requestPermission(deviceId = -1) {
+      if (!this.isNativeApk()) {
+        return Promise.resolve({ ok: true, granted: true, webSerial: true });
+      }
+      return new Promise((resolve) => {
+        let settled = false;
+        const prev = global.__onRollupUsbPermission;
+        const timer = setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            global.__onRollupUsbPermission = prev;
+            resolve({ ok: false, granted: false, error: 'USB permission dialog timed out' });
+          }
+        }, 25000);
+
+        global.__onRollupUsbPermission = (granted, devId) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          global.__onRollupUsbPermission = prev;
+          resolve({ ok: Boolean(granted), granted: Boolean(granted), deviceId: devId });
+        };
+
+        try {
+          const res = JSON.parse(global.RollupNative.usbRequestPermission(Number(deviceId)) || '{}');
+          if (!res.pending) {
+            settled = true;
+            clearTimeout(timer);
+            global.__onRollupUsbPermission = prev;
+            resolve(res);
+          }
+        } catch (e) {
+          settled = true;
+          clearTimeout(timer);
+          global.__onRollupUsbPermission = prev;
+          resolve({ ok: false, granted: false, error: String(e) });
+        }
+      });
+    },
+
+    async requestAndConnect(options = {}) {
+      const primaryBaud = Number(options.baudRate || 115200);
+      const autoBaud = options.autoBaud !== false;
+      const candidates = autoBaud
+        ? [primaryBaud, ..._BAUD_CANDIDATES.filter((b) => b !== primaryBaud)]
+        : [primaryBaud];
+
+      if (this.isNativeApk()) {
+        const listed = this.listDevices();
+        const devList = Array.isArray(listed.devices) ? listed.devices : [];
+        const firstDev = devList[0] || null;
+        if (!firstDev) {
+          return { ok: false, error: 'No USB-C OTG OBD adapter found. Plug in OBDLink EX or Vgate vLinker FS.' };
+        }
+        const targetDev =
+          options.deviceId != null
+            ? devList.find((d) => Number(d.deviceId) === Number(options.deviceId)) || firstDev
+            : firstDev;
+        const targetId = targetDev.deviceId;
+        if (!targetDev.hasPermission) {
+          const perm = await this.requestPermission(targetId);
+          if (!perm.granted) {
+            return { ok: false, error: perm.error || 'Android USB permission was not granted.' };
+          }
+        }
+        let firstConn = null;
+        for (let i = 0; i < candidates.length; i++) {
+          const cand = candidates[i];
+          try {
+            const connRes = JSON.parse(global.RollupNative.usbConnect(targetId, cand) || '{"ok":false}');
+            if (!connRes || !connRes.ok) {
+              if (i === 0) return connRes || { ok: false, error: 'USB connect failed' };
+              continue;
+            }
+            if (!firstConn) firstConn = connRes;
+            if (!autoBaud) return connRes;
+            const probe = await this.transact('ATI', 420, false);
+            if (probe && probe.ok && Array.isArray(probe.lines) && probe.lines.some((l) => _BAUD_OK_RE.test(l) && !l.includes('\uFFFD'))) {
+              return { ...connRes, baudRate: cand };
+            }
+          } catch (e) {
+            if (i === 0) return { ok: false, error: String(e) };
+          }
+        }
+        try {
+          return JSON.parse(global.RollupNative.usbConnect(targetId, primaryBaud) || '{"ok":false}');
+        } catch (e) {
+          return firstConn || { ok: false, error: String(e) };
+        }
+      }
+
+      if (global.navigator && global.navigator.serial) {
+        try {
+          await this.disconnect();
+          _webSerialPort = await global.navigator.serial.requestPort();
+          for (let i = 0; i < candidates.length; i++) {
+            const cand = candidates[i];
+            try {
+              if (_webSerialReader) { try { await _webSerialReader.cancel(); _webSerialReader.releaseLock(); } catch (e) {} _webSerialReader = null; }
+              if (_webSerialWriter) { try { _webSerialWriter.releaseLock(); } catch (e) {} _webSerialWriter = null; }
+              _webSerialPendingRead = null;
+              if (i > 0) { try { await _webSerialPort.close(); } catch (e) {} }
+              await _webSerialPort.open({ baudRate: cand });
+              _webSerialWriter = _webSerialPort.writable.getWriter();
+              _webSerialReader = _webSerialPort.readable.getReader();
+              if (!autoBaud) {
+                return { ok: true, productName: 'WebSerial OBD Adapter', driver: 'WebSerial', baudRate: cand, readOnlyHardwareGate: false };
+              }
+              const probe = await this.transact('ATI', 420, false);
+              if (probe && probe.ok && Array.isArray(probe.lines) && probe.lines.some((l) => _BAUD_OK_RE.test(l) && !l.includes('\uFFFD'))) {
+                return { ok: true, productName: 'WebSerial OBD Adapter', driver: 'WebSerial', baudRate: cand, readOnlyHardwareGate: false };
+              }
+            } catch (openErr) {
+              if (i === 0 && !autoBaud) throw openErr;
+            }
+          }
+          // Re-open at primaryBaud if adapter was silent during probe
+          if (_webSerialReader) { try { await _webSerialReader.cancel(); _webSerialReader.releaseLock(); } catch (e) {} _webSerialReader = null; }
+          if (_webSerialWriter) { try { _webSerialWriter.releaseLock(); } catch (e) {} _webSerialWriter = null; }
+          _webSerialPendingRead = null;
+          try { await _webSerialPort.close(); } catch (e) {}
+          await _webSerialPort.open({ baudRate: primaryBaud });
+          _webSerialWriter = _webSerialPort.writable.getWriter();
+          _webSerialReader = _webSerialPort.readable.getReader();
+          return { ok: true, productName: 'WebSerial OBD Adapter', driver: 'WebSerial', baudRate: primaryBaud, readOnlyHardwareGate: false };
+        } catch (e) {
+          await this.disconnect();
+          return { ok: false, error: e.message || String(e) };
+        }
+      }
+
+      return { ok: false, error: 'USB-C OTG requires RollupOS Android v1.2+ APK or Desktop Chrome/Edge WebSerial.' };
+    },
+
+    async transact(command, timeoutMs = 1500, parkedConfirmed = false) {
+      if (this.isNativeApk()) {
+        // Yield a macrotask so WebView progress UI paints smoothly between synchronous JavaBridge frames
+        await new Promise((r) => setTimeout(r, 0));
+        try {
+          return JSON.parse(
+            global.RollupNative.usbTransact(String(command || ''), Number(timeoutMs || 1500), Boolean(parkedConfirmed)) ||
+              '{"ok":false}'
+          );
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }
+      if (_webSerialPort && _webSerialWriter && _webSerialReader) {
+        const cmd = String(command || '').trim();
+        await _webSerialWriter.write(new TextEncoder().encode(cmd + '\r'));
+        let buf = '';
+        const startMs = Date.now();
+        const baseWaitMs = Math.max(50, Number(timeoutMs || 1500));
+        let deadline = startMs + baseWaitMs;
+        const maxDeadline = startMs + Math.max(baseWaitMs, _P2_STAR_MAX_TOTAL_MS);
+        let seenPending78 = 0;
+        while (Date.now() < deadline) {
+          if (!_webSerialPendingRead) {
+            _webSerialPendingRead = _webSerialReader.read().then(
+              (r) => ({ done: Boolean(r && r.done), value: r ? r.value : null }),
+              (err) => ({ error: err })
+            );
+          }
+          const sliceMs = Math.max(10, Math.min(120, deadline - Date.now()));
+          const res = await Promise.race([
+            _webSerialPendingRead,
+            new Promise((r) => setTimeout(() => r({ timeout: true }), sliceMs))
+          ]);
+          if (res && res.timeout) {
+            continue;
+          }
+          _webSerialPendingRead = null;
+          if (res && res.error) {
+            return { ok: false, error: String(res.error) };
+          }
+          if (res && res.value) {
+            buf += new TextDecoder().decode(res.value);
+            if (buf.includes('>')) break;
+            const matches = buf.match(_PENDING_78_RE);
+            const pendingCnt = matches ? matches.length : 0;
+            if (pendingCnt > seenPending78) {
+              seenPending78 = pendingCnt;
+              deadline = Math.min(maxDeadline, Math.max(deadline, Date.now() + _P2_STAR_EXTEND_MS));
+            }
+          }
+          if (res && res.done) break;
+        }
+        const lines = buf
+          .split('>')[0]
+          .split(/\r?\n|\r/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        return { ok: true, blocked: false, lines };
+      }
+      return { ok: false, error: 'USB adapter not connected' };
+    },
+
+    async disconnect() {
+      if (this.isNativeApk()) {
+        try {
+          return JSON.parse(global.RollupNative.usbDisconnect() || '{"ok":true}');
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }
+      _webSerialPendingRead = null;
+      try { if (_webSerialReader) { await _webSerialReader.cancel(); _webSerialReader.releaseLock(); } } catch (e) {}
+      try { if (_webSerialWriter) { _webSerialWriter.releaseLock(); } } catch (e) {}
+      try { if (_webSerialPort) { await _webSerialPort.close(); } } catch (e) {}
+      _webSerialReader = null;
+      _webSerialWriter = null;
+      _webSerialPort = null;
+      return { ok: true };
+    },
+
+    setKeepScreenOn(keepOn) {
+      if (this.isNativeApk() && typeof global.RollupNative.usbSetKeepScreenOn === 'function') {
+        return global.RollupNative.usbSetKeepScreenOn(Boolean(keepOn));
+      }
+      return false;
+    }
+  };
+
+  async function lanSyncRequest(url, options = {}) {
+    const cleanUrl = String(url || '').trim();
+    const method = String(options.method || 'GET').toUpperCase();
+    const token = String(options.token || '');
+    const bodyStr = typeof options.body === 'string' ? options.body : options.body ? JSON.stringify(options.body) : '';
+    const isCleartextLan = /^http:\/\//i.test(cleanUrl);
+    if (isCleartextLan && global.RollupNative && typeof global.RollupNative.lanSyncRequest === 'function') {
+      await new Promise((r) => setTimeout(r, 0));
+      const raw = global.RollupNative.lanSyncRequest(cleanUrl, method, token, bodyStr);
+      const parsed = JSON.parse(raw || '{"ok":false}');
+      let data = {};
+      if (parsed.body) {
+        try { data = JSON.parse(parsed.body); } catch (e) {}
+      }
+      if (parsed.status === 0 && !parsed.ok) {
+        throw new Error(parsed.error || 'LAN Sync connection failed');
+      }
+      return { ok: Boolean(parsed.ok), status: Number(parsed.status || 0), data };
+    }
+    const headers = { ...(options.headers || {}) };
+    if (token) {
+      headers['X-Sync-Token'] = token;
+      headers['X-Gravity-Token'] = token;
+    }
+    if (method === 'POST' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    const resp = await fetch(cleanUrl, {
+      method,
+      headers,
+      body: method === 'POST' ? bodyStr : undefined
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, data };
+  }
 
   // Over-The-Air (OTA) Build Hash & Version Update Detector
   let _inAppPollTimer = null;
@@ -1280,7 +1693,7 @@
   }
 
   global.RollupBridge = {
-    version: '1.3.0',
+    version: '1.5.0',
     detectAppId,
     resolveHubRootUrl,
     resolveRegistryUrl,
@@ -1292,6 +1705,9 @@
     vault,
     camera,
     files,
+    usbSerial,
+    lanSyncRequest,
+    sync: { lanRequest: lanSyncRequest },
     updates,
     manuals,
     settings,

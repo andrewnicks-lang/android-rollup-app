@@ -3,9 +3,9 @@ window.LIGHTNING_GARAGE_BUNDLE = {
   "recipe_count": 183,
   "f150_recipe_count": 59,
   "recipes_by_platform": {
+    "f150": 59,
     "bronco": 18,
     "explorer": 20,
-    "f150": 59,
     "mustang": 4,
     "ranger_6g": 32,
     "super_duty": 50
@@ -23,15 +23,15 @@ window.LIGHTNING_GARAGE_BUNDLE = {
     "adapter": null,
     "forscan_license": null,
     "odometer": null,
-    "vin_decode_json": null,
-    "vin_decoded_at": null,
-    "forscan_license_expires": null,
     "nickname": null,
     "make": "Ford",
     "platform_slug": "f150_14g",
     "powertrain": "BEV",
     "battery_or_engine": null,
-    "vin_online_json": null
+    "vin_decode_json": null,
+    "vin_online_json": null,
+    "vin_decoded_at": null,
+    "forscan_license_expires": null
   },
   "ford_platforms": [
     {
@@ -97,7 +97,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 3 (2016\u20132020) / SYNC 2 (2015)",
       "ms_can_required": true,
       "upstream_dir": "f150",
-      "adapter_note": "Door modules (740 DDM, 741 PDM), Climate (733 HVAC), and Trailer (791 TRM) sit on 125 kbaud MS-CAN (Pins 3 & 11). Use an auto-switching OBDLink EX (STP33) or HS/MS toggle adapter.",
+      "adapter_note": "Door modules (740 DDM, 741 PDM), Climate (733 HVAC), and Trailer (791 TRM) sit on 125 kbaud MS-CAN (Pins 3 & 11). Use an auto-switching OBDLink EX (STP53) or HS/MS toggle adapter.",
       "top_mods": [
         "Double Horn Honk Disable (726-41-02)",
         "Autofold Mirrors \u2014 Lincoln Style (740 / 741)",
@@ -134,7 +134,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 2 (MyFord Touch) / SYNC Gen 1",
       "ms_can_required": true,
       "upstream_dir": "f150",
-      "adapter_note": "2011\u20132014 CGEA 1.2 uses 500 kbaud HS-CAN and 125 kbaud MS-CAN (STP33). Same 7XX-XX-XX .abt/.ab format and checksum math!",
+      "adapter_note": "2011\u20132014 CGEA 1.2 uses 500 kbaud HS-CAN and 125 kbaud MS-CAN (STP53). Same 7XX-XX-XX .abt/.ab format and checksum math!",
       "top_mods": [
         "Bambi Mode (High Beams + Fog Lights) in BCM 726",
         "Remote Start Climate & Heated Seat Menu Enable (720 IPC / 7D0 APIM)",
@@ -214,7 +214,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 3 (2017\u20132021) / SYNC 4 (2022)",
       "ms_can_required": true,
       "upstream_dir": "super_duty",
-      "adapter_note": "Shares CGEA 1.3 cab architecture with 13th-Gen F-150. Door modules (740/741) and HVAC (733) use 125 kbaud MS-CAN (STP33).",
+      "adapter_note": "Shares CGEA 1.3 cab architecture with 13th-Gen F-150. Door modules (740/741) and HVAC (733) use 125 kbaud MS-CAN (STP53).",
       "top_mods": [
         "DPF % Full Gauge & Operator Commanded Regen (OCR) in IPC (720)",
         "TPMS Front/Rear PSI Threshold Adjustment (726 BCM)",
@@ -254,7 +254,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 2 (MyFord Touch) / SYNC Gen 1",
       "ms_can_required": true,
       "upstream_dir": "super_duty",
-      "adapter_note": "2011\u20132016 6.7L Power Stroke / 6.2L Boss CGEA 1.2 uses 500 kbaud HS-CAN and 125 kbaud MS-CAN (STP33). Exact same 726/720/7D0 .abt format and checksum math!",
+      "adapter_note": "2011\u20132016 6.7L Power Stroke / 6.2L Boss CGEA 1.2 uses 500 kbaud HS-CAN and 125 kbaud MS-CAN (STP53). Exact same 726/720/7D0 .abt format and checksum math!",
       "top_mods": [
         "DPF Soot % Screen & Manual Exhaust Regen Enable (720 IPC)",
         "TPMS Pressure Threshold Adjustment for Aftermarket Tires (726 BCM)",
@@ -397,7 +397,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 3",
       "ms_can_required": true,
       "upstream_dir": "ranger_6g",
-      "adapter_note": "Uses CGEA 1.3 with 125 kbaud MS-CAN (STP33) for climate and body modules.",
+      "adapter_note": "Uses CGEA 1.3 with 125 kbaud MS-CAN (STP53) for climate and body modules.",
       "top_mods": [
         "Bambi Mode \u2014 High Beams with Fog Lights (726 BCM)",
         "Off-Road Gauges & Pitch/Roll Screen in IPC Cluster (720)",
@@ -543,7 +543,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 3 (2016\u20132023) / SYNC 2 (2015)",
       "ms_can_required": true,
       "upstream_dir": "mustang",
-      "adapter_note": "Uses CGEA 1.3 with 125 kbaud MS-CAN (STP33). Native Mustang recipes included in library!",
+      "adapter_note": "Uses CGEA 1.3 with 125 kbaud MS-CAN (STP53). Native Mustang recipes included in library!",
       "top_mods": [
         "Double Horn Honk on Exit Disable (726-41-02)",
         "Engine Sound Enhancement (ESE / Active Noise Control) Disable (727-01-01)",
@@ -616,7 +616,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 2 (2011\u20132015) / SYNC 3 (2016\u20132019)",
       "ms_can_required": true,
       "upstream_dir": "explorer",
-      "adapter_note": "Uses 500 kbaud HS-CAN + 125 kbaud MS-CAN (STP33). Very popular for Police Interceptor Utility (PIU) civilian conversions!",
+      "adapter_note": "Uses 500 kbaud HS-CAN + 125 kbaud MS-CAN (STP53). Very popular for Police Interceptor Utility (PIU) civilian conversions!",
       "top_mods": [
         "Disable Double Horn Honk on Exit (726 BCM)",
         "Police Dark Car / Secure Idle / Rear Door Lock Restore on PIU (726 BCM)",
@@ -693,7 +693,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 2 (2013\u20132016) / SYNC 3 (2017\u20132020)",
       "ms_can_required": true,
       "upstream_dir": "f150",
-      "adapter_note": "Uses HS-CAN + 125 kbaud MS-CAN (STP33). DanMc85's legendary 2GFusions FORScan work pioneered much of modern Ford as-built decoding!",
+      "adapter_note": "Uses HS-CAN + 125 kbaud MS-CAN (STP53). DanMc85's legendary 2GFusions FORScan work pioneered much of modern Ford as-built decoding!",
       "top_mods": [
         "Global Windows Open/Close via Keyfob (726 BCM / 740 DDM / 741 PDM)",
         "Double Horn Honk on Running Exit Disable (726 BCM)",
@@ -732,7 +732,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 2 (2013\u20132015) / SYNC 3 (2016\u20132018)",
       "ms_can_required": true,
       "upstream_dir": "mustang",
-      "adapter_note": "Uses 500 kbaud HS-CAN and 125 kbaud MS-CAN (STP33). Supports both 7XX-XX-XX As-Built and Central Configuration.",
+      "adapter_note": "Uses 500 kbaud HS-CAN and 125 kbaud MS-CAN (STP53). Supports both 7XX-XX-XX As-Built and Central Configuration.",
       "top_mods": [
         "Global Windows Remote Open/Close via Keyfob",
         "RS / ST Performance Splash Screen in SYNC 2 / SYNC 3 (7D0 APIM)",
@@ -769,7 +769,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "sync_gen": "SYNC 3 / SYNC 4",
       "ms_can_required": true,
       "upstream_dir": "f150",
-      "adapter_note": "2015\u20132019 Transit uses HS-CAN + MS-CAN (STP33); 2020+ Transit & E-Transit use CGEA 1.3+/FNV2 Gateway.",
+      "adapter_note": "2015\u20132019 Transit uses HS-CAN + MS-CAN (STP53); 2020+ Transit & E-Transit use CGEA 1.3+/FNV2 Gateway.",
       "top_mods": [
         "Disable Auto-Lock / Horn Honk for Camper Van Conversions (726 BCM)",
         "High-Idle / Auxiliary Upfitter & Dual-Battery Mode Configuration (726)",
@@ -1256,14 +1256,14 @@ window.LIGHTNING_GARAGE_BUNDLE = {
     "740": {
       "does": "Driver door module (DDM): driver window, mirror, door lock and courtesy lighting functions; hosts several global-window and auto-fold-mirror settings.",
       "ev": "Same function as gas trucks.",
-      "ice": "On 2011\u20132020 CGEA 1.2/1.3 vehicles, DDM (740) sits on 125 kbaud MS-CAN (STP33).",
+      "ice": "On 2011\u20132020 CGEA 1.2/1.3 vehicles, DDM (740) sits on 125 kbaud MS-CAN (STP53).",
       "risk": "low",
       "touch": "Usually changed together with 741 (passenger door)."
     },
     "741": {
       "does": "Passenger door module (PDM): passenger-side counterpart of the driver door module.",
       "ev": "Same function as gas trucks.",
-      "ice": "On 2011\u20132020 CGEA 1.2/1.3 vehicles, PDM (741) sits on 125 kbaud MS-CAN (STP33).",
+      "ice": "On 2011\u20132020 CGEA 1.2/1.3 vehicles, PDM (741) sits on 125 kbaud MS-CAN (STP53).",
       "risk": "low",
       "touch": "Change together with 740 so both doors match."
     },
@@ -1326,14 +1326,68 @@ window.LIGHTNING_GARAGE_BUNDLE = {
     "733": {
       "does": "Climate control (HVAC) module.",
       "ev": "Heat-pump / battery-conditioning interplay on EVs.",
-      "ice": "Dual-zone / single-zone climate control; sits on 125 kbaud MS-CAN (STP33) on 2011\u20132020 vehicles.",
+      "ice": "Dual-zone / single-zone climate control; sits on 125 kbaud MS-CAN (STP53) on 2011\u20132020 vehicles.",
       "risk": "medium",
       "touch": ""
     }
   },
   "entries": [
     {
-      "id": 6,
+      "id": 15,
+      "source_key": "altctrlwrench:f150/door_ajar_warning_chime_disable.acwrecipe",
+      "title": "Door Ajar Warning Chime Disable",
+      "raw_title": "Disables door ajar chime",
+      "category": "Chimes and Horn",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/door_ajar_warning_chime_disable.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "see IPC spreadsheet to disable EIOCM",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "IPC",
+      "system_name": "Instrument Cluster",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 3,
+      "popularity_reason": "very common: door chime nag",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "IPC",
+          "address": "720-01-02",
+          "mask": "xx*x xx--",
+          "ops": [
+            {
+              "kind": "bits",
+              "pos": 2,
+              "bits": {
+                "1": 0,
+                "0": 0
+              }
+            }
+          ],
+          "feature_name": null,
+          "notes": "see IPC spreadsheet to disable EIOCM | Engine/Ignition On chime disabled"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 60,
       "source_key": "altctrlwrench:bronco/door_ajar_warning_chime_disable.acwrecipe",
       "title": "Door Ajar Warning Chime Disable",
       "raw_title": "Disables door ajar chime",
@@ -1360,7 +1414,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: door chime nag",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1388,61 +1442,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 53,
-      "source_key": "altctrlwrench:f150/door_ajar_warning_chime_disable.acwrecipe",
-      "title": "Door Ajar Warning Chime Disable",
-      "raw_title": "Disables door ajar chime",
-      "category": "Chimes and Horn",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/door_ajar_warning_chime_disable.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "see IPC spreadsheet to disable EIOCM",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "IPC",
-      "system_name": "Instrument Cluster",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 3,
-      "popularity_reason": "very common: door chime nag",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "IPC",
-          "address": "720-01-02",
-          "mask": "xx*x xx--",
-          "ops": [
-            {
-              "kind": "bits",
-              "pos": 2,
-              "bits": {
-                "1": 0,
-                "0": 0
-              }
-            }
-          ],
-          "feature_name": null,
-          "notes": "see IPC spreadsheet to disable EIOCM | Engine/Ignition On chime disabled"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 112,
+      "id": 61,
       "source_key": "altctrlwrench:ranger_6g/door_ajar_warning_chime_disable.acwrecipe",
       "title": "Door Ajar Warning Chime Disable",
       "raw_title": "Disables door ajar chime",
@@ -1469,7 +1469,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: door chime nag",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1496,7 +1496,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 142,
+      "id": 62,
       "source_key": "altctrlwrench:super_duty/door_ajar_warning_chime_disable.acwrecipe",
       "title": "Door Ajar Warning Chime Disable",
       "raw_title": "Door Ajar - Chime Disable",
@@ -1523,7 +1523,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: door chime nag",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1550,7 +1550,58 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 7,
+      "id": 16,
+      "source_key": "altctrlwrench:f150/double_horn_honk_on_keyless_exit_disable.acwrecipe",
+      "title": "Double Horn Honk on Keyless Exit Disable",
+      "raw_title": "Double Horn Honk disable (2021-2026)",
+      "category": "Chimes and Horn",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/double_horn_honk_on_keyless_exit_disable.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "disables double honk when exiting running vehicle",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 3,
+      "popularity_reason": "top community request: stops the double-honk on key-fob exit",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-63-02",
+          "mask": "xxx* xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": "disables double honk when exiting running vehicle"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 63,
       "source_key": "altctrlwrench:bronco/double_horn_honk_on_keyless_exit_disable.acwrecipe",
       "title": "Double Horn Honk on Keyless Exit Disable",
       "raw_title": "Double Horn Honk disable",
@@ -1577,7 +1628,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: stops the double-honk on key-fob exit",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1606,7 +1657,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 25,
+      "id": 64,
       "source_key": "altctrlwrench:explorer/double_horn_honk_on_keyless_exit_disable.acwrecipe",
       "title": "Double Horn Honk on Keyless Exit Disable",
       "raw_title": "Disable Double Honk",
@@ -1633,7 +1684,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: stops the double-honk on key-fob exit",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1657,58 +1708,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 54,
-      "source_key": "altctrlwrench:f150/double_horn_honk_on_keyless_exit_disable.acwrecipe",
-      "title": "Double Horn Honk on Keyless Exit Disable",
-      "raw_title": "Double Horn Honk disable (2021-2026)",
-      "category": "Chimes and Horn",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/double_horn_honk_on_keyless_exit_disable.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "disables double honk when exiting running vehicle",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 3,
-      "popularity_reason": "top community request: stops the double-honk on key-fob exit",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-63-02",
-          "mask": "xxx* xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": "disables double honk when exiting running vehicle"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 113,
+      "id": 65,
       "source_key": "altctrlwrench:ranger_6g/double_horn_honk_on_keyless_exit_disable.acwrecipe",
       "title": "Double Horn Honk on Keyless Exit Disable",
       "raw_title": "Disable double honk when leaving cabin",
@@ -1735,7 +1735,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: stops the double-honk on key-fob exit",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1764,7 +1764,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 143,
+      "id": 66,
       "source_key": "altctrlwrench:super_duty/double_horn_honk_on_keyless_exit_disable.acwrecipe",
       "title": "Double Horn Honk on Keyless Exit Disable",
       "raw_title": "Double Honk w/o Key in Truck",
@@ -1791,7 +1791,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: stops the double-honk on key-fob exit",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1820,7 +1820,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 144,
+      "id": 67,
       "source_key": "altctrlwrench:super_duty/double_horn_honk_on_keyless_exit_disable_2.acwrecipe",
       "title": "Double Horn Honk on Keyless Exit Disable (variant 2)",
       "raw_title": "Double Horn on Lock key fob in truck",
@@ -1847,7 +1847,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: stops the double-honk on key-fob exit",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1871,7 +1871,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 149,
+      "id": 68,
       "source_key": "altctrlwrench:super_duty/factory_autofold_mirrors_enable.acwrecipe",
       "title": "Factory Autofold Mirrors Enable",
       "raw_title": "Autofold Mirror Factory",
@@ -1898,7 +1898,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common: auto-fold mirrors",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -1946,7 +1946,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 31,
+      "id": 69,
       "source_key": "altctrlwrench:explorer/global_windows_remote_close_enable.acwrecipe",
       "title": "Global Windows Remote Close Enable",
       "raw_title": "Enable Global Windows Close\n\nhttps://www.explorerst.org/threads/global-windows\n-close-enable-2025-explorer.9064/",
@@ -1973,7 +1973,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: key-fob window open/close",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2011,7 +2011,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 64,
+      "id": 26,
       "source_key": "altctrlwrench:f150/global_windows_remote_open_close_enable.acwrecipe",
       "title": "Global Windows Remote Open/Close Enable",
       "raw_title": "(2021-2023) Global Windows Open/Close \n(driver/pass windows only)",
@@ -2038,7 +2038,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: key-fob window open/close",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2191,7 +2191,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 65,
+      "id": 27,
       "source_key": "altctrlwrench:f150/global_windows_remote_open_close_enable_2.acwrecipe",
       "title": "Global Windows Remote Open/Close Enable (variant 2)",
       "raw_title": "(2024-2026)  Global Windows Open/Close \n(driver/pass windows only)",
@@ -2218,7 +2218,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: key-fob window open/close",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2305,7 +2305,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 17,
+      "id": 70,
       "source_key": "altctrlwrench:bronco/startup_triple_ding_chime_disable.acwrecipe",
       "title": "Startup Triple Ding Chime Disable",
       "raw_title": "Disables Triple Ding at Start up (Doo, doo, doo)",
@@ -2332,7 +2332,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: silence startup chimes",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2356,7 +2356,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 129,
+      "id": 71,
       "source_key": "altctrlwrench:ranger_6g/startup_triple_ding_chime_disable.acwrecipe",
       "title": "Startup Triple Ding Chime Disable",
       "raw_title": "Disables \"do do do\" chime on startup",
@@ -2383,7 +2383,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: silence startup chimes",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2409,7 +2409,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 172,
+      "id": 72,
       "source_key": "altctrlwrench:super_duty/startup_triple_ding_chime_disable.acwrecipe",
       "title": "Startup Triple Ding Chime Disable",
       "raw_title": "Triple Ding at Start Up",
@@ -2436,7 +2436,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: silence startup chimes",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2460,7 +2460,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 41,
+      "id": 3,
       "source_key": "altctrlwrench:f150/360_bed_camera_display_at_speed.acwrecipe",
       "title": "360 & Bed Camera Display at Speed",
       "raw_title": "Enable Cameras at Speed",
@@ -2487,7 +2487,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common: camera views at speed",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2554,125 +2554,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 22,
-      "source_key": "altctrlwrench:explorer/auto_relock_on_unopened_door_enable.acwrecipe",
-      "title": "Auto Relock on Unopened Door Enable",
-      "raw_title": "Auto Relock - if you hit the unlock button on the fob and do not open a door within the timer it will lock the Explorer",
-      "category": "Locks and Security",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2020-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2020-2024 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/auto_relock_on_unopened_door_enable.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "Use this on 2021-23   duration: 1=30 seconds, 2=45 secs\noptional - adds Autorelock to settings, vehicle, locks",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "category Locks and Security",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 3,
-      "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-20-01",
-          "mask": "x*x* x*x* x*--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 1,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 5,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 7,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 9,
-              "hex": "1"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        },
-        {
-          "module": "BCM",
-          "address": "726-27-01",
-          "mask": "xxxx xxxx x*--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 9,
-              "hex": "1"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        },
-        {
-          "module": "BCM",
-          "address": "726-58-02",
-          "mask": "xxx* xxxx xx--",
-          "ops": [
-            {
-              "kind": "bits",
-              "pos": 3,
-              "bits": {
-                "3": 0,
-                "2": 0,
-                "1": 1,
-                "0": 0
-              }
-            }
-          ],
-          "feature_name": null,
-          "notes": "Use this on 2021-23   duration: 1=30 seconds, 2=45 secs | 0=null, 1=3 sec, 2 (set) = 45 seconds"
-        },
-        {
-          "module": "APIM",
-          "address": "7D0-09-01",
-          "mask": "xx*x xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 2,
-              "hex": "3"
-            }
-          ],
-          "feature_name": null,
-          "notes": "optional - adds Autorelock to settings, vehicle, locks | Enables autolock control, unlock control, and sets relock on"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 45,
+      "id": 7,
       "source_key": "altctrlwrench:f150/auto_relock_on_unopened_door_enable.acwrecipe",
       "title": "Auto Relock on Unopened Door Enable",
       "raw_title": "Auto Relock - if you hit the unlock button on the fob and do not open a door within the timer it will lock the truck",
@@ -2699,7 +2581,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2809,7 +2691,125 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 98,
+      "id": 73,
+      "source_key": "altctrlwrench:explorer/auto_relock_on_unopened_door_enable.acwrecipe",
+      "title": "Auto Relock on Unopened Door Enable",
+      "raw_title": "Auto Relock - if you hit the unlock button on the fob and do not open a door within the timer it will lock the Explorer",
+      "category": "Locks and Security",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2020-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2020-2024 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/auto_relock_on_unopened_door_enable.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "Use this on 2021-23   duration: 1=30 seconds, 2=45 secs\noptional - adds Autorelock to settings, vehicle, locks",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "category Locks and Security",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 3,
+      "popularity_reason": "common convenience lock behavior",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-20-01",
+          "mask": "x*x* x*x* x*--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 1,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 5,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 7,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 9,
+              "hex": "1"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        },
+        {
+          "module": "BCM",
+          "address": "726-27-01",
+          "mask": "xxxx xxxx x*--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 9,
+              "hex": "1"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        },
+        {
+          "module": "BCM",
+          "address": "726-58-02",
+          "mask": "xxx* xxxx xx--",
+          "ops": [
+            {
+              "kind": "bits",
+              "pos": 3,
+              "bits": {
+                "3": 0,
+                "2": 0,
+                "1": 1,
+                "0": 0
+              }
+            }
+          ],
+          "feature_name": null,
+          "notes": "Use this on 2021-23   duration: 1=30 seconds, 2=45 secs | 0=null, 1=3 sec, 2 (set) = 45 seconds"
+        },
+        {
+          "module": "APIM",
+          "address": "7D0-09-01",
+          "mask": "xx*x xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 2,
+              "hex": "3"
+            }
+          ],
+          "feature_name": null,
+          "notes": "optional - adds Autorelock to settings, vehicle, locks | Enables autolock control, unlock control, and sets relock on"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 74,
       "source_key": "altctrlwrench:mustang/auto_relock_on_unopened_door_enable.acwrecipe",
       "title": "Auto Relock on Unopened Door Enable",
       "raw_title": "Auto Relock - if you hit the unlock button on the fob and do not open a door within the timer it will lock the truck",
@@ -2836,7 +2836,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2927,7 +2927,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 104,
+      "id": 75,
       "source_key": "altctrlwrench:ranger_6g/auto_relock_on_unopened_door_enable.acwrecipe",
       "title": "Auto Relock on Unopened Door Enable",
       "raw_title": "Auto Relock (Sync Menu)",
@@ -2954,7 +2954,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -2982,7 +2982,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 23,
+      "id": 76,
       "source_key": "altctrlwrench:explorer/auto_relock_on_unopened_door_enable_2.acwrecipe",
       "title": "Auto Relock on Unopened Door Enable (variant 2)",
       "raw_title": "Auto Relock - if you hit the unlock button on the fob and do not open a door within the timer it will lock the Explorer",
@@ -3009,7 +3009,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3095,58 +3095,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 24,
-      "source_key": "altctrlwrench:explorer/bambi_mode_high_beams_with_fog_lights.acwrecipe",
-      "title": "Bambi Mode (High Beams with Fog Lights)",
-      "raw_title": "Bambi Fog Light Mode",
-      "category": "Lighting",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2025-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2025-2026 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/bambi_mode_high_beams_with_fog_lights.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "Fog lights remain on with high beams activated, once button is pressed.",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "'fog': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 3,
-      "popularity_reason": "very common lighting mod",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-39-02",
-          "mask": "xxx* xxxx xxxx",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 47,
+      "id": 9,
       "source_key": "altctrlwrench:f150/bambi_mode_high_beams_with_fog_lights.acwrecipe",
       "title": "Bambi Mode (High Beams with Fog Lights)",
       "raw_title": "Fogs on when high beams are on (aka Bambi Mode) (2021-2026)",
@@ -3173,7 +3122,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common lighting mod",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3197,7 +3146,58 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 110,
+      "id": 77,
+      "source_key": "altctrlwrench:explorer/bambi_mode_high_beams_with_fog_lights.acwrecipe",
+      "title": "Bambi Mode (High Beams with Fog Lights)",
+      "raw_title": "Bambi Fog Light Mode",
+      "category": "Lighting",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2025-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2025-2026 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/bambi_mode_high_beams_with_fog_lights.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "Fog lights remain on with high beams activated, once button is pressed.",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "'fog': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 3,
+      "popularity_reason": "very common lighting mod",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-39-02",
+          "mask": "xxx* xxxx xxxx",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 78,
       "source_key": "altctrlwrench:ranger_6g/bambi_mode_high_beams_with_fog_lights.acwrecipe",
       "title": "Bambi Mode (High Beams with Fog Lights)",
       "raw_title": "Leave fogs on when high beams are on (aka Bambi Mode)",
@@ -3224,7 +3224,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common lighting mod",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3253,7 +3253,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 137,
+      "id": 79,
       "source_key": "altctrlwrench:super_duty/bambi_mode_high_beams_with_fog_lights.acwrecipe",
       "title": "Bambi Mode (High Beams with Fog Lights)",
       "raw_title": "Bambi Mode (High Beams / Fogs)",
@@ -3280,7 +3280,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "very common lighting mod",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3304,7 +3304,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 9,
+      "id": 80,
       "source_key": "altctrlwrench:bronco/global_windows_remote_open_close_enable.acwrecipe",
       "title": "Global Windows Remote Open/Close Enable",
       "raw_title": "Global Windows Open/Close",
@@ -3331,7 +3331,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: key-fob window open/close",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3501,7 +3501,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 155,
+      "id": 81,
       "source_key": "altctrlwrench:super_duty/global_windows_remote_open_close_enable.acwrecipe",
       "title": "Global Windows Remote Open/Close Enable",
       "raw_title": "Global Open/Close",
@@ -3528,7 +3528,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "top community request: key-fob window open/close",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3695,7 +3695,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 73,
+      "id": 35,
       "source_key": "altctrlwrench:f150/lincoln_style_autofold_mirrors.acwrecipe",
       "title": "Lincoln Style Autofold Mirrors",
       "raw_title": "(2021-2023) Mirrors - Lincoln Autofold",
@@ -3722,7 +3722,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common: auto-fold mirrors",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3784,7 +3784,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 164,
+      "id": 82,
       "source_key": "altctrlwrench:super_duty/lincoln_style_autofold_mirrors.acwrecipe",
       "title": "Lincoln Style Autofold Mirrors",
       "raw_title": "Autofold Mirror Lincoln Style",
@@ -3811,7 +3811,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common: auto-fold mirrors",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3859,7 +3859,106 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 37,
+      "id": 58,
+      "source_key": "altctrlwrench:f150/walk_away_lock_audible_horn_feedback.acwrecipe",
+      "title": "Walk Away Lock Audible Horn Feedback",
+      "raw_title": "Walk Away Lock Audible Feedback (2024-2026 only) - sounds the horn when doors are locked with the Walk Away Lock enabled",
+      "category": "Locks and Security",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/walk_away_lock_audible_horn_feedback.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": null,
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "category Locks and Security",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 3,
+      "popularity_reason": "common convenience lock behavior",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-89-01",
+          "mask": "x*x* x*x* x*--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 1,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 5,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 7,
+              "hex": "1"
+            },
+            {
+              "kind": "set",
+              "pos": 9,
+              "hex": "1"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        },
+        {
+          "module": "BCM",
+          "address": "726-90-01",
+          "mask": "x*xx xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 1,
+              "hex": "1"
+            }
+          ],
+          "feature_name": null,
+          "notes": "No data table"
+        },
+        {
+          "module": "APIM",
+          "address": "7D0-09-05",
+          "mask": "xxxx *xxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 4,
+              "hex": "C"
+            }
+          ],
+          "feature_name": null,
+          "notes": "Enables walk away lock with feedback. subtract 4 from target value to disable feedback"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 83,
       "source_key": "altctrlwrench:explorer/walk_away_lock_audible_horn_feedback.acwrecipe",
       "title": "Walk Away Lock Audible Horn Feedback",
       "raw_title": "Enable Walk Away Lock (Audible)\n\nhttps://www.explorerst.org/threads/adding-walk-\naway-lock-feature-for-2025-ford-explorers-with-\naudible-feedback.9073/",
@@ -3886,7 +3985,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -3997,106 +4096,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 96,
-      "source_key": "altctrlwrench:f150/walk_away_lock_audible_horn_feedback.acwrecipe",
-      "title": "Walk Away Lock Audible Horn Feedback",
-      "raw_title": "Walk Away Lock Audible Feedback (2024-2026 only) - sounds the horn when doors are locked with the Walk Away Lock enabled",
-      "category": "Locks and Security",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/walk_away_lock_audible_horn_feedback.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": null,
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "category Locks and Security",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 3,
-      "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-89-01",
-          "mask": "x*x* x*x* x*--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 1,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 5,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 7,
-              "hex": "1"
-            },
-            {
-              "kind": "set",
-              "pos": 9,
-              "hex": "1"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        },
-        {
-          "module": "BCM",
-          "address": "726-90-01",
-          "mask": "x*xx xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 1,
-              "hex": "1"
-            }
-          ],
-          "feature_name": null,
-          "notes": "No data table"
-        },
-        {
-          "module": "APIM",
-          "address": "7D0-09-05",
-          "mask": "xxxx *xxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 4,
-              "hex": "C"
-            }
-          ],
-          "feature_name": null,
-          "notes": "Enables walk away lock with feedback. subtract 4 from target value to disable feedback"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 100,
+      "id": 84,
       "source_key": "altctrlwrench:mustang/walk_away_lock_audible_horn_feedback.acwrecipe",
       "title": "Walk Away Lock Audible Horn Feedback",
       "raw_title": "Walk Away Lock Feedback (horn sounds)",
@@ -4123,7 +4123,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4195,7 +4195,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 182,
+      "id": 85,
       "source_key": "altctrlwrench:super_duty/walk_away_lock_audible_horn_feedback.acwrecipe",
       "title": "Walk Away Lock Audible Horn Feedback",
       "raw_title": "Walk Away Lock Audible Feedback",
@@ -4222,7 +4222,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4294,7 +4294,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 97,
+      "id": 59,
       "source_key": "altctrlwrench:f150/walk_away_lock_enable.acwrecipe",
       "title": "Walk Away Lock Enable",
       "raw_title": "Walk Away Lock (2024-2026 only) - locks the vehicle when you walk away",
@@ -4321,7 +4321,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4393,7 +4393,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 101,
+      "id": 86,
       "source_key": "altctrlwrench:mustang/walk_away_lock_enable.acwrecipe",
       "title": "Walk Away Lock Enable",
       "raw_title": "Walk Away Lock (Job2 Mustang or Job1 that had a BCM update)",
@@ -4420,7 +4420,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4478,7 +4478,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 183,
+      "id": 87,
       "source_key": "altctrlwrench:super_duty/walk_away_lock_enable.acwrecipe",
       "title": "Walk Away Lock Enable",
       "raw_title": "Walk Away Lock",
@@ -4505,7 +4505,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 3,
       "popularity_reason": "common convenience lock behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4578,6 +4578,64 @@ window.LIGHTNING_GARAGE_BUNDLE = {
     },
     {
       "id": 1,
+      "source_key": "altctrlwrench:f150/12v_power_outlet_power_point_timeout_duration.acwrecipe",
+      "title": "12V Power Outlet (Power Point) Timeout Duration",
+      "raw_title": "Power Point Timeout Duration (in seconds converted to hex) (2021-2026)",
+      "category": "Convenience and Electrical",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/12v_power_outlet_power_point_timeout_duration.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "0001=1 second, 600=10 minutes, 1800=30 minutes, 3600=1hr. Ensure Power Point Timeout is not disabled.  Longer times possible (use calculator)",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 2,
+      "popularity_reason": "common: 12V outlet timeout",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-57-01",
+          "mask": "**** xxxx xx--",
+          "ops": [
+            {
+              "kind": "manual",
+              "pos": [
+                0,
+                1,
+                2,
+                3
+              ],
+              "text": "0001=1 second, 600=10 minutes, 1800=30 minutes, 3600=1hr. Ensure Power Point Timeout is not disabled.  Longer times possible (use calculator)",
+              "unit": "seconds",
+              "continuous": true
+            }
+          ],
+          "feature_name": "Power_Point_Maxtime_Cfg (PPMC)",
+          "notes": "0001=1 second"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 88,
       "source_key": "altctrlwrench:bronco/12v_power_outlet_power_point_timeout_duration.acwrecipe",
       "title": "12V Power Outlet (Power Point) Timeout Duration",
       "raw_title": "Power Point Timeout Duration (in seconds converted to hex)",
@@ -4604,7 +4662,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4635,7 +4693,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 19,
+      "id": 89,
       "source_key": "altctrlwrench:explorer/12v_power_outlet_power_point_timeout_duration.acwrecipe",
       "title": "12V Power Outlet (Power Point) Timeout Duration",
       "raw_title": "Powerpoint Timeout Duration (1 second)",
@@ -4662,7 +4720,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4701,65 +4759,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 39,
-      "source_key": "altctrlwrench:f150/12v_power_outlet_power_point_timeout_duration.acwrecipe",
-      "title": "12V Power Outlet (Power Point) Timeout Duration",
-      "raw_title": "Power Point Timeout Duration (in seconds converted to hex) (2021-2026)",
-      "category": "Convenience and Electrical",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/12v_power_outlet_power_point_timeout_duration.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "0001=1 second, 600=10 minutes, 1800=30 minutes, 3600=1hr. Ensure Power Point Timeout is not disabled.  Longer times possible (use calculator)",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 2,
-      "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-57-01",
-          "mask": "**** xxxx xx--",
-          "ops": [
-            {
-              "kind": "manual",
-              "pos": [
-                0,
-                1,
-                2,
-                3
-              ],
-              "text": "0001=1 second, 600=10 minutes, 1800=30 minutes, 3600=1hr. Ensure Power Point Timeout is not disabled.  Longer times possible (use calculator)",
-              "unit": "seconds",
-              "continuous": true
-            }
-          ],
-          "feature_name": "Power_Point_Maxtime_Cfg (PPMC)",
-          "notes": "0001=1 second"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 102,
+      "id": 90,
       "source_key": "altctrlwrench:ranger_6g/12v_power_outlet_power_point_timeout_duration.acwrecipe",
       "title": "12V Power Outlet (Power Point) Timeout Duration",
       "raw_title": "Power Point Timeout Duration",
@@ -4786,7 +4786,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4817,7 +4817,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 134,
+      "id": 91,
       "source_key": "altctrlwrench:super_duty/12v_power_outlet_power_point_timeout_duration.acwrecipe",
       "title": "12V Power Outlet (Power Point) Timeout Duration",
       "raw_title": "PowerPoint Max Timeout",
@@ -4844,7 +4844,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4875,58 +4875,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 20,
-      "source_key": "altctrlwrench:explorer/12v_power_outlet_power_point_timeout_enable_d.acwrecipe",
-      "title": "12V Power Outlet (Power Point) Timeout Enable/Disable",
-      "raw_title": "Powerpoint Timeout disable",
-      "category": "Convenience and Electrical",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2025-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2025-2026 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/12v_power_outlet_power_point_timeout_enable_d.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "this will disable the timeout, be aware it will be constant powered and can deplete battery.",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 2,
-      "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-57-01",
-          "mask": "xxxx x*xx",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 5,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 40,
+      "id": 2,
       "source_key": "altctrlwrench:f150/12v_power_outlet_power_point_timeout_enable_d.acwrecipe",
       "title": "12V Power Outlet (Power Point) Timeout Enable/Disable",
       "raw_title": "Power Point Timeout Configuration (2021-2026)",
@@ -4953,7 +4902,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -4982,7 +4931,58 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 103,
+      "id": 92,
+      "source_key": "altctrlwrench:explorer/12v_power_outlet_power_point_timeout_enable_d.acwrecipe",
+      "title": "12V Power Outlet (Power Point) Timeout Enable/Disable",
+      "raw_title": "Powerpoint Timeout disable",
+      "category": "Convenience and Electrical",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2025-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2025-2026 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/12v_power_outlet_power_point_timeout_enable_d.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "this will disable the timeout, be aware it will be constant powered and can deplete battery.",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 2,
+      "popularity_reason": "common: 12V outlet timeout",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-57-01",
+          "mask": "xxxx x*xx",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 5,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 93,
       "source_key": "altctrlwrench:ranger_6g/12v_power_outlet_power_point_timeout_enable_d.acwrecipe",
       "title": "12V Power Outlet (Power Point) Timeout Enable/Disable",
       "raw_title": "Power Point Timeout Configuration",
@@ -5009,7 +5009,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: 12V outlet timeout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5038,7 +5038,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 51,
+      "id": 13,
       "source_key": "altctrlwrench:f150/digital_gauge_numeric_temperatures_display_en.acwrecipe",
       "title": "Digital Gauge Numeric Temperatures Display (Engine & Trans)",
       "raw_title": "Enable digital temps for engine & transmission on 12\" digital cluster only",
@@ -5065,7 +5065,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 2,
       "popularity_reason": "popular cluster tweak",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5102,7 +5102,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 111,
+      "id": 94,
       "source_key": "altctrlwrench:ranger_6g/digital_gauge_numeric_temperatures_display_en.acwrecipe",
       "title": "Digital Gauge Numeric Temperatures Display (Engine & Trans)",
       "raw_title": "Digital Engine and Transmission Temperature Gauges in 12\" cluster",
@@ -5129,7 +5129,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 2,
       "popularity_reason": "popular cluster tweak",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5177,7 +5177,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 141,
+      "id": 95,
       "source_key": "altctrlwrench:super_duty/digital_gauge_numeric_temperatures_display_en.acwrecipe",
       "title": "Digital Gauge Numeric Temperatures Display (Engine & Trans)",
       "raw_title": "Temps on Gauges 12\" Cluster only",
@@ -5204,7 +5204,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 2,
       "popularity_reason": "popular cluster tweak",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5231,7 +5231,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 52,
+      "id": 14,
       "source_key": "altctrlwrench:f150/digital_gauge_numeric_temperatures_display_ra.acwrecipe",
       "title": "Digital Gauge Numeric Temperatures Display (Raptor Cluster)",
       "raw_title": "Raptor Cluster - displays engine, oil, transmission digital temps on top gauges",
@@ -5258,7 +5258,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular cluster tweak",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5287,60 +5287,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 13,
-      "source_key": "altctrlwrench:bronco/lane_change_turn_signal_flash_count.acwrecipe",
-      "title": "Lane Change Turn Signal Flash Count",
-      "raw_title": "Lane Change Blink Number",
-      "category": "Lighting",
-      "platform": "Bronco",
-      "platform_slug": "bronco",
-      "model_years": "2021-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2022 Bronco.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/bronco/lane_change_turn_signal_flash_count.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "* if your default value is 8C:\n80=null, 84=1, 88=2, 8C=3, 90=4, 94=5, 98=6, 9C=7, A0=8, A4=9, A8=10\n\n* if your default value is 0C:\n00=null, 04=1, 08=2, 0C=3, 10=4, 14=5, 18=6, 1C=7, 20=8, 24=9, 28=10\nConfirmed: D2dhanover",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "SCCM",
-      "system_name": "Steering Column Control",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 2,
-      "popularity_reason": "common turn-signal count",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "SCCM",
-          "address": "724-01-01",
-          "mask": "xxxx **xx xx--",
-          "ops": [
-            {
-              "kind": "manual",
-              "pos": null,
-              "text": "* if your default value is 8C:\n80=null, 84=1, 88=2, 8C=3, 90=4, 94=5, 98=6, 9C=7, A0=8, A4=9, A8=10\n\n* if your default value is 0C:\n00=null, 04=1, 08=2, 0C=3, 10=4, 14=5, 18=6, 1C=7, 20=8, 24=9, 28=10"
-            }
-          ],
-          "feature_name": "SCMHdlpWashOnTime_Cfg (SCMHWOTC)",
-          "notes": "* if your default value is 8C:\n80=null, 84=1, 88=2, 8C=3, 90=4, 94=5, 98=6, 9C=7, A0=8, A4=9, A8=10\n\n* if your default value is 0C:\n00=null, 04=1, 08=2, 0C=3, 10=4, 14=5, 18=6, 1C=7, 20=8, 24=9, 28=10"
-        }
-      ],
-      "import_issues": [
-        "724-01-01: nibble None is not a '*' position in mask 'xxxx **xx xx--'"
-      ]
-    },
-    {
-      "id": 72,
+      "id": 34,
       "source_key": "altctrlwrench:f150/lane_change_turn_signal_flash_count.acwrecipe",
       "title": "Lane Change Turn Signal Flash Count",
       "raw_title": "Turn Signal Flashes (2021-26)",
@@ -5367,7 +5314,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common turn-signal count",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5393,7 +5340,60 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 124,
+      "id": 96,
+      "source_key": "altctrlwrench:bronco/lane_change_turn_signal_flash_count.acwrecipe",
+      "title": "Lane Change Turn Signal Flash Count",
+      "raw_title": "Lane Change Blink Number",
+      "category": "Lighting",
+      "platform": "Bronco",
+      "platform_slug": "bronco",
+      "model_years": "2021-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2022 Bronco.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/bronco/lane_change_turn_signal_flash_count.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "* if your default value is 8C:\n80=null, 84=1, 88=2, 8C=3, 90=4, 94=5, 98=6, 9C=7, A0=8, A4=9, A8=10\n\n* if your default value is 0C:\n00=null, 04=1, 08=2, 0C=3, 10=4, 14=5, 18=6, 1C=7, 20=8, 24=9, 28=10\nConfirmed: D2dhanover",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "SCCM",
+      "system_name": "Steering Column Control",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 2,
+      "popularity_reason": "common turn-signal count",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "SCCM",
+          "address": "724-01-01",
+          "mask": "xxxx **xx xx--",
+          "ops": [
+            {
+              "kind": "manual",
+              "pos": null,
+              "text": "* if your default value is 8C:\n80=null, 84=1, 88=2, 8C=3, 90=4, 94=5, 98=6, 9C=7, A0=8, A4=9, A8=10\n\n* if your default value is 0C:\n00=null, 04=1, 08=2, 0C=3, 10=4, 14=5, 18=6, 1C=7, 20=8, 24=9, 28=10"
+            }
+          ],
+          "feature_name": "SCMHdlpWashOnTime_Cfg (SCMHWOTC)",
+          "notes": "* if your default value is 8C:\n80=null, 84=1, 88=2, 8C=3, 90=4, 94=5, 98=6, 9C=7, A0=8, A4=9, A8=10\n\n* if your default value is 0C:\n00=null, 04=1, 08=2, 0C=3, 10=4, 14=5, 18=6, 1C=7, 20=8, 24=9, 28=10"
+        }
+      ],
+      "import_issues": [
+        "724-01-01: nibble None is not a '*' position in mask 'xxxx **xx xx--'"
+      ]
+    },
+    {
+      "id": 97,
       "source_key": "altctrlwrench:ranger_6g/lane_change_turn_signal_flash_count.acwrecipe",
       "title": "Lane Change Turn Signal Flash Count",
       "raw_title": "Number of lane change blinks",
@@ -5420,7 +5420,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common turn-signal count",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5446,7 +5446,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 55,
+      "id": 17,
       "source_key": "altctrlwrench:f150/drl_allow_fog_lights_as_drl.acwrecipe",
       "title": "DRL - Allow Fog Lights as DRL",
       "raw_title": "DRLs - allow fog lights (2021-26)",
@@ -5473,7 +5473,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5502,7 +5502,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 8,
+      "id": 98,
       "source_key": "altctrlwrench:bronco/drl_amber_turn_signal_rings_only.acwrecipe",
       "title": "DRL - Amber Turn Signal Rings Only",
       "raw_title": "Daytime running lights - after writting vehicle must be in drive to see new state (doesn't work in park)",
@@ -5529,7 +5529,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5597,7 +5597,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 26,
+      "id": 99,
       "source_key": "altctrlwrench:explorer/drl_amber_turn_signal_rings_only.acwrecipe",
       "title": "DRL - Amber Turn Signal Rings Only",
       "raw_title": "Sets DRL to amber turrns only (DRL in amber LED bars)",
@@ -5624,7 +5624,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5672,7 +5672,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 27,
+      "id": 100,
       "source_key": "altctrlwrench:explorer/drl_amber_turn_signal_rings_only_2.acwrecipe",
       "title": "DRL - Amber Turn Signal Rings Only (variant 2)",
       "raw_title": "Sets DRL to amber turrns only (DRL in amber LED bars)",
@@ -5699,7 +5699,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5747,79 +5747,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 28,
-      "source_key": "altctrlwrench:explorer/drl_full_brightness_with_headlamps_on.acwrecipe",
-      "title": "DRL - Full Brightness with Headlamps On",
-      "raw_title": "DRLs - full brightness",
-      "category": "Lighting",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2025-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2025-2026 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/drl_full_brightness_with_headlamps_on.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": null,
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "'drl': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 2,
-      "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-42-01",
-          "mask": "x*x* xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 1,
-              "hex": "2"
-            },
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "2"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        },
-        {
-          "module": "BCM",
-          "address": "726-38-01",
-          "mask": "xxxx **xx xx--",
-          "ops": [
-            {
-              "kind": "manual",
-              "pos": null,
-              "text": "set at about 60% brightness (3C hex) thru 75% brightness (4B hex) use lowest value you can before flickering appears.\n\n64 =100%, 5A = 90%, 4B =75%, 32 = 50%, 19 = 25%, 0A =10%"
-            }
-          ],
-          "feature_name": "DRL_Ckt_FixedDim_DutyCycle_Cfg (DRLCFDDCC)",
-          "notes": "set at about 60% brightness (3C hex) thru 75% brightness (4B hex) use lowest value you can before flickering appears.\n\n64 =100%, 5A = 90%, 4B =75%, 32 = 50%, 19 = 25%, 0A =10%"
-        }
-      ],
-      "import_issues": [
-        "726-38-01: nibble None is not a '*' position in mask 'xxxx **xx xx--'"
-      ]
-    },
-    {
-      "id": 56,
+      "id": 18,
       "source_key": "altctrlwrench:f150/drl_full_brightness_with_headlamps_on.acwrecipe",
       "title": "DRL - Full Brightness with Headlamps On",
       "raw_title": "DRLs - full brightness (2021-2026)",
@@ -5846,7 +5774,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5891,7 +5819,79 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 146,
+      "id": 101,
+      "source_key": "altctrlwrench:explorer/drl_full_brightness_with_headlamps_on.acwrecipe",
+      "title": "DRL - Full Brightness with Headlamps On",
+      "raw_title": "DRLs - full brightness",
+      "category": "Lighting",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2025-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2025-2026 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/drl_full_brightness_with_headlamps_on.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": null,
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "'drl': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 2,
+      "popularity_reason": "popular lighting tweaks",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-42-01",
+          "mask": "x*x* xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 1,
+              "hex": "2"
+            },
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "2"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        },
+        {
+          "module": "BCM",
+          "address": "726-38-01",
+          "mask": "xxxx **xx xx--",
+          "ops": [
+            {
+              "kind": "manual",
+              "pos": null,
+              "text": "set at about 60% brightness (3C hex) thru 75% brightness (4B hex) use lowest value you can before flickering appears.\n\n64 =100%, 5A = 90%, 4B =75%, 32 = 50%, 19 = 25%, 0A =10%"
+            }
+          ],
+          "feature_name": "DRL_Ckt_FixedDim_DutyCycle_Cfg (DRLCFDDCC)",
+          "notes": "set at about 60% brightness (3C hex) thru 75% brightness (4B hex) use lowest value you can before flickering appears.\n\n64 =100%, 5A = 90%, 4B =75%, 32 = 50%, 19 = 25%, 0A =10%"
+        }
+      ],
+      "import_issues": [
+        "726-38-01: nibble None is not a '*' position in mask 'xxxx **xx xx--'"
+      ]
+    },
+    {
+      "id": 102,
       "source_key": "altctrlwrench:super_duty/drl_full_brightness_with_headlamps_on.acwrecipe",
       "title": "DRL - Full Brightness with Headlamps On",
       "raw_title": "DRL Full Brightness w/Headlights",
@@ -5918,7 +5918,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -5947,7 +5947,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 57,
+      "id": 19,
       "source_key": "altctrlwrench:f150/drl_grille_marker_lights_on_with_drl.acwrecipe",
       "title": "DRL - Grille Marker Lights On with DRL",
       "raw_title": "(2024-2026) Raptor (marker lights on with DRL)",
@@ -5974,7 +5974,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6031,7 +6031,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 58,
+      "id": 20,
       "source_key": "altctrlwrench:f150/drl_include_parking_running_lights.acwrecipe",
       "title": "DRL - Include Parking / Running Lights",
       "raw_title": "DRLs - include parking lights (2021-26)",
@@ -6058,7 +6058,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6087,7 +6087,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 147,
+      "id": 103,
       "source_key": "altctrlwrench:super_duty/drl_include_parking_running_lights.acwrecipe",
       "title": "DRL - Include Parking / Running Lights",
       "raw_title": "Running Lights w/DRL",
@@ -6114,7 +6114,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6143,7 +6143,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 59,
+      "id": 21,
       "source_key": "altctrlwrench:f150/drl_low_beams_and_parking_lights.acwrecipe",
       "title": "DRL - Low Beams and Parking Lights",
       "raw_title": "Low Beams & Parking Lamps as DRL (2024-2026) - see this post for pics",
@@ -6170,7 +6170,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6255,7 +6255,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 116,
+      "id": 104,
       "source_key": "altctrlwrench:ranger_6g/drl_switchback_operation_with_turn_signal.acwrecipe",
       "title": "DRL - Switchback Operation with Turn Signal",
       "raw_title": "Using DRL with Turn Signal",
@@ -6282,7 +6282,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6311,7 +6311,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 148,
+      "id": 105,
       "source_key": "altctrlwrench:super_duty/drl_switchback_operation_with_turn_signal.acwrecipe",
       "title": "DRL - Switchback Operation with Turn Signal",
       "raw_title": "DRL w/Turn Signal (Switchback)",
@@ -6338,7 +6338,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular lighting tweaks",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6367,7 +6367,63 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 10,
+      "id": 28,
+      "source_key": "altctrlwrench:f150/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
+      "title": "Headlamp Switch Default to Auto Disable (Remember Last Position)",
+      "raw_title": "Prevent headlamp switch from defaulting to Auto position (2021-2026)",
+      "category": "Lighting",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "headlamp switch will revert to last position used on next startup",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "'headlamp': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 2,
+      "popularity_reason": "common: stop headlamps defaulting off Auto",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-74-01",
+          "mask": "xx** xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 2,
+              "hex": "0"
+            },
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "1"
+            }
+          ],
+          "feature_name": null,
+          "notes": "headlamp switch will revert to last position used on next startup"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 106,
       "source_key": "altctrlwrench:bronco/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
       "title": "Headlamp Switch Default to Auto Disable (Remember Last Position)",
       "raw_title": "Auto Headlight",
@@ -6394,7 +6450,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: stop headlamps defaulting off Auto",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6433,7 +6489,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 32,
+      "id": 107,
       "source_key": "altctrlwrench:explorer/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
       "title": "Headlamp Switch Default to Auto Disable (Remember Last Position)",
       "raw_title": "Prevent headlamp from defaulting to \"Auto\" position",
@@ -6460,7 +6516,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: stop headlamps defaulting off Auto",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6489,63 +6545,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 66,
-      "source_key": "altctrlwrench:f150/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
-      "title": "Headlamp Switch Default to Auto Disable (Remember Last Position)",
-      "raw_title": "Prevent headlamp switch from defaulting to Auto position (2021-2026)",
-      "category": "Lighting",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "headlamp switch will revert to last position used on next startup",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "'headlamp': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 2,
-      "popularity_reason": "common: stop headlamps defaulting off Auto",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-74-01",
-          "mask": "xx** xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 2,
-              "hex": "0"
-            },
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "1"
-            }
-          ],
-          "feature_name": null,
-          "notes": "headlamp switch will revert to last position used on next startup"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 157,
+      "id": 108,
       "source_key": "altctrlwrench:super_duty/headlamp_switch_default_to_auto_disable_remem.acwrecipe",
       "title": "Headlamp Switch Default to Auto Disable (Remember Last Position)",
       "raw_title": "Headlamp Switch  \"Auto\" to Last Known",
@@ -6572,7 +6572,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common: stop headlamps defaulting off Auto",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6596,7 +6596,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 68,
+      "id": 30,
       "source_key": "altctrlwrench:f150/keyfob_car_finder_double_lock_horn_chirp.acwrecipe",
       "title": "Keyfob Car Finder (Double-Lock Horn Chirp)",
       "raw_title": "Keyfob Car Finder - (clicking lock twice honks horn) (2021-2026)",
@@ -6623,7 +6623,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6662,7 +6662,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 121,
+      "id": 109,
       "source_key": "altctrlwrench:ranger_6g/keyfob_car_finder_double_lock_horn_chirp.acwrecipe",
       "title": "Keyfob Car Finder (Double-Lock Horn Chirp)",
       "raw_title": "Keyfob Car Finder",
@@ -6689,7 +6689,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6718,7 +6718,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 161,
+      "id": 110,
       "source_key": "altctrlwrench:super_duty/keyfob_car_finder_double_lock_horn_chirp.acwrecipe",
       "title": "Keyfob Car Finder (Double-Lock Horn Chirp)",
       "raw_title": "Car Finder (2x Click Horn)",
@@ -6745,7 +6745,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6784,7 +6784,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 69,
+      "id": 31,
       "source_key": "altctrlwrench:f150/keyfob_panic_alarm_enable_disable.acwrecipe",
       "title": "Keyfob Panic Alarm Enable/Disable",
       "raw_title": "Keyfob Panic Alarm (2021-2026)",
@@ -6811,7 +6811,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6840,7 +6840,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 122,
+      "id": 111,
       "source_key": "altctrlwrench:ranger_6g/keyfob_panic_alarm_enable_disable.acwrecipe",
       "title": "Keyfob Panic Alarm Enable/Disable",
       "raw_title": "Keyfob Panic Alarm",
@@ -6867,7 +6867,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6896,7 +6896,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 162,
+      "id": 112,
       "source_key": "altctrlwrench:super_duty/keyfob_panic_alarm_enable_disable.acwrecipe",
       "title": "Keyfob Panic Alarm Enable/Disable",
       "raw_title": "KeyFOB Panic Alert",
@@ -6923,7 +6923,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -6952,7 +6952,63 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 12,
+      "id": 32,
+      "source_key": "altctrlwrench:f150/keyfob_panic_button_activation_mode.acwrecipe",
+      "title": "Keyfob Panic Button Activation Mode",
+      "raw_title": "Keyfob Panic Button (2021-2026)",
+      "category": "Locks and Security",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/keyfob_panic_button_activation_mode.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "0=disabled, 1=2 clicks (target setting), 2=one click (default)",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "category Locks and Security",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 2,
+      "popularity_reason": "common key-fob behavior",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-62-01",
+          "mask": "x*xx xxxx xx--",
+          "ops": [
+            {
+              "kind": "bits",
+              "pos": 1,
+              "bits": {
+                "3": 0,
+                "2": 0,
+                "1": 0,
+                "0": 1
+              }
+            }
+          ],
+          "feature_name": null,
+          "notes": "0=disabled, 1=2 clicks, 2=one click (default)"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 113,
       "source_key": "altctrlwrench:bronco/keyfob_panic_button_activation_mode.acwrecipe",
       "title": "Keyfob Panic Button Activation Mode",
       "raw_title": "Keyfob Panic Button",
@@ -6979,7 +7035,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7008,7 +7064,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 33,
+      "id": 114,
       "source_key": "altctrlwrench:explorer/keyfob_panic_button_activation_mode.acwrecipe",
       "title": "Keyfob Panic Button Activation Mode",
       "raw_title": "Keyfob Panic Alarm",
@@ -7035,7 +7091,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7083,63 +7139,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 70,
-      "source_key": "altctrlwrench:f150/keyfob_panic_button_activation_mode.acwrecipe",
-      "title": "Keyfob Panic Button Activation Mode",
-      "raw_title": "Keyfob Panic Button (2021-2026)",
-      "category": "Locks and Security",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/keyfob_panic_button_activation_mode.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "0=disabled, 1=2 clicks (target setting), 2=one click (default)",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "category Locks and Security",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 2,
-      "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-62-01",
-          "mask": "x*xx xxxx xx--",
-          "ops": [
-            {
-              "kind": "bits",
-              "pos": 1,
-              "bits": {
-                "3": 0,
-                "2": 0,
-                "1": 0,
-                "0": 1
-              }
-            }
-          ],
-          "feature_name": null,
-          "notes": "0=disabled, 1=2 clicks, 2=one click (default)"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 123,
+      "id": 115,
       "source_key": "altctrlwrench:ranger_6g/keyfob_panic_button_activation_mode.acwrecipe",
       "title": "Keyfob Panic Button Activation Mode",
       "raw_title": "Keyfob Panic Button",
@@ -7166,7 +7166,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7195,7 +7195,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 163,
+      "id": 116,
       "source_key": "altctrlwrench:super_duty/keyfob_panic_button_activation_mode.acwrecipe",
       "title": "Keyfob Panic Button Activation Mode",
       "raw_title": "KeyFOB Panic Button",
@@ -7222,7 +7222,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7251,7 +7251,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 71,
+      "id": 33,
       "source_key": "altctrlwrench:f150/keyfob_remote_tailgate_release_disable.acwrecipe",
       "title": "Keyfob Remote Tailgate Release Disable",
       "raw_title": "Keyfob Tailgate Release - disable (2021-2026)",
@@ -7278,7 +7278,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "common key-fob behavior",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7307,7 +7307,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 83,
+      "id": 45,
       "source_key": "altctrlwrench:f150/sync_climate_bar_heated_cooled_seat_icons.acwrecipe",
       "title": "Sync Climate Bar - Heated & Cooled Seat Icons",
       "raw_title": "Enable Cooled and/or Heated seats to climate bar above",
@@ -7334,7 +7334,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC layout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7361,7 +7361,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 174,
+      "id": 117,
       "source_key": "altctrlwrench:super_duty/sync_climate_bar_heated_cooled_seat_icons.acwrecipe",
       "title": "Sync Climate Bar - Heated & Cooled Seat Icons",
       "raw_title": "Enable Cooled and/or Heated Seats to Climate Bar",
@@ -7388,7 +7388,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC layout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7415,7 +7415,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 84,
+      "id": 46,
       "source_key": "altctrlwrench:f150/sync_climate_bar_heated_steering_wheel_icon.acwrecipe",
       "title": "Sync Climate Bar - Heated Steering Wheel Icon",
       "raw_title": "Enable Heated Steering Wheel on climate bar above",
@@ -7442,7 +7442,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC layout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7468,7 +7468,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 175,
+      "id": 118,
       "source_key": "altctrlwrench:super_duty/sync_climate_bar_heated_steering_wheel_icon.acwrecipe",
       "title": "Sync Climate Bar - Heated Steering Wheel Icon",
       "raw_title": "Enable Heated Steering Wheel on Climate Bar",
@@ -7495,7 +7495,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC layout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7521,7 +7521,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 85,
+      "id": 47,
       "source_key": "altctrlwrench:f150/sync_persistent_lower_climate_bar_enable.acwrecipe",
       "title": "Sync Persistent Lower Climate Bar Enable",
       "raw_title": "Enable Climate Bar at the bottom of Sync screen",
@@ -7548,7 +7548,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC layout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7574,7 +7574,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 176,
+      "id": 119,
       "source_key": "altctrlwrench:super_duty/sync_persistent_lower_climate_bar_enable.acwrecipe",
       "title": "Sync Persistent Lower Climate Bar Enable",
       "raw_title": "Enable Cimate Bar at the bottom of Sync screen",
@@ -7601,7 +7601,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC layout",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7625,7 +7625,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 86,
+      "id": 48,
       "source_key": "altctrlwrench:f150/sync_splash_screen_75th_anniversary_animation.acwrecipe",
       "title": "Sync Splash Screen - 75th Anniversary Animation",
       "raw_title": "Enable 75th Anniversary Splash Screen",
@@ -7652,7 +7652,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC cosmetic",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7678,7 +7678,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 177,
+      "id": 120,
       "source_key": "altctrlwrench:super_duty/sync_splash_screen_75th_anniversary_animation.acwrecipe",
       "title": "Sync Splash Screen - 75th Anniversary Animation",
       "raw_title": "Enable 75th Anniversary Splash Screen",
@@ -7705,7 +7705,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular SYNC cosmetic",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7731,7 +7731,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 87,
+      "id": 49,
       "source_key": "altctrlwrench:f150/sync_splash_screen_f_150_lightning_animation.acwrecipe",
       "title": "Sync Splash Screen - F-150 Lightning Animation",
       "raw_title": "Enable Lightning F150 Splash Screen",
@@ -7758,7 +7758,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "text mentions 'lightning' (still unverified on your truck)",
       "popularity": 2,
       "popularity_reason": "popular SYNC cosmetic",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7784,7 +7784,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 91,
+      "id": 53,
       "source_key": "altctrlwrench:f150/tow_mirror_clearance_marker_lights_enable.acwrecipe",
       "title": "Tow Mirror Clearance Marker Lights Enable",
       "raw_title": "2021-26 Enabling marker lights on tow mirrors upgrade",
@@ -7811,7 +7811,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular towing convenience",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7835,7 +7835,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 92,
+      "id": 54,
       "source_key": "altctrlwrench:f150/tow_mirror_turn_signal_indicator_enable.acwrecipe",
       "title": "Tow Mirror Turn Signal Indicator Enable",
       "raw_title": "2021-23 Enabling side turn indicator on tow mirrors upgrade",
@@ -7862,7 +7862,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular towing convenience",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7900,7 +7900,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 93,
+      "id": 55,
       "source_key": "altctrlwrench:f150/tow_mirror_turn_signal_indicator_enable_2.acwrecipe",
       "title": "Tow Mirror Turn Signal Indicator Enable (variant 2)",
       "raw_title": "2024-26 Enabling side turn indicator on tow mirrors upgrade",
@@ -7927,7 +7927,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular towing convenience",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -7965,7 +7965,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 94,
+      "id": 56,
       "source_key": "altctrlwrench:f150/trailer_side_view_camera_on_turn_signal.acwrecipe",
       "title": "Trailer Side View Camera on Turn Signal",
       "raw_title": "Trailer Side View - shows corresponding camera view alongside of vehicle when turn signal is applied with trailer connected Note: requires newest 12/23 ipma update (2021-2025)",
@@ -7992,7 +7992,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular towing camera",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8030,7 +8030,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 132,
+      "id": 121,
       "source_key": "altctrlwrench:ranger_6g/trailer_side_view_camera_on_turn_signal.acwrecipe",
       "title": "Trailer Side View Camera on Turn Signal",
       "raw_title": "Trailer Side View - shows corresponding camera view alongside of vehicle when turn signal is applied with trailer connected",
@@ -8057,7 +8057,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 2,
       "popularity_reason": "popular towing camera",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8100,7 +8100,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 115,
+      "id": 122,
       "source_key": "altctrlwrench:ranger_6g/driver_seatbelt_warning_chime_disable.acwrecipe",
       "title": "Driver Seatbelt Warning Chime Disable",
       "raw_title": "Disables chime for Driver seatbelt",
@@ -8127,7 +8127,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche, safety-visible",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8153,7 +8153,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 62,
+      "id": 24,
       "source_key": "altctrlwrench:f150/front_turn_signal_bulb_outage_detection.acwrecipe",
       "title": "Front Turn Signal Bulb Outage Detection",
       "raw_title": "Front Turn Bulb Outage Detection (2021-2026)",
@@ -8180,7 +8180,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8219,7 +8219,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 151,
+      "id": 123,
       "source_key": "altctrlwrench:super_duty/front_turn_signal_bulb_outage_detection.acwrecipe",
       "title": "Front Turn Signal Bulb Outage Detection",
       "raw_title": "Bulb-Front Turn Bulb Outage Detection",
@@ -8246,7 +8246,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8275,7 +8275,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 152,
+      "id": 124,
       "source_key": "altctrlwrench:super_duty/front_turn_signal_bulb_outage_detection_2.acwrecipe",
       "title": "Front Turn Signal Bulb Outage Detection (variant 2)",
       "raw_title": "Front Turn Bulb Outage Detection",
@@ -8302,7 +8302,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8331,63 +8331,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 30,
-      "source_key": "altctrlwrench:explorer/front_turn_signal_led_outage_detection_hyperf.acwrecipe",
-      "title": "Front Turn Signal LED Outage Detection (Hyperflash Disable)",
-      "raw_title": "Front Turn LED Outage Detection (2021-2024)",
-      "category": "Lighting",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2021-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2020-2024 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/front_turn_signal_led_outage_detection_hyperf.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "00=No Outage 01=Outage",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "'outage detection': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 1,
-      "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-40-02",
-          "mask": "xx** xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 2,
-              "hex": "0"
-            },
-            {
-              "kind": "set",
-              "pos": 3,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": "00=No Outage 01=Outage"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 63,
+      "id": 25,
       "source_key": "altctrlwrench:f150/front_turn_signal_led_outage_detection_hyperf.acwrecipe",
       "title": "Front Turn Signal LED Outage Detection (Hyperflash Disable)",
       "raw_title": "Front Turn LED Outage Detection (2021-2026)",
@@ -8414,7 +8358,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8453,7 +8397,63 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 153,
+      "id": 125,
+      "source_key": "altctrlwrench:explorer/front_turn_signal_led_outage_detection_hyperf.acwrecipe",
+      "title": "Front Turn Signal LED Outage Detection (Hyperflash Disable)",
+      "raw_title": "Front Turn LED Outage Detection (2021-2024)",
+      "category": "Lighting",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2021-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2020-2024 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/front_turn_signal_led_outage_detection_hyperf.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "00=No Outage 01=Outage",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "'outage detection': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 1,
+      "popularity_reason": "niche lighting",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-40-02",
+          "mask": "xx** xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 2,
+              "hex": "0"
+            },
+            {
+              "kind": "set",
+              "pos": 3,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": "00=No Outage 01=Outage"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 126,
       "source_key": "altctrlwrench:super_duty/front_turn_signal_led_outage_detection_hyperf.acwrecipe",
       "title": "Front Turn Signal LED Outage Detection (Hyperflash Disable)",
       "raw_title": "Bulb-Front Turn LED Outage Detection",
@@ -8480,7 +8480,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8509,7 +8509,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 154,
+      "id": 127,
       "source_key": "altctrlwrench:super_duty/front_turn_signal_led_outage_detection_hyperf_2.acwrecipe",
       "title": "Front Turn Signal LED Outage Detection (Hyperflash Disable) (variant 2)",
       "raw_title": "Front Turn LED Outage Detection",
@@ -8536,7 +8536,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8565,7 +8565,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 125,
+      "id": 128,
       "source_key": "altctrlwrench:ranger_6g/passenger_seatbelt_warning_chime_disable.acwrecipe",
       "title": "Passenger Seatbelt Warning Chime Disable",
       "raw_title": "Disables chime for Passenger seatbelt",
@@ -8592,7 +8592,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche, safety-visible",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8618,63 +8618,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 35,
-      "source_key": "altctrlwrench:explorer/rear_turn_signal_bulb_outage_detection.acwrecipe",
-      "title": "Rear Turn Signal Bulb Outage Detection",
-      "raw_title": "Rear Turn Bulb Outage Detection (2021-2024)",
-      "category": "Lighting",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2021-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2020-2024 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/rear_turn_signal_bulb_outage_detection.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "00=No Outage 01=Outage - set to no outage when upgrading to LED",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "'outage detection': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 1,
-      "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-44-02",
-          "mask": "**xx xxxx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 0,
-              "hex": "0"
-            },
-            {
-              "kind": "set",
-              "pos": 1,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": "00=No Outage 01=Outage - set to no outage when upgrading to LED"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 77,
+      "id": 39,
       "source_key": "altctrlwrench:f150/rear_turn_signal_bulb_outage_detection.acwrecipe",
       "title": "Rear Turn Signal Bulb Outage Detection",
       "raw_title": "Rear Turn Bulb Outage Detection (2021-2023)",
@@ -8701,7 +8645,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8740,7 +8684,63 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 167,
+      "id": 129,
+      "source_key": "altctrlwrench:explorer/rear_turn_signal_bulb_outage_detection.acwrecipe",
+      "title": "Rear Turn Signal Bulb Outage Detection",
+      "raw_title": "Rear Turn Bulb Outage Detection (2021-2024)",
+      "category": "Lighting",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2021-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2020-2024 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/rear_turn_signal_bulb_outage_detection.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "00=No Outage 01=Outage - set to no outage when upgrading to LED",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "'outage detection': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 1,
+      "popularity_reason": "niche lighting",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-44-02",
+          "mask": "**xx xxxx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 0,
+              "hex": "0"
+            },
+            {
+              "kind": "set",
+              "pos": 1,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": "00=No Outage 01=Outage - set to no outage when upgrading to LED"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 130,
       "source_key": "altctrlwrench:super_duty/rear_turn_signal_bulb_outage_detection.acwrecipe",
       "title": "Rear Turn Signal Bulb Outage Detection",
       "raw_title": "Bulb-Rear Turn Bulb Outage Detection",
@@ -8767,7 +8767,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8796,7 +8796,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 78,
+      "id": 40,
       "source_key": "altctrlwrench:f150/rear_turn_signal_bulb_outage_detection_2.acwrecipe",
       "title": "Rear Turn Signal Bulb Outage Detection (variant 2)",
       "raw_title": "Rear Turn Bulb Outage Detection (2024-2026)",
@@ -8823,7 +8823,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8852,63 +8852,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 36,
-      "source_key": "altctrlwrench:explorer/rear_turn_signal_led_outage_detection_hyperfl.acwrecipe",
-      "title": "Rear Turn Signal LED Outage Detection (Hyperflash Disable)",
-      "raw_title": "Rear Turn LED Outage Detection (2021-2024)",
-      "category": "Lighting",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2021-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2020-2024 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/rear_turn_signal_led_outage_detection_hyperfl.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "00=No Outage 01=Outage",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "BCM",
-      "system_name": "Body Control Module",
-      "tier": 2,
-      "tier_reason": "'outage detection': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 1,
-      "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "BCM",
-          "address": "726-40-02",
-          "mask": "xxxx **xx xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 4,
-              "hex": "0"
-            },
-            {
-              "kind": "set",
-              "pos": 5,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": "00=No Outage 01=Outage"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 79,
+      "id": 41,
       "source_key": "altctrlwrench:f150/rear_turn_signal_led_outage_detection_hyperfl.acwrecipe",
       "title": "Rear Turn Signal LED Outage Detection (Hyperflash Disable)",
       "raw_title": "Rear Turn LED Outage Detection (2021-2026)",
@@ -8935,7 +8879,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -8974,7 +8918,63 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 168,
+      "id": 131,
+      "source_key": "altctrlwrench:explorer/rear_turn_signal_led_outage_detection_hyperfl.acwrecipe",
+      "title": "Rear Turn Signal LED Outage Detection (Hyperflash Disable)",
+      "raw_title": "Rear Turn LED Outage Detection (2021-2024)",
+      "category": "Lighting",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2021-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2020-2024 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/rear_turn_signal_led_outage_detection_hyperfl.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "00=No Outage 01=Outage",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "BCM",
+      "system_name": "Body Control Module",
+      "tier": 2,
+      "tier_reason": "'outage detection': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 1,
+      "popularity_reason": "niche lighting",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "BCM",
+          "address": "726-40-02",
+          "mask": "xxxx **xx xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 4,
+              "hex": "0"
+            },
+            {
+              "kind": "set",
+              "pos": 5,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": "00=No Outage 01=Outage"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 132,
       "source_key": "altctrlwrench:super_duty/rear_turn_signal_led_outage_detection_hyperfl.acwrecipe",
       "title": "Rear Turn Signal LED Outage Detection (Hyperflash Disable)",
       "raw_title": "Bulb-Rear Turn LED Outage Detection",
@@ -9001,7 +9001,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9030,7 +9030,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 169,
+      "id": 133,
       "source_key": "altctrlwrench:super_duty/rear_turn_signal_led_outage_detection_hyperfl_2.acwrecipe",
       "title": "Rear Turn Signal LED Outage Detection (Hyperflash Disable) (variant 2)",
       "raw_title": "Rear Turn LED Outage Detection",
@@ -9057,7 +9057,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche lighting",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9086,7 +9086,58 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 16,
+      "id": 42,
+      "source_key": "altctrlwrench:f150/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
+      "title": "Seatbelt Warning Chimes Disable (Driver & Passenger)",
+      "raw_title": "Disable driver & passenger seatbelt minder",
+      "category": "Chimes and Horn",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": null,
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "IPC",
+      "system_name": "Instrument Cluster",
+      "tier": 2,
+      "tier_reason": "'seatbelt': safety-visible or legally regulated behavior",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 1,
+      "popularity_reason": "niche, safety-visible",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "IPC",
+          "address": "720-01-01",
+          "mask": "xxxx xx*x xx--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 6,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": "Driver, Pass, and Mid seatbelt minder disabled."
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 134,
       "source_key": "altctrlwrench:bronco/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
       "title": "Seatbelt Warning Chimes Disable (Driver & Passenger)",
       "raw_title": "Disable driver & passenger seatbelt minder",
@@ -9113,7 +9164,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche, safety-visible",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9142,58 +9193,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 80,
-      "source_key": "altctrlwrench:f150/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
-      "title": "Seatbelt Warning Chimes Disable (Driver & Passenger)",
-      "raw_title": "Disable driver & passenger seatbelt minder",
-      "category": "Chimes and Horn",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": null,
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "IPC",
-      "system_name": "Instrument Cluster",
-      "tier": 2,
-      "tier_reason": "'seatbelt': safety-visible or legally regulated behavior",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 1,
-      "popularity_reason": "niche, safety-visible",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "IPC",
-          "address": "720-01-01",
-          "mask": "xxxx xx*x xx--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 6,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": "Driver, Pass, and Mid seatbelt minder disabled."
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 127,
+      "id": 135,
       "source_key": "altctrlwrench:ranger_6g/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
       "title": "Seatbelt Warning Chimes Disable (Driver & Passenger)",
       "raw_title": "Remove all seatbelt warnings and chimes (including OK button)",
@@ -9220,7 +9220,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche, safety-visible",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9291,7 +9291,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 170,
+      "id": 136,
       "source_key": "altctrlwrench:super_duty/seatbelt_warning_chimes_disable_driver_passen.acwrecipe",
       "title": "Seatbelt Warning Chimes Disable (Driver & Passenger)",
       "raw_title": "Seatbelt Chimes-Disables All",
@@ -9318,7 +9318,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 1,
       "popularity_reason": "niche, safety-visible",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9564,7 +9564,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 109,
+      "id": 137,
       "source_key": "altctrlwrench:ranger_6g/awd_intelligent_power_distribution_gauge.acwrecipe",
       "title": "AWD Intelligent Power Distribution Gauge",
       "raw_title": "Power delivery gauge (AWD)",
@@ -9591,7 +9591,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9617,7 +9617,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 2,
+      "id": 138,
       "source_key": "altctrlwrench:bronco/audio_system_eq_flattening_subwoofer_calibrat.acwrecipe",
       "title": "Audio System EQ Flattening & Subwoofer Calibration",
       "raw_title": "Equalizer - assist with rear speakers and subwoofer",
@@ -9644,7 +9644,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9683,7 +9683,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 3,
+      "id": 139,
       "source_key": "altctrlwrench:bronco/audio_system_speaker_channel_configuration.acwrecipe",
       "title": "Audio System Speaker Channel Configuration",
       "raw_title": "Base speaker configuration (non-LUX)",
@@ -9710,7 +9710,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9736,7 +9736,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 4,
+      "id": 140,
       "source_key": "altctrlwrench:bronco/audio_system_speaker_channel_configuration_2.acwrecipe",
       "title": "Audio System Speaker Channel Configuration (variant 2)",
       "raw_title": "Base EQ configuration (non-LUX)",
@@ -9763,7 +9763,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9789,7 +9789,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 44,
+      "id": 6,
       "source_key": "altctrlwrench:f150/auto_engine_idle_shutdown_aeis_30_minute_time.acwrecipe",
       "title": "Auto Engine Idle Shutdown (AEIS) 30-Minute Timer Disable",
       "raw_title": "Disable Auto Engine Idle Shutdown of 30 mins",
@@ -9816,7 +9816,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9842,7 +9842,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 105,
+      "id": 141,
       "source_key": "altctrlwrench:ranger_6g/auto_start_stop_cluster_notification_disable.acwrecipe",
       "title": "Auto Start/Stop Cluster Notification Disable",
       "raw_title": "Disable Auto Stop Start Feature (only affects cluster visibility/nag)",
@@ -9869,7 +9869,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'start/stop' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9895,7 +9895,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 107,
+      "id": 142,
       "source_key": "altctrlwrench:ranger_6g/automatic_climate_control_a_c_compressor_auto.acwrecipe",
       "title": "Automatic Climate Control A/C Compressor Auto-On Disable",
       "raw_title": "Don't auto turn on A/C",
@@ -9922,7 +9922,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9946,7 +9946,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 139,
+      "id": 143,
       "source_key": "altctrlwrench:super_duty/diesel_particulate_filter_dpf_soot_percentage.acwrecipe",
       "title": "Diesel Particulate Filter (DPF) Soot Percentage Screen",
       "raw_title": "DPF% on screen (may already be enabled)",
@@ -9973,7 +9973,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'diesel' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -9999,7 +9999,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 140,
+      "id": 144,
       "source_key": "altctrlwrench:super_duty/digital_compass_heading_display_in_cluster.acwrecipe",
       "title": "Digital Compass Heading Display in Cluster",
       "raw_title": "Compass Enable on IPC",
@@ -10026,7 +10026,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10052,7 +10052,58 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 29,
+      "id": 22,
+      "source_key": "altctrlwrench:f150/engine_sound_enhancement_ese_fake_engine_soun.acwrecipe",
+      "title": "Engine Sound Enhancement (ESE) / Fake Engine Sound Disable",
+      "raw_title": "Disable Fake Engine Noise",
+      "category": "Audio and Entertainment",
+      "platform": "F-150",
+      "platform_slug": "f150",
+      "model_years": "2021-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2021-2026 F150.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/engine_sound_enhancement_ese_fake_engine_soun.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": null,
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "ACM",
+      "system_name": "Audio Control Module",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "ICE_ONLY",
+      "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
+      "popularity": 0,
+      "popularity_reason": "no editorial ranking",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "ACM",
+          "address": "727-01-01",
+          "mask": "xxxx xxxx *x--",
+          "ops": [
+            {
+              "kind": "set",
+              "pos": 8,
+              "hex": "0"
+            }
+          ],
+          "feature_name": null,
+          "notes": null
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 145,
       "source_key": "altctrlwrench:explorer/engine_sound_enhancement_ese_fake_engine_soun.acwrecipe",
       "title": "Engine Sound Enhancement (ESE) / Fake Engine Sound Disable",
       "raw_title": "Remove fake engine noise (STILL IN PROGRESS)\n\nNOTE: If you have the Technology package with 14 speaker B&O system, use code 2 in the ACM, and Leave DSP as code D",
@@ -10079,7 +10130,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10117,58 +10168,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 60,
-      "source_key": "altctrlwrench:f150/engine_sound_enhancement_ese_fake_engine_soun.acwrecipe",
-      "title": "Engine Sound Enhancement (ESE) / Fake Engine Sound Disable",
-      "raw_title": "Disable Fake Engine Noise",
-      "category": "Audio and Entertainment",
-      "platform": "F-150",
-      "platform_slug": "f150",
-      "model_years": "2021-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2021-2026 F150.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/f150/engine_sound_enhancement_ese_fake_engine_soun.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": null,
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "ACM",
-      "system_name": "Audio Control Module",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "ICE_ONLY",
-      "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
-      "popularity": 0,
-      "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "ACM",
-          "address": "727-01-01",
-          "mask": "xxxx xxxx *x--",
-          "ops": [
-            {
-              "kind": "set",
-              "pos": 8,
-              "hex": "0"
-            }
-          ],
-          "feature_name": null,
-          "notes": null
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 119,
+      "id": 146,
       "source_key": "altctrlwrench:ranger_6g/heated_steering_wheel_auto_shut_off_timeout.acwrecipe",
       "title": "Heated Steering Wheel Auto Shut-Off Timeout",
       "raw_title": "Adjust How long Heat stays on for Steering Wheel",
@@ -10195,7 +10195,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10224,7 +10224,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 120,
+      "id": 147,
       "source_key": "altctrlwrench:ranger_6g/heated_steering_wheel_target_temperature_setp.acwrecipe",
       "title": "Heated Steering Wheel Target Temperature Setpoint",
       "raw_title": "Adjust Temperature of Heated Steering Wheel",
@@ -10251,7 +10251,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10279,7 +10279,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 158,
+      "id": 148,
       "source_key": "altctrlwrench:super_duty/heated_steering_wheel_target_temperature_setp.acwrecipe",
       "title": "Heated Steering Wheel Target Temperature Setpoint",
       "raw_title": "Heated Wheel Steering Wheel Temp",
@@ -10306,7 +10306,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10334,61 +10334,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 11,
-      "source_key": "altctrlwrench:bronco/key_in_ignition_warning_chime_disable.acwrecipe",
-      "title": "Key-in-Ignition Warning Chime Disable",
-      "raw_title": "Disable key-in ignition chime",
-      "category": "Chimes and Horn",
-      "platform": "Bronco",
-      "platform_slug": "bronco",
-      "model_years": "2021-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2022 Bronco.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/bronco/key_in_ignition_warning_chime_disable.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "changed from 0 to 2\nConfirmed: LagoCJ/multi",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "IPC",
-      "system_name": "Instrument Cluster",
-      "tier": 1,
-      "tier_reason": "cosmetic/convenience",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 0,
-      "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "IPC",
-          "address": "720-01-02",
-          "mask": "xxxx x*xx xx--",
-          "ops": [
-            {
-              "kind": "bits",
-              "pos": 5,
-              "bits": {
-                "3": 0,
-                "1": 1
-              }
-            }
-          ],
-          "feature_name": null,
-          "notes": "changed from 0 to 2\nConfirmed: LagoCJ/multi | Seatbelt warning switched to European standard."
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 67,
+      "id": 29,
       "source_key": "altctrlwrench:f150/key_in_ignition_warning_chime_disable.acwrecipe",
       "title": "Key-in-Ignition Warning Chime Disable",
       "raw_title": "Disable key-in ignition chime",
@@ -10415,7 +10361,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10441,7 +10387,61 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 160,
+      "id": 149,
+      "source_key": "altctrlwrench:bronco/key_in_ignition_warning_chime_disable.acwrecipe",
+      "title": "Key-in-Ignition Warning Chime Disable",
+      "raw_title": "Disable key-in ignition chime",
+      "category": "Chimes and Horn",
+      "platform": "Bronco",
+      "platform_slug": "bronco",
+      "model_years": "2021-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2022 Bronco.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/bronco/key_in_ignition_warning_chime_disable.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "changed from 0 to 2\nConfirmed: LagoCJ/multi",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "IPC",
+      "system_name": "Instrument Cluster",
+      "tier": 1,
+      "tier_reason": "cosmetic/convenience",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 0,
+      "popularity_reason": "no editorial ranking",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "IPC",
+          "address": "720-01-02",
+          "mask": "xxxx x*xx xx--",
+          "ops": [
+            {
+              "kind": "bits",
+              "pos": 5,
+              "bits": {
+                "3": 0,
+                "1": 1
+              }
+            }
+          ],
+          "feature_name": null,
+          "notes": "changed from 0 to 2\nConfirmed: LagoCJ/multi | Seatbelt warning switched to European standard."
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 150,
       "source_key": "altctrlwrench:super_duty/key_in_ignition_warning_chime_disable.acwrecipe",
       "title": "Key-in-Ignition Warning Chime Disable",
       "raw_title": "Key in Ignition - Chime Disable",
@@ -10468,7 +10468,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10494,7 +10494,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 99,
+      "id": 151,
       "source_key": "altctrlwrench:mustang/rear_sequential_turn_signals_enable.acwrecipe",
       "title": "Rear Sequential Turn Signals Enable",
       "raw_title": "Rear Sequential Turn Signals",
@@ -10521,7 +10521,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10545,7 +10545,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 130,
+      "id": 152,
       "source_key": "altctrlwrench:ranger_6g/tpms_tire_temperature_display_enable.acwrecipe",
       "title": "TPMS Tire Temperature Display Enable",
       "raw_title": "TPMS - Display tire temperature in addition to tire pressure",
@@ -10572,7 +10572,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10598,7 +10598,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 179,
+      "id": 153,
       "source_key": "altctrlwrench:super_duty/tire_pressure_monitoring_system_tpms_enable_d.acwrecipe",
       "title": "Tire Pressure Monitoring System (TPMS) Enable/Disable",
       "raw_title": "TPMS",
@@ -10625,7 +10625,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10654,7 +10654,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 95,
+      "id": 57,
       "source_key": "altctrlwrench:f150/truck_bed_cargo_lighting_switch_enable.acwrecipe",
       "title": "Truck Bed Cargo Lighting Switch Enable",
       "raw_title": "2021-23 Enabling Bed Lights/Switch",
@@ -10681,7 +10681,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10753,7 +10753,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 38,
+      "id": 154,
       "source_key": "altctrlwrench:explorer/welcome_approach_detection_lighting.acwrecipe",
       "title": "Welcome & Approach Detection Lighting",
       "raw_title": "Enable Approach Lighting\n\nhttps://www.explorerst.org/threads/enabling-\napproach-welcome-lighting.9062/",
@@ -10780,7 +10780,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10804,7 +10804,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 21,
+      "id": 155,
       "source_key": "altctrlwrench:explorer/auto_engine_idle_shutdown_aeis_30_minute_time.acwrecipe",
       "title": "Auto Engine Idle Shutdown (AEIS) 30-Minute Timer Disable",
       "raw_title": "Disable Auto Idle Shutdown of 30 minutes - \nDisables auto shutoff after 30 minutes of idling.",
@@ -10831,7 +10831,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10859,7 +10859,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 106,
+      "id": 156,
       "source_key": "altctrlwrench:ranger_6g/autolock_autounlock_sync_menu_toggle_enable.acwrecipe",
       "title": "Autolock / Autounlock Sync Menu Toggle Enable",
       "raw_title": "Auto lock menu control",
@@ -10886,7 +10886,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -10913,7 +10913,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 108,
+      "id": 157,
       "source_key": "altctrlwrench:ranger_6g/automatic_door_locking_at_speed_autolock.acwrecipe",
       "title": "Automatic Door Locking at Speed (Autolock)",
       "raw_title": "Auto lock doors at speed",
@@ -10940,7 +10940,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11057,7 +11057,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 117,
+      "id": 158,
       "source_key": "altctrlwrench:ranger_6g/fog_light_memory_remember_last_state.acwrecipe",
       "title": "Fog Light Memory (Remember Last State)",
       "raw_title": "Remember fogs on/off",
@@ -11084,7 +11084,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11113,7 +11113,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 150,
+      "id": 159,
       "source_key": "altctrlwrench:super_duty/fog_light_memory_remember_last_state.acwrecipe",
       "title": "Fog Light Memory (Remember Last State)",
       "raw_title": "Fog Light Remember",
@@ -11140,7 +11140,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11169,7 +11169,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 118,
+      "id": 160,
       "source_key": "altctrlwrench:ranger_6g/glare_free_matrix_high_beams_adaptive_driving.acwrecipe",
       "title": "Glare-Free Matrix High Beams (Adaptive Driving Beam)",
       "raw_title": "Glare-Free/Matrix High Beams",
@@ -11196,7 +11196,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11410,7 +11410,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 156,
+      "id": 161,
       "source_key": "altctrlwrench:super_duty/head_up_display_hud_navigation_turn_by_turn_r.acwrecipe",
       "title": "Head-Up Display (HUD) Navigation Turn-by-Turn Repeater",
       "raw_title": "Navigation Display on HUD",
@@ -11437,7 +11437,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11464,7 +11464,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 14,
+      "id": 162,
       "source_key": "altctrlwrench:bronco/navigation_destination_input_in_motion_enable.acwrecipe",
       "title": "Navigation Destination Input in Motion Enable",
       "raw_title": "Navigation in Motion",
@@ -11491,7 +11491,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11520,7 +11520,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 165,
+      "id": 163,
       "source_key": "altctrlwrench:super_duty/navigation_destination_input_in_motion_enable.acwrecipe",
       "title": "Navigation Destination Input in Motion Enable",
       "raw_title": "Navigation in Motion",
@@ -11547,7 +11547,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11586,7 +11586,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 74,
+      "id": 36,
       "source_key": "altctrlwrench:f150/off_road_front_camera_view_at_speed.acwrecipe",
       "title": "Off-Road Front Camera View at Speed",
       "raw_title": "Enable OffRoad (Rock Crawl, Mud/Ruts, and Deep Snow/Sand) Front Camera at Speed",
@@ -11613,7 +11613,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11642,60 +11642,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 34,
-      "source_key": "altctrlwrench:explorer/rear_camera_full_view_not_available_warning_o.acwrecipe",
-      "title": "Rear Camera 'Full View Not Available' Warning Overlay Removal",
-      "raw_title": "Removes \"Full View Not Available\" message in rear camera view.\n\n(Allows cams in motion at any speed without black box in middle)",
-      "category": "Cameras and ADAS",
-      "platform": "Explorer",
-      "platform_slug": "explorer",
-      "model_years": "2025-2026",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2025-2026 Explorer.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/rear_camera_full_view_not_available_warning_o.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "negated",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "APIM",
-      "system_name": "SYNC / Infotainment (APIM)",
-      "tier": 2,
-      "tier_reason": "category Cameras and ADAS",
-      "ev_status": "UNVERIFIED",
-      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
-      "popularity": 0,
-      "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "APIM",
-          "address": "7D0-02-02",
-          "mask": "xxx* xxxx xx--",
-          "ops": [
-            {
-              "kind": "bits",
-              "pos": 3,
-              "bits": {
-                "0": 0
-              }
-            }
-          ],
-          "feature_name": "RCOD HMI w/o Blackbox (RCODHMIB)",
-          "notes": "If your current value is 0 then change to 1, 2 change to 3, 4 change to 5, 6 change to 7\n\nNote: reset APIM after the change"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 75,
+      "id": 37,
       "source_key": "altctrlwrench:f150/rear_camera_full_view_not_available_warning_o.acwrecipe",
       "title": "Rear Camera 'Full View Not Available' Warning Overlay Removal",
       "raw_title": "Removes black box on reverse camera that says \"full view not available\"",
@@ -11722,7 +11669,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11748,7 +11695,60 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 126,
+      "id": 164,
+      "source_key": "altctrlwrench:explorer/rear_camera_full_view_not_available_warning_o.acwrecipe",
+      "title": "Rear Camera 'Full View Not Available' Warning Overlay Removal",
+      "raw_title": "Removes \"Full View Not Available\" message in rear camera view.\n\n(Allows cams in motion at any speed without black box in middle)",
+      "category": "Cameras and ADAS",
+      "platform": "Explorer",
+      "platform_slug": "explorer",
+      "model_years": "2025-2026",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2025-2026 Explorer.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/explorer/rear_camera_full_view_not_available_warning_o.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "negated",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "APIM",
+      "system_name": "SYNC / Infotainment (APIM)",
+      "tier": 2,
+      "tier_reason": "category Cameras and ADAS",
+      "ev_status": "UNVERIFIED",
+      "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
+      "popularity": 0,
+      "popularity_reason": "no editorial ranking",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "APIM",
+          "address": "7D0-02-02",
+          "mask": "xxx* xxxx xx--",
+          "ops": [
+            {
+              "kind": "bits",
+              "pos": 3,
+              "bits": {
+                "0": 0
+              }
+            }
+          ],
+          "feature_name": "RCOD HMI w/o Blackbox (RCODHMIB)",
+          "notes": "If your current value is 0 then change to 1, 2 change to 3, 4 change to 5, 6 change to 7\n\nNote: reset APIM after the change"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 165,
       "source_key": "altctrlwrench:ranger_6g/rear_camera_full_view_not_available_warning_o.acwrecipe",
       "title": "Rear Camera 'Full View Not Available' Warning Overlay Removal",
       "raw_title": "Removes black box on reverse camera that says \"full view not available",
@@ -11775,7 +11775,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11828,7 +11828,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11854,7 +11854,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 76,
+      "id": 38,
       "source_key": "altctrlwrench:f150/rear_camera_full_view_not_available_warning_o_2.acwrecipe",
       "title": "Rear Camera 'Full View Not Available' Warning Overlay Removal (variant 2)",
       "raw_title": "Removes black box on reverse camera that says \"full view not available",
@@ -11881,7 +11881,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -11907,7 +11907,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 15,
+      "id": 167,
       "source_key": "altctrlwrench:bronco/remote_engine_start_enable_manual_transmissio.acwrecipe",
       "title": "Remote Engine Start Enable (Manual Transmission)",
       "raw_title": "Remote Start - 7-Speed",
@@ -11934,7 +11934,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'engine' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12014,7 +12014,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 81,
+      "id": 43,
       "source_key": "altctrlwrench:f150/securicode_door_pillar_keypad_enable.acwrecipe",
       "title": "SecuriCode Door Pillar Keypad Enable",
       "raw_title": "Keypad Enable (wired keypad)",
@@ -12041,7 +12041,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12086,7 +12086,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 82,
+      "id": 44,
       "source_key": "altctrlwrench:f150/silent_mode_police_dark_car_mode.acwrecipe",
       "title": "Silent Mode / Police Dark Car Mode",
       "raw_title": "2021-26 Silent Mode - adds toggle in Sync under Settings, Vehicle (prevents any approach lighting, lock/unlock lighting, courtesy lights until truck is turned on)",
@@ -12113,7 +12113,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12139,7 +12139,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 128,
+      "id": 168,
       "source_key": "altctrlwrench:ranger_6g/silent_mode_police_dark_car_mode.acwrecipe",
       "title": "Silent Mode / Police Dark Car Mode",
       "raw_title": "Silent/Dark mode control",
@@ -12166,7 +12166,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12215,7 +12215,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 171,
+      "id": 169,
       "source_key": "altctrlwrench:super_duty/siriusxm_audio_source_removal.acwrecipe",
       "title": "SiriusXM Audio Source Removal",
       "raw_title": "XM/Sirius Radio from Source -Remove",
@@ -12242,7 +12242,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12268,7 +12268,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 173,
+      "id": 170,
       "source_key": "altctrlwrench:super_duty/sync_bluetooth_broadcast_name_customization.acwrecipe",
       "title": "Sync Bluetooth Broadcast Name Customization",
       "raw_title": "Bluetooth Name",
@@ -12295,7 +12295,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12321,7 +12321,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       ]
     },
     {
-      "id": 88,
+      "id": 50,
       "source_key": "altctrlwrench:f150/sync_unreal_engine_graphic_ui_theme_enable.acwrecipe",
       "title": "Sync Unreal Engine Graphic UI Theme Enable",
       "raw_title": "Enable Unreal Sync Theme",
@@ -12348,7 +12348,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12372,7 +12372,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 178,
+      "id": 171,
       "source_key": "altctrlwrench:super_duty/sync_unreal_engine_graphic_ui_theme_enable.acwrecipe",
       "title": "Sync Unreal Engine Graphic UI Theme Enable",
       "raw_title": "Enable Unreal Sync Theme",
@@ -12399,7 +12399,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12423,7 +12423,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 89,
+      "id": 51,
       "source_key": "altctrlwrench:f150/sync_vehicle_maintenance_oil_life_screen_enab.acwrecipe",
       "title": "Sync Vehicle Maintenance Oil Life Screen Enable",
       "raw_title": "Enable Oil Life in Sync Settings, Vehicle",
@@ -12450,7 +12450,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'oil life' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12474,7 +12474,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 18,
+      "id": 172,
       "source_key": "altctrlwrench:bronco/sync_visual_design_variants_hmi_theme.acwrecipe",
       "title": "Sync Visual Design Variants (HMI Theme)",
       "raw_title": "Screen - Visual Design Variants (VDV)",
@@ -12501,7 +12501,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12530,7 +12530,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 181,
+      "id": 173,
       "source_key": "altctrlwrench:super_duty/trailer_tpms_system_enable.acwrecipe",
       "title": "Trailer TPMS System Enable",
       "raw_title": "Trailer TPMS Enable",
@@ -12557,7 +12557,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12583,7 +12583,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 133,
+      "id": 174,
       "source_key": "altctrlwrench:ranger_6g/welcome_approach_detection_lighting.acwrecipe",
       "title": "Welcome & Approach Detection Lighting",
       "raw_title": "Welcome lights (approach detection)\n\n** WARNING ** enabling this some have commented that the keyless touch entry is less sensitive to locking/unlocking the door",
@@ -12610,7 +12610,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12674,7 +12674,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 42,
+      "id": 4,
       "source_key": "altctrlwrench:f150/acoustic_vehicle_alerting_system_avas_speaker.acwrecipe",
       "title": "Acoustic Vehicle Alerting System (AVAS) Speaker Disable",
       "raw_title": "Disable Pedestrian Alert Speaker",
@@ -12701,7 +12701,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "text mentions 'avas' (still unverified on your truck)",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12727,7 +12727,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 43,
+      "id": 5,
       "source_key": "altctrlwrench:f150/active_front_air_dam_motor_disable.acwrecipe",
       "title": "Active Front Air Dam Motor Disable",
       "raw_title": "Disable Active Air Dam (2021-2026)",
@@ -12754,7 +12754,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "text mentions 'air dam' (still unverified on your truck)",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12778,73 +12778,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 5,
-      "source_key": "altctrlwrench:bronco/auto_start_stop_system_disable.acwrecipe",
-      "title": "Auto Start/Stop System Disable",
-      "raw_title": "Disable Auto Start-Stop",
-      "category": "Powertrain and Drivetrain",
-      "platform": "Bronco",
-      "platform_slug": "bronco",
-      "model_years": "2021-2024",
-      "trim_claimed": "All",
-      "upstream_validated": 1,
-      "upstream_verified_by": "Kyle / AsBuiltPro",
-      "source_sheet": "2022 Bronco.xlsx",
-      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/bronco/auto_start_stop_system_disable.acwrecipe",
-      "source_confidence": "community-recipe",
-      "notes": "Start / Stop: 00=Disabled 01=Enabled, Angle Inhibit Enabled 02=Enabled, Angle Inhibit Disabled\nConfirmed: D2dhanover/multi",
-      "warnings": null,
-      "prerequisites": null,
-      "post_procedure": null,
-      "forscan_menu": null,
-      "system": "PSCM",
-      "system_name": "Power Steering",
-      "tier": 3,
-      "tier_reason": "category Powertrain and Drivetrain",
-      "ev_status": "ICE_ONLY",
-      "ev_reason": "'start/stop' refers to an engine/ICE feature the Lightning does not have",
-      "popularity": 0,
-      "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
-      "status": "DRAFT",
-      "verified_on_my_truck": 0,
-      "wanted": 0,
-      "user_notes": null,
-      "steps": [
-        {
-          "module": "PSCM",
-          "address": "730-03-01",
-          "mask": "xxxx xxxx **--",
-          "ops": [
-            {
-              "kind": "bits",
-              "pos": 8,
-              "bits": {
-                "3": 0,
-                "2": 0,
-                "1": 0,
-                "0": 0
-              }
-            },
-            {
-              "kind": "bits",
-              "pos": 9,
-              "bits": {
-                "3": 0,
-                "2": 0,
-                "1": 0,
-                "0": 0
-              }
-            }
-          ],
-          "feature_name": null,
-          "notes": "Start / Stop: 00=Disabled 01=Enabled, Angle Inhibit Enabled 02=Enabled, Angle Inhibit Disabled\nConfirmed: D2dhanover/multi"
-        }
-      ],
-      "import_issues": []
-    },
-    {
-      "id": 46,
+      "id": 8,
       "source_key": "altctrlwrench:f150/auto_start_stop_system_disable.acwrecipe",
       "title": "Auto Start/Stop System Disable",
       "raw_title": "Auto Start/Stop Disabled",
@@ -12871,7 +12805,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'start/stop' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12914,7 +12848,73 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 135,
+      "id": 175,
+      "source_key": "altctrlwrench:bronco/auto_start_stop_system_disable.acwrecipe",
+      "title": "Auto Start/Stop System Disable",
+      "raw_title": "Disable Auto Start-Stop",
+      "category": "Powertrain and Drivetrain",
+      "platform": "Bronco",
+      "platform_slug": "bronco",
+      "model_years": "2021-2024",
+      "trim_claimed": "All",
+      "upstream_validated": 1,
+      "upstream_verified_by": "Kyle / AsBuiltPro",
+      "source_sheet": "2022 Bronco.xlsx",
+      "source_url": "https://github.com/altctrlwrench/forscanconfigviewer/blob/HEAD/recipes/bronco/auto_start_stop_system_disable.acwrecipe",
+      "source_confidence": "community-recipe",
+      "notes": "Start / Stop: 00=Disabled 01=Enabled, Angle Inhibit Enabled 02=Enabled, Angle Inhibit Disabled\nConfirmed: D2dhanover/multi",
+      "warnings": null,
+      "prerequisites": null,
+      "post_procedure": null,
+      "forscan_menu": null,
+      "system": "PSCM",
+      "system_name": "Power Steering",
+      "tier": 3,
+      "tier_reason": "category Powertrain and Drivetrain",
+      "ev_status": "ICE_ONLY",
+      "ev_reason": "'start/stop' refers to an engine/ICE feature the Lightning does not have",
+      "popularity": 0,
+      "popularity_reason": "no editorial ranking",
+      "date_checked": "2026-10-27",
+      "status": "DRAFT",
+      "verified_on_my_truck": 0,
+      "wanted": 0,
+      "user_notes": null,
+      "steps": [
+        {
+          "module": "PSCM",
+          "address": "730-03-01",
+          "mask": "xxxx xxxx **--",
+          "ops": [
+            {
+              "kind": "bits",
+              "pos": 8,
+              "bits": {
+                "3": 0,
+                "2": 0,
+                "1": 0,
+                "0": 0
+              }
+            },
+            {
+              "kind": "bits",
+              "pos": 9,
+              "bits": {
+                "3": 0,
+                "2": 0,
+                "1": 0,
+                "0": 0
+              }
+            }
+          ],
+          "feature_name": null,
+          "notes": "Start / Stop: 00=Disabled 01=Enabled, Angle Inhibit Enabled 02=Enabled, Angle Inhibit Disabled\nConfirmed: D2dhanover/multi"
+        }
+      ],
+      "import_issues": []
+    },
+    {
+      "id": 176,
       "source_key": "altctrlwrench:super_duty/auto_start_stop_system_disable.acwrecipe",
       "title": "Auto Start/Stop System Disable",
       "raw_title": "Auto Start/Stop Disable (May not work on 24+)",
@@ -12941,7 +12941,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'start/stop' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -12979,7 +12979,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 136,
+      "id": 177,
       "source_key": "altctrlwrench:super_duty/autohold_brake_memory_default_state.acwrecipe",
       "title": "AutoHold Brake Memory / Default State",
       "raw_title": "AutoHold",
@@ -13006,7 +13006,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13066,7 +13066,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 49,
+      "id": 11,
       "source_key": "altctrlwrench:f150/bluecruise_traffic_jam_assist_mode_selection.acwrecipe",
       "title": "BlueCruise / Traffic Jam Assist Mode Selection",
       "raw_title": "ADAS - Advanced Driver Assist Systems\nDisable BlueCruise and enable Traffic Jam Assist\n(settings for normal Adaptive Cruise Control) (2021-2026)",
@@ -13093,7 +13093,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13122,7 +13122,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 48,
+      "id": 10,
       "source_key": "altctrlwrench:f150/bluecruise_1_4_feature_set_lane_biasing_curve.acwrecipe",
       "title": "BlueCruise 1.4 Feature Set (Lane Biasing & Curve Speed)",
       "raw_title": "Bluecruise 1.4 Settings   (IPMA strategy must be on ACJ or BBC for this to work)",
@@ -13149,7 +13149,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13253,7 +13253,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 50,
+      "id": 12,
       "source_key": "altctrlwrench:f150/camper_shell_third_brake_light_chmsl_circuit_.acwrecipe",
       "title": "Camper Shell Third Brake Light (CHMSL) Circuit Enable",
       "raw_title": "Enable Extra Brake Light Wire Circuit for Camper Shell (2021-23)",
@@ -13280,7 +13280,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13304,7 +13304,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 138,
+      "id": 178,
       "source_key": "altctrlwrench:super_duty/diesel_exhaust_auto_regen_control_checkbox_en.acwrecipe",
       "title": "Diesel Exhaust Auto Regen Control Checkbox Enable",
       "raw_title": "Auto Regen Checkbox",
@@ -13331,7 +13331,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "'diesel' refers to an engine/ICE feature the Lightning does not have",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13373,7 +13373,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 114,
+      "id": 179,
       "source_key": "altctrlwrench:ranger_6g/drive_mode_rock_crawl_enable.acwrecipe",
       "title": "Drive Mode - Rock Crawl Enable",
       "raw_title": "Enable ROCK/CRAWL mode on XL, XLT, lariat, etc.",
@@ -13400,7 +13400,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13424,7 +13424,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 145,
+      "id": 180,
       "source_key": "altctrlwrench:super_duty/drive_mode_rock_crawl_enable.acwrecipe",
       "title": "Drive Mode - Rock Crawl Enable",
       "raw_title": "Rock Crawl Mode (enable)",
@@ -13451,7 +13451,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13480,7 +13480,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 61,
+      "id": 23,
       "source_key": "altctrlwrench:f150/factory_trailer_brake_controller_tbc_module_e.acwrecipe",
       "title": "Factory Trailer Brake Controller (TBC) Module Enable",
       "raw_title": "2021-26 - Adding OEM Trailer Brake Controller",
@@ -13507,7 +13507,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13596,7 +13596,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 159,
+      "id": 181,
       "source_key": "altctrlwrench:super_duty/hill_descent_control_switch_enable.acwrecipe",
       "title": "Hill Descent Control Switch Enable",
       "raw_title": "Hill Descent",
@@ -13623,7 +13623,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13650,7 +13650,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 90,
+      "id": 52,
       "source_key": "altctrlwrench:f150/tire_size_calibration_pcm_bcm_circumference.acwrecipe",
       "title": "Tire Size Calibration (PCM / BCM Circumference)",
       "raw_title": "Tire Size - requires PCM Relearn procedure after change (2021-26)",
@@ -13677,7 +13677,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13725,7 +13725,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 180,
+      "id": 182,
       "source_key": "altctrlwrench:super_duty/tire_size_calibration_pcm_bcm_circumference.acwrecipe",
       "title": "Tire Size Calibration (PCM / BCM Circumference)",
       "raw_title": "Tire Size",
@@ -13752,7 +13752,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,
@@ -13800,7 +13800,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "import_issues": []
     },
     {
-      "id": 131,
+      "id": 183,
       "source_key": "altctrlwrench:ranger_6g/trail_turn_assist_enable.acwrecipe",
       "title": "Trail Turn Assist Enable",
       "raw_title": "Enables Trail Turn Assist",
@@ -13827,7 +13827,7 @@ window.LIGHTNING_GARAGE_BUNDLE = {
       "ev_reason": "community entry says 'All' trims; never confirmed on a Lightning",
       "popularity": 0,
       "popularity_reason": "no editorial ranking",
-      "date_checked": "2026-10-26",
+      "date_checked": "2026-10-27",
       "status": "DRAFT",
       "verified_on_my_truck": 0,
       "wanted": 0,

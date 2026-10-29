@@ -2,8 +2,8 @@
   "hub": {
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
-    "version": "1.0.6",
-    "updated_at": "2026-10-26T23:13:15.671287",
+    "version": "1.0.9",
+    "updated_at": "2026-10-28T08:57:46.381546",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -39,8 +39,8 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-              "tailscale_workstation_url": "http://192.168.86.47:8765",
+              "primary_workstation_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+              "tailscale_workstation_url": "http://10.0.0.91:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
             "csc-site-discovery": {
@@ -107,10 +107,10 @@
         }
       ]
     },
-    "apk_version": "1.1.0",
-    "build_hash": "2b3112af07",
-    "stamped_version": "1.0.6",
-    "ota_etag": "c7a5c1bad1"
+    "apk_version": "1.3.0",
+    "build_hash": "970db01240",
+    "stamped_version": "1.0.9",
+    "ota_etag": "01fcab71f0"
   },
   "apps": [
     {
@@ -121,7 +121,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.3.5",
+      "version": "1.4.1",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -133,15 +133,15 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-          "defaultForAdmin": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
+          "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+          "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
           "label": "Secondary / Tailscale Workstation URL (Optional)",
           "type": "text",
-          "default": "http://192.168.86.47:8765",
-          "defaultForAdmin": "http://192.168.86.47:8765"
+          "default": "http://10.0.0.91:8765",
+          "defaultForAdmin": "http://10.0.0.91:8765"
         },
         {
           "key": "sidecar_token",
@@ -151,13 +151,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "a87886b381",
-      "stamped_version": "1.3.5",
-      "updated_at": "2026-10-26T22:33:43.504577",
+      "build_hash": "e84c3a9e49",
+      "stamped_version": "1.4.1",
+      "updated_at": "2026-10-27T09:22:57.683857",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "a87886b381",
-      "manual_updated_at": "2026-10-26T22:33:51.104421"
+      "manual_source_hash": "e84c3a9e49",
+      "manual_updated_at": "2026-10-27T09:23:01.106488"
     },
     {
       "id": "fantasy-manager",
@@ -208,19 +208,22 @@
     {
       "id": "csc-site-discovery",
       "title": "CSC Site Discovery",
-      "subtitle": "Snap & Go v3.2: Stamped Unit Photos, Self-Contained Walk.zip & Office Wi-Fi Sync",
-      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.2: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload, Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, ASHRAE Ch. 38 + EPA A2L Decoder, and BAS Overlay Sizers.",
+      "subtitle": "Snap & Go v3.4: 2-Way Office PC Sync, Job Pull & Portrait Watermarks",
+      "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.4: 2-Way Office PC Connectivity over LAN (10.0.0.91:8766) & Cloudflare HTTPS Tunnel, 1-Tap PC Preloaded Job Catalog Pull, Portrait-Safe Burned-In CSC Evidence Footer Watermark Toggle with CLAHE Preservation, Gallery Photo Save & Multi-Photo Native Share, Self-Contained .cscwalk.zip Export, and Desktop Engineering Compute Workbench.",
       "icon": "\ud83e\udded",
       "accent": "#0d9488",
       "category": "Field & Productivity",
-      "version": "3.2.1",
+      "version": "3.4.0",
       "entry": "apps/csc-site-discovery/index.html",
       "visibility": "restricted",
       "offline_assets": [
         "apps/csc-site-discovery/index.html",
+        "apps/csc-site-discovery/workbench.html",
         "apps/csc-site-discovery/css/field_ui.css",
         "apps/csc-site-discovery/js/discovery_storage_adapter.js",
-        "apps/csc-site-discovery/js/app.js"
+        "apps/csc-site-discovery/js/app.js",
+        "apps/csc-site-discovery/js/workbench.js",
+        "apps/csc-site-discovery/endpoints.json"
       ],
       "userConfigSchema": [
         {
@@ -238,13 +241,13 @@
           "defaultForAdmin": "Andrew Nicks \u2014 Control Service Company (CSC)"
         }
       ],
-      "build_hash": "93176e9687",
-      "stamped_version": "3.2.1",
-      "updated_at": "2026-10-26T22:50:18.712366",
+      "build_hash": "dee169a55d",
+      "stamped_version": "3.4.1",
+      "updated_at": "2026-10-27T09:25:36.785240",
       "manual_pdf": "manuals/csc-site-discovery_User_Manual.pdf",
       "manual_html": "manuals/csc-site-discovery_User_Manual.html",
-      "manual_source_hash": "93176e9687",
-      "manual_updated_at": "2026-10-26T22:50:38.521545"
+      "manual_source_hash": "dee169a55d",
+      "manual_updated_at": "2026-10-27T09:25:39.318071"
     },
     {
       "id": "field-snap",
@@ -308,7 +311,7 @@
       "icon": "\ud83e\udd85",
       "accent": "#ff6b00",
       "category": "Gaming & Tactical Tools",
-      "version": "4.2.0",
+      "version": "4.2.1",
       "entry": "apps/shd-div2-intel/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -334,13 +337,13 @@
           "defaultForAdmin": "true"
         }
       ],
-      "build_hash": "bd8b573ae1",
-      "stamped_version": "4.2.0",
-      "updated_at": "2026-10-26T15:03:07.425531",
+      "build_hash": "69c2924d6d",
+      "stamped_version": "4.2.1",
+      "updated_at": "2026-10-27T08:16:16.313188",
       "manual_pdf": "manuals/shd-div2-intel_User_Manual.pdf",
       "manual_html": "manuals/shd-div2-intel_User_Manual.html",
-      "manual_source_hash": "bd8b573ae1",
-      "manual_updated_at": "2026-10-26T15:10:27.103956"
+      "manual_source_hash": "69c2924d6d",
+      "manual_updated_at": "2026-10-27T08:16:19.783100"
     },
     {
       "id": "sapphire-companion",
@@ -376,12 +379,12 @@
     {
       "id": "lightning-garage",
       "title": "Blue Oval Garage",
-      "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 Multi-Vehicle, VIN Scanner & As-Built Engine",
-      "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Multi-Vehicle Garage (pre-seeded with 2023 F-150 Lightning ER Lariat 1FT6W1EV4PWG11434), 183 Community Recipes across 6 Platforms + 21 Curated Spreadsheet/PDF Downloads + Custom Spreadsheet Line Builder, Hybrid VIN Barcode/Photo/OCR Scanner with ISO 3779 Modulo-11 Auto-Repair, .abt & Motorcraft .ab XML Importer/Differ, 87-Module Guide, and In-Cab Session Planner.",
+      "subtitle": "Ford & Lincoln FORScan Companion (2011\u20132026+) \u2022 USB-C Live Backup, VIN Scanner & As-Built Engine",
+      "description": "100% Deterministic Ford & Lincoln FORScan Companion (2011\u20132026+): Native USB-C OTG Read-Only OBD-II As-Built Snapshot & 12V ATRV Battery Gate, FORScan >= 2.3.23 G0-Encoded Modded .abt Handoff with Strict Baseline Parity Gate & Stale Pre-OTA F188 Guard, Time-Boxed PC FORScan Staging Sync, Multi-Vehicle Garage, 183 Community Recipes across 6 Platforms + 21 Spreadsheets, and Hybrid VIN Scanner.",
       "icon": "\u26a1",
       "accent": "#38bdf8",
       "category": "Automotive & Telemetry",
-      "version": "2.0.1",
+      "version": "2.1.2",
       "entry": "apps/lightning-garage/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -414,13 +417,13 @@
           "defaultForAdmin": "Extended Range (131 kWh)"
         }
       ],
-      "build_hash": "7b8848bae0",
-      "stamped_version": "2.0.1",
-      "updated_at": "2026-10-26T23:12:59.219159",
+      "build_hash": "c02bd2678a",
+      "stamped_version": "2.1.2",
+      "updated_at": "2026-10-27T09:03:33.060694",
       "manual_pdf": "manuals/lightning-garage_User_Manual.pdf",
       "manual_html": "manuals/lightning-garage_User_Manual.html",
-      "manual_source_hash": "7b8848bae0",
-      "manual_updated_at": "2026-10-26T23:13:14.493861"
+      "manual_source_hash": "c02bd2678a",
+      "manual_updated_at": "2026-10-27T08:58:14.267513"
     }
   ]
 }

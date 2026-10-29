@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSC PC Companion Engineering Compute Workbench v3.4</title>
+  <style>
+    :root {
+      --bg-main: #0b1120;
+      --bg-card: #111827;
+      --bg-panel: #1e293b;
+      --bg-input: #0f172a;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-col: #334155;
+      --accent-teal: #14b8a6;
+      --accent-blue: #3b82f6;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+    }
+    body.light-mode {
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-panel: #f8fafc;
+      --bg-input: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-col: #cbd5e1;
+      --accent-teal: #0d9488;
+      --accent-blue: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-size: 13px;
+    }
+    .loto-top-banner {
+      background: linear-gradient(90deg, #7f1d1d, #991b1b);
+      color: #fef2f2;
+      padding: 7px 18px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #ef4444;
+    }
+    .wb-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-col);
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .wb-title-block h1 {
+      margin: 0;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wb-badge {
+      background: rgba(20, 184, 166, 0.18);
+      color: var(--accent-teal);
+      border: 1px solid var(--accent-teal);
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .wb-sub {
+      color: var(--text-muted);
+      font-size: 11.5px;
+      margin-top: 3px;
+    }
+    .wb-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: var(--accent-teal);
+      color: #ffffff;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn-blue { background: var(--accent-blue); }
+    .btn-amber { background: #d97706; }
+    .btn-secondary {
+      background: var(--bg-panel);
+      color: var(--text-main);
+      border-color: var(--border-col);
+    }
+    .wb-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr 380px;
+      gap: 14px;
+      padding: 14px 18px;
+      max-width: 1920px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    @media (max-width: 1360px) {
+      .wb-grid { grid-template-columns: 300px 1fr; }
+      .wb-right-col { grid-column: 1 / -1; }
+    }
+    @media (max-width: 920px) {
+      .wb-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-col);
+      border-radius: 10px;
+      padding: 13px;
+      margin-bottom: 12px;
+    }
+    .card-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid var(--border-col);
+      font-weight: 800;
+      font-size: 13.5px;
+      color: var(--accent-teal);
+    }
+    .unit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .unit-item {
+      background: var(--bg-panel);
+      border: 1.5px solid var(--border-col);
+      border-radius: 8px;
+      padding: 9px 10px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .unit-item:hover { border-color: var(--accent-teal); }
+    .unit-item.active {
+      border-color: var(--accent-teal);
+      background: rgba(20, 184, 166, 0.12);
+    }
+    .pill {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 10.5px;
+      font-weight: 800;
+    }
+    .pill-good { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .pill-caution { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    .pill-replace { background: rgba(239, 68, 68, 0.22); color: #f87171; border: 1px solid #ef4444; }
+    .pill-info { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid #3b82f6; }
+    .pill-override { background: rgba(168, 85, 247, 0.22); color: #c084fc; border: 1px solid #a855f7; }
+
+    .filter-bar {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-bottom: 9px;
+    }
+    .filter-pill {
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      border: 1px solid var(--border-col);
+      border-radius: 99px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .filter-pill:hover { border-color: var(--accent-teal); color: var(--text-main); }
+    .filter-pill.active {
+      background: rgba(20, 184, 166, 0.2);
+      color: var(--accent-teal);
+      border-color: var(--accent-teal);
+    }
+    .board-ref-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-top: 7px;
+    }
+    .board-ref-cell {
+      background: var(--bg-input);
+      border: 1px solid var(--border-col);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11.5px;
+    }
+    .board-ref-cell small {
+      display: block;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--accent-teal);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+    .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+    .fg label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .fg input, .fg select {
+      width: 100%;
+      background: var(--bg-input);
+      color: var(--text-main);
+      border: 1px solid var(--border-col);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 12.5px;
+    }
+    .result-banner {
+      margin-top: 10px;
+      background: var(--bg-panel);
+      border-left: 4px solid var(--accent-teal);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .result-banner.warn { border-left-color: var(--accent-amber); }
+    .result-banner.danger { border-left-color: var(--accent-red); }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .kpi-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-col);
+      border-radius: 6px;
+      padding: 7px 9px;
+    }
+    .kpi-box small { color: var(--text-muted); font-size: 10.5px; display: block; }
+    .kpi-box strong { font-size: 13.5px; color: var(--text-main); }
+
+    .bom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+    .bom-table th {
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      text-align: left;
+      padding: 6px 7px;
+      border-bottom: 1px solid var(--border-col);
+    }
+    .bom-table td {
+      padding: 6px 7px;
+      border-bottom: 1px solid var(--border-col);
+      vertical-align: top;
+    }
+    .photo-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .photo-strip img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border-col);
+      cursor: pointer;
+    }
+    .toast-bar {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 9999;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1.5px solid var(--accent-teal);
+      border-radius: 9px;
+      padding: 11px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      display: none;
+      max-width: 480px;
+      font-size: 12.5px;
+    }
+    .va-meter-bar {
+      height: 10px;
+      background: var(--bg-input);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid var(--border-col);
+      margin: 6px 0;
+    }
+    .va-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #14b8a6);
+      transition: width 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mandatory NFPA 70E & OSHA 1910.147 LOTO Banner -->
+  <div class="loto-top-banner">
+    <span>⚡ MANDATORY NFPA 70E &amp; OSHA 1910.147 LOCKOUT/TAGOUT (LOTO) SAFETY BANNER: Verify zero energy before opening live 120V/480V panels, VFD terminals, or controller jumpers. Never bypass hardwired safety interlocks (RFI-23-006 / RFI-23-007).</span>
+    <span id="wbServerConnBadge" style="font-size:11px;background:rgba(0,0,0,0.35);padding:2px 8px;border-radius:99px;">🖥️ Checking PC Server...</span>
+  </div>
+
+  <!-- Top Workbench Bar -->
+  <header class="wb-header">
+    <div class="wb-title-block">
+      <h1>
+        <span>🧮 CSC PC Companion Engineering Compute Workbench</span>
+        <span class="wb-badge">v3.3 • Desktop Companion</span>
+      </h1>
+      <div class="wb-sub">
+        📱 <strong>Phone App:</strong> Fast Snap &amp; Go Capture + Instant Age/A2L Badges &nbsp;|&nbsp;
+        🖥️ <strong>PC Companion:</strong> Deterministic Valve Cv, Damper Torque, ALC I/O, Labor &amp; 80% NEC Class 2 TCP VA Sizing
+      </div>
+    </div>
+
+    <div class="wb-actions">
+      <select id="wbWalkFolderSelect" onchange="onSelectServerWalkFolder(this.value)" style="display:none;background:var(--bg-input);color:var(--text-main);border:1px solid var(--border-col);border-radius:6px;padding:6px 9px;font-size:12px;"></select>
+
+      <button class="btn btn-secondary" onclick="pullLatestWalkFromDownloads()" title="Auto-find latest .cscwalk.zip in your PC Downloads folder and load it here">
+        📥 Unpack Latest from Downloads
+      </button>
+
+      <label class="btn btn-secondary" style="cursor:pointer;" title="Open any phone-exported .cscwalk.zip or .json walk file">
+        📂 Load Walk (.zip / .json)
+        <input type="file" accept=".zip,.json,application/zip,application/json,application/octet-stream" style="display:none;" onchange="importWalkFileIntoWorkbench(this)" />
+      </label>
+
+      <button class="btn btn-blue" onclick="saveAndRecompileFullDossier()" title="Save all sizing overrides and compile PDF, Excel, Word, HTML &amp; Handoff JSON">
+        💾 Save &amp; Re-Compile Dossier (.PDF / .XLSX / .DOCX)
+      </button>
+
+      <button class="btn btn-amber" onclick="exportWorkbenchBomCsv()" title="Download Engineering Sizing &amp; BOM Schedule as CSV">
+        📊 Export Sizing CSV
+      </button>
+
+      <button class="btn btn-secondary" onclick="document.body.classList.toggle('light-mode')" title="Toggle Dark / Light Monitor Theme">
+        ☀️ Theme
+      </button>
+    </div>
+  </header>
+
+  <div id="wbToast" class="toast-bar"></div>
+
+  <!-- 3-Column Desktop Engineering Workbench Layout -->
+  <main class="wb-grid">
+
+    <!-- ================================================================== -->
+    <!-- LEFT COLUMN: WALK SUMMARY, UNIT SELECTOR & FIELD MEDIA INSPECTOR   -->
+    <!-- ================================================================== -->
+    <section>
+      <div class="card">
+        <div class="card-hdr">
+          <span>📁 Active Field Walk Session</span>
+          <a href="./index.html" style="font-size:11px;color:var(--accent-blue);text-decoration:none;">📱 Field Capture UI &rarr;</a>
+        </div>
+        <div style="font-size:12px;line-height:1.55;">
+          <div><strong>Project:</strong> <span id="wbMetaProject">—</span></div>
+          <div><strong>CSC Job #:</strong> <code id="wbMetaJob">—</code> &nbsp;|&nbsp; <strong>Date:</strong> <span id="wbMetaDate">—</span></div>
+          <div><strong>Lead Engineer:</strong> <span id="wbMetaEngineer">—</span></div>
+        </div>
+        <div id="wbDeliverableLinks" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <span>📋 Captured Equipment Units (<span id="wbUnitCount">0</span>)</span>
+          <small style="color:var(--text-muted);font-weight:600;">Click unit to size</small>
+        </div>
+        <div id="wbUnitFilterBar" class="filter-bar">
+          <button id="wbFilterAll" type="button" class="filter-pill active" data-filter="ALL" onclick="setWorkbenchUnitFilter('ALL')">All</button>
+          <button id="wbFilterAlert" type="button" class="filter-pill" data-filter="CONDITION_ALERT" onclick="setWorkbenchUnitFilter('CONDITION_ALERT')">🔴 Replace/Caution</button>
+          <button id="wbFilterDelta" type="button" class="filter-pill" data-filter="QTY_DELTA" onclick="setWorkbenchUnitFilter('QTY_DELTA')">⚠️ Qty Delta</button>
+          <button id="wbFilterOverridden" type="button" class="filter-pill" data-filter="OVERRIDDEN" onclick="setWorkbenchUnitFilter('OVERRIDDEN')">✏️ Overridden</button>
+        </div>
+        <div id="wbUnitList" class="unit-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <span>📷 Field Photos &amp; Voice Evidence</span>
+          <span id="wbMediaUnitLabel" style="font-size:11px;color:var(--text-muted);"></span>
+        </div>
+        <div id="wbUnitPhotoBox"></div>
+        <div id="wbUnitVoiceBox" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- CENTER COLUMN: INTERACTIVE PER-UNIT DETERMINISTIC CALCULATORS      -->
+    <!-- ================================================================== -->
+    <section>
+
+      <!-- Unit Identity & Instant Nameplate / ASHRAE Life / A2L Bar -->
+      <div class="card">
+        <div class="card-hdr">
+          <span id="wbActiveUnitHeading">⚙️ Unit Engineering Parameters</span>
+          <div id="wbActiveUnitBadges" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+
+        <div class="form-grid-4">
+          <div class="fg">
+            <label>Equipment Tag</label>
+            <input id="inpUnitTag" type="text" oninput="onUnitMetaEdit()" />
+          </div>
+          <div class="fg">
+            <label>Archetype</label>
+            <select id="inpUnitArch" onchange="onUnitMetaEdit()">
+              <option value="RTU_AHU">RTU / Air Handler (AHU)</option>
+              <option value="VAV_TERMINAL">VAV / Terminal Box</option>
+              <option value="HYDRONIC_VALVE_PUMP">Hydronic Coil / Valve / Pump</option>
+              <option value="CHILLER_BOILER_PLANT">Chiller / Boiler / Plant</option>
+              <option value="VFD_STARTER">VFD / Motor Starter</option>
+              <option value="ZONE_SENSOR">Space / Zone Sensor</option>
+              <option value="BAS_TCP_PANEL">BAS Control Panel (TCP)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Room / Zone Location</label>
+            <input id="inpUnitRoom" type="text" oninput="onUnitMetaEdit()" />
+          </div>
+          <div class="fg">
+            <label>Observed Qty (vs Scheduled)</label>
+            <div style="display:flex;gap:5px;">
+              <input id="inpObsQty" type="number" min="1" max="500" oninput="onUnitCalcEdit()" title="Field Observed Qty" />
+              <input id="inpSchedQty" type="number" min="0" max="500" oninput="onUnitMetaEdit()" title="Contract Scheduled Qty" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-4" style="margin-top:8px;">
+          <div class="fg">
+            <label>Manufacturer</label>
+            <input id="inpUnitMfg" type="text" oninput="onUnitMetaEdit()" />
+          </div>
+          <div class="fg">
+            <label>Model Number</label>
+            <input id="inpUnitModel" type="text" oninput="onUnitMetaEdit()" />
+          </div>
+          <div class="fg">
+            <label>Serial Number</label>
+            <input id="inpUnitSerial" type="text" oninput="onUnitMetaEdit()" />
+          </div>
+          <div class="fg">
+            <label>Existing / Legacy Controller</label>
+            <input id="inpUnitLegacy" type="text" oninput="onUnitMetaEdit()" />
+          </div>
+        </div>
+
+        <div class="form-grid-4" style="margin-top:8px;">
+          <div class="fg">
+            <label>Unit Condition</label>
+            <select id="inpUnitCondition" onchange="onUnitMetaEdit()">
+              <option value="GOOD">🟢 GOOD — Overlay / Keep</option>
+              <option value="CAUTION">🟡 CAUTION — Verify / Repair</option>
+              <option value="REPLACE">🔴 REPLACE — Failed / EOL</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Electrical (Voltage / Phase / Hz)</label>
+            <input id="inpUnitElec" type="text" oninput="onUnitMetaEdit()" placeholder="e.g. 460V / 3Ph / 60Hz" />
+          </div>
+          <div class="fg">
+            <label>Field Observation Notes (user_note)</label>
+            <input id="inpUnitUserNote" type="text" oninput="onUnitMetaEdit()" placeholder="Field walk notes &amp; observations..." />
+          </div>
+          <div class="fg">
+            <label>Engineer Scope / Tier Delta Notes</label>
+            <input id="inpUnitTierDelta" type="text" oninput="onUnitMetaEdit()" placeholder="Tier-1 vs Tier-2 scope delta / RFI note..." />
+          </div>
+        </div>
+
+        <div id="resNameplateDecode" class="result-banner" style="margin-top:10px;"></div>
+      </div>
+
+      <!-- CALCULATOR 1: ALC CONTROLLER I/O & THERMISTOR CURVE SIZER -->
+      <div class="card">
+        <div class="card-hdr">
+          <span>1️⃣ ALC WebCTRL® Controller I/O Tally, Strategy &amp; Sensor Curve Sizer</span>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <span id="badgeOverrideIo" class="pill pill-override" style="display:none;">✏️ OVERRIDDEN</span>
+            <span class="pill pill-info">RFI-23-001 / 006 / DDC</span>
+          </div>
+        </div>
+        <div class="form-grid-2" style="margin-bottom:8px;">
+          <div class="fg" style="grid-column:1 / -1;">
+            <label>Control Integration Strategy (Protects OEM Hybrid Overlay per RFI-23-001 &amp; Hardwired VFD Split per RFI-23-006)</label>
+            <select id="inpIoStrategy" onchange="onIntegrationStrategyChange()">
+              <option value="HYBRID_OVERLAY">🛡️ OEM BACnet Hybrid Overlay (RFI-23-001: Hardwired Enable DO / Fault DI + Safeties + BACnet MS/TP)</option>
+              <option value="FULL_ALC_DDC">🎛️ Full ALC DDC Controller Replacement (OptiFlex OF1628 / ZN551 / ZN341v Native BACnet)</option>
+              <option value="VFD_HARDWIRED_SPLIT">⚡ Hardwired VFD Split + Read-Only BACnet MS/TP (RFI-23-006: Hardwired DO/AO/DI + Safety Loop)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-4">
+          <div class="fg">
+            <label>Universal Inputs (UI)</label>
+            <input id="inpIoUi" type="number" min="0" max="64" oninput="onUnitCalcEdit('io')" />
+          </div>
+          <div class="fg">
+            <label>Binary Inputs (BI)</label>
+            <input id="inpIoBi" type="number" min="0" max="64" oninput="onUnitCalcEdit('io')" />
+          </div>
+          <div class="fg">
+            <label>Binary Outputs (BO)</label>
+            <input id="inpIoBo" type="number" min="0" max="64" oninput="onUnitCalcEdit('io')" />
+          </div>
+          <div class="fg">
+            <label>Analog Outputs (AO)</label>
+            <input id="inpIoAo" type="number" min="0" max="64" oninput="onUnitCalcEdit('io')" />
+          </div>
+        </div>
+        <div class="form-grid-3" style="margin-top:8px;">
+          <div class="fg">
+            <label>Existing Thermistor / RTD Sensor Curve</label>
+            <select id="inpIoCurve" onchange="onUnitCalcEdit('io')">
+              <option value="10k_TYPE_II">10kΩ Type II (ALC Native / Standard)</option>
+              <option value="RNET_DIGITAL">ALC ZS Pro Digital Rnet Bus (RFI-23-008)</option>
+              <option value="1k_NICKEL">1,000Ω Nickel RTD (Legacy Johnson Controls)</option>
+              <option value="20k_NTC">20kΩ NTC Thermistor (Legacy Honeywell)</option>
+              <option value="10k_TYPE_III">10kΩ Type III (Legacy Andover / CSI)</option>
+              <option value="1k_PLATINUM">1,000Ω Platinum RTD (Legacy Siemens)</option>
+              <option value="PNEUMATIC">Pneumatic Main Air / Branch Line (Replace All)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Parent TCP Panel / Power Source</label>
+            <input id="inpParentPanel" type="text" oninput="onUnitMetaEdit()" placeholder="e.g. TCP-204" />
+          </div>
+          <div class="fg">
+            <label>BACnet MS/TP Trunk &amp; MAC</label>
+            <input id="inpMstpMac" type="text" oninput="onUnitMetaEdit()" placeholder="e.g. Trunk 2 | MAC 04" />
+          </div>
+        </div>
+        <div id="resIoController" class="result-banner"></div>
+      </div>
+
+      <!-- CALCULATOR 2: HYDRONIC CONTROL VALVE & REDUCER SIZER -->
+      <div class="card">
+        <div class="card-hdr">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0;">
+            <input id="chkValveEnable" type="checkbox" onchange="onUnitCalcEdit('valve')" />
+            <span>2️⃣ Hydronic Control Valve Cv, Authority (&beta; &ge; 0.50) &amp; Pipe Reducer Sizer</span>
+          </label>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <span id="badgeOverrideValve" class="pill pill-override" style="display:none;">✏️ OVERRIDDEN</span>
+            <span class="pill pill-info">RFI-23-002 / 005 / 007</span>
+          </div>
+        </div>
+        <div id="valveInputsBody">
+          <div class="form-grid-3">
+            <div class="fg">
+              <label>Design Flow Rate (GPM)</label>
+              <input id="inpValveGpm" type="number" step="0.5" min="0.1" max="2000" oninput="onUnitCalcEdit('valve')" />
+            </div>
+            <div class="fg">
+              <label>Existing Pipe Line Size (in)</label>
+              <select id="inpValvePipeIn" onchange="onUnitCalcEdit('valve')">
+                <option value="0.5">1/2" (0.50 in)</option>
+                <option value="0.75">3/4" (0.75 in)</option>
+                <option value="1.0">1" (1.00 in)</option>
+                <option value="1.25">1-1/4" (1.25 in)</option>
+                <option value="1.5">1-1/2" (1.50 in)</option>
+                <option value="2.0">2" (2.00 in)</option>
+                <option value="2.5">2-1/2" (2.50 in)</option>
+                <option value="3.0">3" (3.00 in)</option>
+                <option value="4.0">4" (4.00 in)</option>
+                <option value="6.0">6" (6.00 in)</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Hydronic Fluid / Glycol Mixture</label>
+              <select id="inpValveFluid" onchange="onUnitCalcEdit('valve')">
+                <option value="100% Water">100% Water (SG = 1.000)</option>
+                <option value="25% Propylene Glycol">25% Propylene Glycol (SG = 1.026)</option>
+                <option value="30% Propylene Glycol">30% Propylene Glycol (SG = 1.032)</option>
+                <option value="40% Propylene Glycol">40% Propylene Glycol (SG = 1.041)</option>
+                <option value="30% Ethylene Glycol">30% Ethylene Glycol (SG = 1.045)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-3" style="margin-top:8px;">
+            <div class="fg">
+              <label>Coil Pressure Drop &Delta;P (psi)</label>
+              <input id="inpValveCoilDp" type="number" step="0.5" min="0.5" max="30" oninput="onUnitCalcEdit('valve')" />
+            </div>
+            <div class="fg">
+              <label>Target Valve &Delta;P (psi, 4–5 baseline)</label>
+              <input id="inpValveDesignDp" type="number" step="0.5" min="1.0" max="25" oninput="onUnitCalcEdit('valve')" />
+            </div>
+            <div class="fg">
+              <label>Coil Application &amp; Fail-Safe Action</label>
+              <select id="inpValveApp" onchange="onUnitCalcEdit('valve')">
+                <option value="heating">🔥 Heating / Preheat (Fail-Open Spring-Return per RFI-23-007)</option>
+                <option value="cooling">❄️ Chilled Water Cooling (Modulating Non-Spring / Fail-Closed)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">
+              <input id="chkValvePiccv" type="checkbox" onchange="onUnitCalcEdit('valve')" />
+              <strong>Force Pressure-Independent Characterized Control Valve (Belimo PICCV / ePIV)</strong>
+            </label>
+          </div>
+          <div id="resValveSizing" class="result-banner"></div>
+        </div>
+      </div>
+
+      <!-- CALCULATOR 3: AUTOMATIC CONTROL DAMPER & BELIMO TORQUE SIZER -->
+      <div class="card">
+        <div class="card-hdr">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin:0;">
+            <input id="chkDamperEnable" type="checkbox" onchange="onUnitCalcEdit('damper')" />
+            <span>3️⃣ Automatic Control Damper Area &amp; Belimo 24VAC Torque Sizer</span>
+          </label>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <span id="badgeOverrideDamper" class="pill pill-override" style="display:none;">✏️ OVERRIDDEN</span>
+            <span class="pill pill-info">RFI-23-004</span>
+          </div>
+        </div>
+        <div id="damperInputsBody">
+          <div class="form-grid-4">
+            <div class="fg">
+              <label>Damper Width (in)</label>
+              <input id="inpDmpWidth" type="number" step="2" min="6" max="240" oninput="onUnitCalcEdit('damper')" />
+            </div>
+            <div class="fg">
+              <label>Damper Height (in)</label>
+              <input id="inpDmpHeight" type="number" step="2" min="6" max="240" oninput="onUnitCalcEdit('damper')" />
+            </div>
+            <div class="fg">
+              <label>Damper Service &amp; Return Mode</label>
+              <select id="inpDmpApp" onchange="onUnitCalcEdit('damper')">
+                <option value="OA_EA_FAIL_SAFE">OA / EA / Relief (Fail-Closed Spring-Return)</option>
+                <option value="RA_MODULATING">Return Air / Mixing (Non-Spring Modulating)</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Duct Face Velocity (FPM)</label>
+              <input id="inpDmpVel" type="number" step="100" min="300" max="4000" oninput="onUnitCalcEdit('damper')" />
+            </div>
+          </div>
+          <div id="resDamperSizing" class="result-banner"></div>
+        </div>
+      </div>
+
+      <!-- CALCULATOR 4: ACCESS, CEILING, CMU WIREMOLD & SHIFT LABOR MULTIPLIER -->
+      <div class="card">
+        <div class="card-hdr">
+          <span>4️⃣ Field Access, Ceiling, CMU Wiremold &amp; Shift Labor Multiplier</span>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <span id="badgeOverrideLabor" class="pill pill-override" style="display:none;">✏️ OVERRIDDEN</span>
+            <span class="pill pill-info">Rough-In Estimator</span>
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="fg">
+            <label>Ceiling / Scissor-Lift Access Factor</label>
+            <select id="inpLabCeiling" onchange="onUnitCalcEdit('labor')">
+              <option value="1.0">1.00x — Accessible Mech Rm / Standard 9' Lay-In Grid</option>
+              <option value="1.15">1.15x — Congested Above-Ceiling Piping / Tight Plenum</option>
+              <option value="1.25">1.25x — Hard-Lid Drywall Ceiling (Access Door Coord.)</option>
+              <option value="1.35">1.35x — High-Bay / Gym / >16 ft Scissor Lift Req'd</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Wall Surface &amp; Pathway Factor</label>
+            <select id="inpLabWall" onchange="onUnitCalcEdit('labor')">
+              <option value="1.0">1.00x — Hollow Drywall Partition or Existing EMT Stub</option>
+              <option value="1.20">1.20x — Partial Masonry / Plaster Fishing</option>
+              <option value="1.40">1.40x — Solid CMU Block / Brick (Wiremold 500/700 Raceway)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Shift / Security / Escort Factor</label>
+            <select id="inpLabShift" onchange="onUnitCalcEdit('labor')">
+              <option value="1.0">1.00x — Normal Daytime Commercial Hours</option>
+              <option value="1.15">1.15x — Occupied K-12 / Healthcare ICRA Dust Cart</option>
+              <option value="1.30">1.30x — 2nd Shift After-Hours / Escorted Detention</option>
+            </select>
+          </div>
+        </div>
+        <div id="resLaborSizing" class="result-banner"></div>
+      </div>
+
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- RIGHT COLUMN: PROJECT TCP 24VAC VA SIZER & HARDWARE BOM ROLLUP     -->
+    <!-- ================================================================== -->
+    <aside class="wb-right-col">
+
+      <!-- TCP 24VAC CLASS 2 TRANSFORMER & VA DERATING ROLLUP (RFI-23-009) -->
+      <div class="card">
+        <div class="card-hdr">
+          <span>⚡ TCP 24VAC Class 2 VA Load Sizer</span>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <span id="badgeOverrideTcp" class="pill pill-override" style="display:none;">✏️ OVERRIDDEN</span>
+            <span class="pill pill-info">RFI-23-009 (80% NEC 725)</span>
+          </div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;">
+          Auto-tallied across all units (multiplied by Observed Qty) using CSC's <strong>+15% spare capacity</strong> and mandatory <strong>80% NEC Art. 725 continuous limit (80 VA max per 100 VA transformer)</strong>.
+        </div>
+
+        <div class="form-grid-2">
+          <div class="fg">
+            <label>OptiFlex OF1628 (24 VA)</label>
+            <input id="inpTcpOpti" type="number" min="0" max="200" oninput="onTcpOverrideEdit()" />
+          </div>
+          <div class="fg">
+            <label>ZN341v / ZN551 (12 VA)</label>
+            <input id="inpTcpZn" type="number" min="0" max="500" oninput="onTcpOverrideEdit()" />
+          </div>
+          <div class="fg">
+            <label>FIO-812 Expanders (14 VA)</label>
+            <input id="inpTcpExp" type="number" min="0" max="200" oninput="onTcpOverrideEdit()" />
+          </div>
+          <div class="fg">
+            <label>Spring-Return Act. (7 VA)</label>
+            <input id="inpTcpSr" type="number" min="0" max="500" oninput="onTcpOverrideEdit()" />
+          </div>
+          <div class="fg">
+            <label>Non-Spring Act. (3 VA)</label>
+            <input id="inpTcpNsr" type="number" min="0" max="500" oninput="onTcpOverrideEdit()" />
+          </div>
+          <div class="fg">
+            <label>ALC ZS Pro Rnet (1.5 VA)</label>
+            <input id="inpTcpRnet" type="number" min="0" max="500" oninput="onTcpOverrideEdit()" />
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;" onclick="resetTcpToAutoTally()">🔄 Reset to Auto-Tally from Units</button>
+        </div>
+
+        <div class="va-meter-bar">
+          <div id="wbVaMeterFill" class="va-meter-fill" style="width:50%;"></div>
+        </div>
+
+        <div id="resTcpVaRollup" class="result-banner"></div>
+      </div>
+
+      <!-- PROJECT HARDWARE & SIZING BOM SCHEDULE -->
+      <div class="card">
+        <div class="card-hdr">
+          <span>📦 Project Hardware &amp; Sizing BOM Rollup</span>
+          <span id="wbBomTotalUnitsBadge" class="pill pill-good">0 Units</span>
+        </div>
+        <div style="max-height:460px;overflow-y:auto;">
+          <table class="bom-table">
+            <thead>
+              <tr>
+                <th>Unit &amp; Qty</th>
+                <th>ALC Controller &amp; Curve</th>
+                <th>Valve / Damper / Labor</th>
+              </tr>
+            </thead>
+            <tbody id="wbBomTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- Photo Zoom Lightbox -->
+  <div id="wbPhotoModal" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.88);z-index:9999;align-items:center;justify-content:center;padding:24px;" onclick="this.style.display='none'">
+    <div style="max-width:1100px;width:100%;background:var(--bg-card);padding:14px;border-radius:10px;border:1px solid var(--border-col);" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong id="wbPhotoModalTitle" style="color:var(--accent-teal);">Field Evidence Photo</strong>
+        <button class="btn btn-secondary" onclick="document.getElementById('wbPhotoModal').style.display='none'">✕ Close</button>
+      </div>
+      <img id="wbPhotoModalImg" src="" alt="Zoomed Photo" style="width:100%;max-height:80vh;object-fit:contain;border-radius:8px;background:#000;" />
+    </div>
+  </div>
+
+  <script src="./js/discovery_storage_adapter.js?v=34"></script>
+  <script src="./js/workbench.js?v=34"></script>
+</body>
+</html>

@@ -51,9 +51,9 @@ jobs:
               -dname "CN=RollupOS Hub, OU=Mobile, O=Andrew Nicks, L=Kansas City, ST=MO, C=US"
           fi
 
-      - name: Compile Signed Release APK
+      - name: Compile & Test Signed Release APK
         working-directory: android
-        run: gradle assembleRelease --no-daemon
+        run: gradle testDebugUnitTest assembleRelease --no-daemon
 
       - name: Copy RollupOS.apk
         run: |
@@ -66,18 +66,15 @@ jobs:
           name: RollupOS-APK
           path: RollupOS.apk
 
-      - name: Publish / Update GitHub Release (RollupOS.apk v1.1.0 + v1.0.0)
+      - name: Publish / Update GitHub Release (RollupOS.apk v1.3.0)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh release view v1.1.0 >/dev/null 2>&1; then
-            gh release upload v1.1.0 RollupOS.apk --clobber
+          if gh release view v1.3.0 >/dev/null 2>&1; then
+            gh release upload v1.3.0 RollupOS.apk --clobber
           else
-            gh release create v1.1.0 RollupOS.apk \
+            gh release create v1.3.0 RollupOS.apk \
               --latest \
-              --title "RollupOS Multi-User Android Hub v1.1.0 (Mic + GNSS + Camera Torch + Native File Export)" \
-              --notes "Upgraded Android WebView Host v1.1.0: Native RECORD_AUDIO (150Hz WebAudio Mic), ACCESS_FINE_LOCATION (GNSS), Sequential Camera/Torch Permissions, and RollupNative.saveBase64File (.cscwalk.zip, .csv, .json direct Downloads)."
-          fi
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            gh release upload v1.0.0 RollupOS.apk --clobber || true
+              --title "RollupOS v1.3.0 — 2-Way Office PC Sync, Gallery Watermark Save & Multi-Photo Share" \
+              --notes "Upgraded Android WebView Host v1.3.0: 2-Way Office PC Wi-Fi Drop LAN Sync (/api/wifi-drop/* over 10.x/192.168.x/172.16-31.x/100.64-127.x with 60s zip transfer timeout), MediaStore Pictures/CSC_Site_Discovery Gallery photo saves, Intent.ACTION_SEND_MULTIPLE multi-photo native sharing, broadened .cscwalk.zip file-chooser MIME handling, plus USB-C OTG OBD-II read-only UDS bridge."
           fi

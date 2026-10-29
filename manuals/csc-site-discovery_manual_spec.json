@@ -1,16 +1,16 @@
 {
   "app_id": "csc-site-discovery",
   "title": "CSC Site Discovery",
-  "subtitle": "Snap & Go v3.2: Stamped Unit Photos, Self-Contained Walk.zip & Office Wi-Fi Sync",
-  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.2: Burned-In CSC Evidence Footer Stamped Photos, Self-Contained .cscwalk.zip with Printable HTML/CSV/MD, Office Wi-Fi Direct PC Upload, Saved Walks Vault, <15s Quick Walk Capture, In-App Voice Note Playback, ASHRAE Ch. 38 + EPA A2L Decoder, and BAS Overlay Sizers.",
+  "subtitle": "Snap & Go v3.4: 2-Way Office PC Sync, Job Pull & Portrait Watermarks",
+  "description": "Offline-First HVAC Controls & Equipment Field Survey Companion v3.4: 2-Way Office PC Connectivity over LAN (10.0.0.91:8766) & Cloudflare HTTPS Tunnel, 1-Tap PC Preloaded Job Catalog Pull, Portrait-Safe Burned-In CSC Evidence Footer Watermark Toggle with CLAHE Preservation, Gallery Photo Save & Multi-Photo Native Share, Self-Contained .cscwalk.zip Export, and Desktop Engineering Compute Workbench.",
   "icon": "\ud83e\udded",
   "accent": "#0d9488",
   "category": "Field & Productivity",
-  "version": "3.2.1",
-  "build_hash": "93176e9687",
+  "version": "3.4.1",
+  "build_hash": "dee169a55d",
   "visibility": "restricted",
-  "updated_at": "2026-10-26T22:50:18.712366",
-  "generated_at": "2026-10-26 22:50",
+  "updated_at": "2026-10-27T09:25:36.785240",
+  "generated_at": "2026-10-27 09:25",
   "tagline": "Offline-First HVAC/BAS Field Survey Companion \u2022 Division 23 Checklists, CLAHE Nameplate OCR & Building Mapper",
   "quickstart": [
     {
@@ -88,9 +88,12 @@
   ],
   "offline_assets": [
     "apps/csc-site-discovery/index.html",
+    "apps/csc-site-discovery/workbench.html",
     "apps/csc-site-discovery/css/field_ui.css",
     "apps/csc-site-discovery/js/discovery_storage_adapter.js",
-    "apps/csc-site-discovery/js/app.js"
+    "apps/csc-site-discovery/js/app.js",
+    "apps/csc-site-discovery/js/workbench.js",
+    "apps/csc-site-discovery/endpoints.json"
   ],
   "newly_added_buttons": [],
   "ai_release_note": null,
@@ -98,10 +101,13 @@
     "app_id": "csc-site-discovery",
     "file_inventory": [
       "css/field_ui.css",
+      "endpoints.json",
       "index.html",
       "js/app.js",
       "js/discovery_storage_adapter.js",
-      "manifest.json"
+      "js/workbench.js",
+      "manifest.json",
+      "workbench.html"
     ],
     "tabs": [
       "mapMainView"
@@ -109,7 +115,8 @@
     "headings": [
       "\u26a1 3-Step Field Quick Start",
       "Captured Photo",
-      "\ud83d\udce6 Dump Walk.zip, Office Wi-Fi Sync & Job Setup"
+      "\ud83d\udce6 PC Job Sync, Walk.zip & Watermarked Photos",
+      "\ud83e\uddee CSC PC Companion Engineering Compute Workbench v3.3 \u2022 Desktop Companion"
     ],
     "buttons": [
       {
@@ -149,6 +156,10 @@
         "action": "setFeedFilter('good')"
       },
       {
+        "label": "\ud83d\udce5 Pull Job",
+        "action": "openSessionManagerAndBrowsePcJobs()"
+      },
+      {
         "label": "\ud83d\udce6 Dump Walk",
         "action": "openSessionManagerModal()"
       },
@@ -179,10 +190,6 @@
       {
         "label": "\u2795",
         "action": "zoomMap(1.35)"
-      },
-      {
-        "label": "\u2796",
-        "action": "zoomMap(0.74)"
       }
     ],
     "modals": [
@@ -192,7 +199,10 @@
       "zoomModalTitle",
       "zoomModalImg",
       "sessionModal",
-      "rfi11ModalCheck"
+      "rfi11ModalCheck",
+      "wbPhotoModal",
+      "wbPhotoModalTitle",
+      "wbPhotoModalImg"
     ],
     "inputs": [
       "Or tap here to type a quick note / room (optional)...",
@@ -202,14 +212,17 @@
       "Model #",
       "Serial #",
       "Symbio, DX-9100, Pneumatic...",
-      "http://192.168.1.50:8765 (PC Office Wi-Fi Drop URL)",
+      "Auto-Discover PC (or http://10.0.0.91:8766 / https://...trycloudflare.com)",
       "e.g. Lee's Summit West HS",
       "e.g. CSC-26-4182",
       "e.g. Danny Miller (Chief Eng)",
       "Lee's Summit, MO"
     ],
     "storage_keys": [],
-    "vault_secrets": [],
+    "vault_secrets": [
+      "GRAVITY_SIDECAR_TOKEN",
+      "office_pc_sync_token"
+    ],
     "capabilities": [
       "Isolated Per-User Storage (RollupBridge)",
       "Mobile Camera / Multimodal Capture",
@@ -220,29 +233,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "61ab551",
-        "date": "2026-10-26",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 22:40)"
+        "sha": "3d436f7",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-10-27 09:25)"
       },
       {
-        "sha": "ab3e896",
-        "date": "2026-10-26",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 19:57)"
+        "sha": "56eceb3",
+        "date": "2026-10-27",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:11)"
       },
       {
-        "sha": "3be8955",
+        "sha": "40e1064",
         "date": "2026-10-26",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-26 16:54)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 23:51)"
       },
       {
-        "sha": "fe98244",
+        "sha": "83adf70",
         "date": "2026-10-26",
-        "subject": "RollupOS v1.1.0 + CSC Site Discovery v2.0.0 (2026-10-26 15:13)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:52)"
       },
       {
-        "sha": "9ac185f",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
+        "sha": "cc43275",
+        "date": "2026-10-26",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:43)"
       }
     ]
   }

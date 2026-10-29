@@ -25,6 +25,8 @@
   const KEY_BACKUPS = 'backups_list';
   const KEY_CHANGE_LOG = 'change_log';
   const KEY_CUSTOM_MODS = 'custom_mods_v2';
+  const KEY_LIVE_SCANS = 'live_scans_v2';
+  const KEY_PC_SYNC_URL = 'pc_sync_url_v1';
 
   let camStream = null;
   let camTimer = null;
@@ -38,6 +40,30 @@
     backups: [],
     changeLog: [],
     customMods: [],
+    liveScans: {},
+    abtExportFmt: 'encoded',
+    pcSync: {
+      url: '',
+      pin: '',
+      busy: false,
+      lastMessage: '',
+      lastError: false
+    },
+    usb: {
+      connected: false,
+      deviceInfo: '',
+      readOnlyGate: false,
+      busy: false,
+      mode: 'targeted_backup',
+      dualBus: true,
+      allowExtended: false,
+      confirmParked: false,
+      overrideLowV: false,
+      lastVoltage: null,
+      progressText: '',
+      lastResult: null,
+      lastError: ''
+    },
     scannerOpen: false,
     addVehicleOpen: false,
     customBuilderOpen: false,
@@ -125,6 +151,7 @@
     state.activeVehicleId = activeVeh.id;
     state.profile = activeVeh;
     state.selectedPlatformSlug = activeVeh.platform_slug || 'f150_14g';
+    state.pcSync.url = (global.RollupBridge && RollupBridge.storage.get(KEY_PC_SYNC_URL, '', APP_ID)) || '';
 
     loadScopedVehicleData(state.activeVehicleId);
   }
@@ -134,6 +161,7 @@
     const bkKey = getScopedKey(KEY_BACKUPS, vid);
     const clKey = getScopedKey(KEY_CHANGE_LOG, vid);
     const cmKey = getScopedKey(KEY_CUSTOM_MODS, vid);
+    const lsKey = getScopedKey(KEY_LIVE_SCANS, vid);
 
     const savedOverrides = (global.RollupBridge && RollupBridge.storage.get(ovKey, null, APP_ID)) || null;
     if (savedOverrides) {
@@ -159,6 +187,7 @@
     state.backups = (global.RollupBridge && RollupBridge.storage.get(bkKey, [], APP_ID)) || [];
     state.changeLog = (global.RollupBridge && RollupBridge.storage.get(clKey, [], APP_ID)) || [];
     state.customMods = (global.RollupBridge && RollupBridge.storage.get(cmKey, [], APP_ID)) || [];
+    state.liveScans = (global.RollupBridge && RollupBridge.storage.get(lsKey, {}, APP_ID)) || {};
   }
 
   function saveVehicles() {
@@ -197,17 +226,43 @@
     }
   }
 
+  function saveChangeLog() {
+    if (global.RollupBridge) {
+      RollupBridge.storage.set(getScopedKey(KEY_CHANGE_LOG, state.activeVehicleId), state.changeLog, APP_ID);
+    }
+  }
+
+  function saveLiveScans() {
+    if (global.RollupBridge) {
+      RollupBridge.storage.set(getScopedKey(KEY_LIVE_SCANS, state.activeVehicleId), state.liveScans, APP_ID);
+    }
+  }
+
+  function savePcSyncUrl(urlStr) {
+    state.pcSync.url = String(urlStr || '').trim().replace(/\/+$/, '');
+    if (global.RollupBridge) {
+      RollupBridge.storage.set(KEY_PC_SYNC_URL, state.pcSync.url, APP_ID);
+    }
+  }
+
   // --- Merged View of Current As-Built State & Entries ---
   function getMergedTruckState() {
     const merged = {};
+    const hasRealBackups = state.backups.some(
+      (b) => !b.is_synthetic && String(b.source || '').trim().toUpperCase() !== 'SYNTHETIC'
+    );
     state.backups
-      .filter((b) => b.kind === 'FORSCAN_BACKUP')
+      .filter(
+        (b) =>
+          b.kind === 'FORSCAN_BACKUP' &&
+          (!hasRealBackups || (!b.is_synthetic && String(b.source || '').trim().toUpperCase() !== 'SYNTHETIC'))
+      )
       .forEach((b) => {
         Object.assign(merged, b.dict || {});
       });
     if (Object.keys(merged).length === 0) {
       state.backups
-        .filter((b) => b.kind === 'FORD_AB')
+        .filter((b) => b.kind === 'FORD_AB' && !b.is_synthetic)
         .forEach((b) => {
           Object.assign(merged, b.dict || {});
         });
@@ -358,7 +413,7 @@
         ? `<span class="pill pill-green">🛡️ ${backupCount} Backup(s)</span>`
         : `<span class="pill pill-muted">📂 No .abt/.ab Yet</span>`;
       const msCanBadge = g.ms_can_required
-        ? `<span class="pill pill-amber" title="${escapeHtml(g.note)}">⚠️ MS-CAN 125k (STP33)</span>`
+        ? `<span class="pill pill-amber" title="${escapeHtml(g.note)}">⚠️ MS-CAN 125k (STP53)</span>`
         : `<span class="pill pill-dark">HS-CAN / CAN-FD</span>`;
 
       stripEl.innerHTML = `
@@ -1032,6 +1087,10 @@
   };
 
   global.loadSyntheticBaseline = function () {
+    if (state.backups.some((b) => !b.is_synthetic && String(b.source || '').trim().toUpperCase() !== 'SYNTHETIC')) {
+      showToast('Real vehicle backups are already loaded — demo baseline skipped so real bytes are never mixed.', true);
+      return;
+    }
     const abtText = GarageEngine.generateDemoAbtText(BUNDLE);
     const parsed = GarageEngine.parseAbtText(abtText);
     state.backups = state.backups.filter((b) => !b.is_synthetic);
@@ -1041,6 +1100,7 @@
       filename: 'synthetic_demo_baseline.abt',
       taken_at: new Date().toISOString().slice(0, 10),
       kind: 'FORSCAN_BACKUP',
+      source: 'SYNTHETIC',
       is_synthetic: true,
       modules: parsed.modules,
       line_count: parsed.lines.length,
@@ -1593,7 +1653,7 @@
 
         const msCanTag =
           g.ms_can_required && ['740', '741', '733', '791', '744'].includes(r.addr)
-            ? `<span class="pill pill-amber">MS-CAN 125k (STP33)</span>`
+            ? `<span class="pill pill-amber">MS-CAN 125k (STP53)</span>`
             : '';
 
         const evidenceBadges = [];
@@ -1661,7 +1721,708 @@
   };
 
   // =========================================================================
-  // TAB 4: BACKUPS, FORD FACTORY .AB & CHECKSUM TOOLS
+  // USB-C LIVE OBD-II ADAPTER, AS-BUILT SNAPSHOT & PC FORSCAN STAGING SYNC
+  // =========================================================================
+  function getTargetModulesForMode(mode) {
+    const entries = getHydratedEntries(false);
+    const wanted = entries.filter((e) => e.wanted || e.status === 'APPROVED');
+    const reqSet = new Set();
+    wanted.forEach((e) => {
+      (e.steps || []).forEach((s) => {
+        const m = String(s.address || '').slice(0, 3).toUpperCase();
+        if (/^[0-9A-F]{3}$/.test(m)) reqSet.add(m);
+      });
+    });
+    if (mode === 'full_backup') {
+      ['726', '720', '7D0', '740', '741', '724', '706', '733', '754', '716', '727', '736', '791'].forEach((m) => reqSet.add(m));
+      return Array.from(reqSet);
+    }
+    if (mode === 'quick_health') {
+      ['726', '720', '7D0', '706'].forEach((m) => reqSet.add(m));
+      return Array.from(reqSet);
+    }
+    if (reqSet.size === 0) {
+      return ['726', '720', '7D0'];
+    }
+    return Array.from(reqSet).sort();
+  }
+
+  function computeCurrentHandoff(fmtOverride) {
+    const entries = getHydratedEntries(true).filter((e) => e.wanted && e.status === 'APPROVED');
+    return GarageEngine.buildModdedAbtHandoff({
+      entries,
+      currentState: getMergedTruckState(),
+      backups: state.backups,
+      liveScan: state.liveScans,
+      vehicle: state.profile || {},
+      fmt: fmtOverride || state.abtExportFmt || 'encoded',
+      modStates: state.modOverrides
+    });
+  }
+
+  function collectKnownBlocksByModule() {
+    const out = {};
+    const addAddr = (addrStr) => {
+      try {
+        const a = GarageEngine.parseAddress(addrStr);
+        if (!out[a.module]) out[a.module] = new Set();
+        out[a.module].add(a.block);
+      } catch (e) {}
+    };
+    [...(state.customMods || []), ...((BUNDLE && BUNDLE.entries) || [])].forEach((e) => {
+      (e.steps || []).forEach((s) => addAddr(s.address));
+    });
+    (state.backups || []).forEach((b) => {
+      Object.keys(b.dict || {}).forEach(addAddr);
+    });
+    const plain = {};
+    Object.keys(out).forEach((m) => {
+      plain[m] = Array.from(out[m]).sort((a, b) => a - b);
+    });
+    return plain;
+  }
+
+  global.setUsbScanOption = function (field, val) {
+    state.usb[field] = val;
+    if (field === 'allowExtended' && !val) {
+      state.usb.confirmParked = false;
+    }
+    if (state.activeTab === 'backups') renderBackupsTab();
+  };
+
+  global.connectUsbAdapter = async function () {
+    if (!global.RollupBridge || !RollupBridge.usbSerial) {
+      showToast('RollupBridge USB Serial module unavailable.', true);
+      return;
+    }
+    state.usb.busy = true;
+    state.usb.lastError = '';
+    renderActiveTab();
+    try {
+      const res = await RollupBridge.usbSerial.requestAndConnect({ baudRate: 115200, autoBaud: true });
+      if (!res || !res.ok) {
+        state.usb.connected = false;
+        state.usb.lastError = (res && res.error) || 'Could not connect to USB-C OBD adapter.';
+        showToast(state.usb.lastError, true);
+      } else {
+        state.usb.connected = true;
+        const baudLabel = res.baudRate ? ` @ ${res.baudRate}` : '';
+        state.usb.deviceInfo = `${res.productName || 'USB OBD Adapter'} (${res.driver || 'Serial'}${baudLabel})`;
+        state.usb.readOnlyGate = Boolean(res.readOnlyHardwareGate);
+        showToast(`Connected to ${state.usb.deviceInfo}`);
+        await global.probeUsbVoltage(true);
+      }
+    } catch (err) {
+      state.usb.connected = false;
+      state.usb.lastError = err.message || String(err);
+      showToast(state.usb.lastError, true);
+    } finally {
+      state.usb.busy = false;
+      renderActiveTab();
+    }
+  };
+
+  global.disconnectUsbAdapter = async function () {
+    if (global.RollupBridge && RollupBridge.usbSerial) {
+      await RollupBridge.usbSerial.disconnect();
+    }
+    state.usb.connected = false;
+    state.usb.deviceInfo = '';
+    state.usb.progressText = '';
+    renderActiveTab();
+    showToast('Disconnected USB-C adapter (ECU default session 10 01 restored).');
+  };
+
+  global.probeUsbVoltage = async function (silent = false) {
+    if (!global.RollupBridge || !RollupBridge.usbSerial || !state.usb.connected) return;
+    try {
+      const r = await RollupBridge.usbSerial.transact('ATRV', 900, false);
+      if (r && r.ok) {
+        const v = GarageEngine.parseVoltageText(r.lines || []);
+        if (v !== null) {
+          state.usb.lastVoltage = v;
+          if (!silent) {
+            showToast(`12V Battery: ${v.toFixed(2)}V (${v >= 12.5 ? 'Ready >= 12.5V' : 'Low < 12.5V — turn truck to Ready mode'})`, v < 12.5);
+          }
+        }
+      }
+    } catch (e) {
+      if (!silent) showToast(`ATRV check failed: ${e.message || e}`, true);
+    }
+    if (!silent) renderActiveTab();
+  };
+
+  global.startUsbVehicleScan = async function () {
+    if (!global.RollupBridge || !RollupBridge.usbSerial) return;
+    if (!state.usb.connected) {
+      await global.connectUsbAdapter();
+      if (!state.usb.connected) return;
+    }
+    if (state.usb.allowExtended && !state.usb.confirmParked) {
+      showToast('Confirm vehicle is in PARK before enabling Extended Session (10 03) fallback.', true);
+      return;
+    }
+
+    const mode = state.usb.mode || 'targeted_backup';
+    const g = GarageEngine.adapterGuidance(state.profile.model_year, state.profile.platform_slug);
+    const addresses = getTargetModulesForMode(mode);
+    const knownBlocksByModule = collectKnownBlocksByModule();
+
+    state.usb.busy = true;
+    state.usb.lastError = '';
+    state.usb.progressText = `Initializing adapter & checking 12V ATRV across ${addresses.length} module(s)...`;
+    renderActiveTab();
+
+    try {
+      const scanRes = await GarageEngine.runUsbVehicleScan(RollupBridge.usbSerial, {
+        mode,
+        addresses,
+        dualBus: Boolean(state.usb.dualBus),
+        msCanFallback: Boolean(g.ms_can_required && state.usb.dualBus),
+        allowExtendedSession: Boolean(state.usb.allowExtended && state.usb.confirmParked),
+        confirmParked: Boolean(state.usb.confirmParked),
+        overrideLowVoltage: Boolean(state.usb.overrideLowV),
+        knownBlocksByModule,
+        onProgress: (prog) => {
+          state.usb.progressText = `Scanning 0x${prog.address} (${prog.step}/${prog.total}) on ${prog.bus}...`;
+          const el = document.getElementById('usb-live-progress');
+          if (el) el.textContent = state.usb.progressText;
+        }
+      });
+
+      if (scanRes.voltage && scanRes.voltage.voltage !== null) {
+        state.usb.lastVoltage = scanRes.voltage.voltage;
+      }
+
+      const nowIso = new Date().toISOString();
+      const dateShort = nowIso.slice(0, 10);
+      let importedCount = 0;
+      let totalLinesSaved = 0;
+
+      Object.entries(scanRes.modules || {}).forEach(([mod, mSnap]) => {
+        state.liveScans[mod] = {
+          address: mod,
+          bus: mSnap.bus,
+          f188: mSnap.f188 || null,
+          vin: mSnap.vin || scanRes.vin || null,
+          ids: mSnap.ids || {},
+          dtcs: mSnap.dtcs || [],
+          scanned_at: nowIso
+        };
+
+        if (mSnap.abt_encoded && mSnap.line_count > 0) {
+          const safeVin = String(mSnap.vin || scanRes.vin || state.profile.vin || 'TRUCK').replace(/[^A-Z0-9]/gi, '');
+          const fname = `${safeVin}_${mod}_${dateShort}_live.abt`;
+          const rawUsb = mSnap.abt_encoded.includes('source=USB_LIVE')
+            ? mSnap.abt_encoded
+            : `; Blue Oval Garage Live USB Snapshot (source=USB_LIVE)\r\n${mSnap.abt_encoded}`;
+          const parsed = GarageEngine.parseAnyBackupFile(fname, rawUsb);
+          const rawPlainDigest = GarageEngine.sha256Hex(mSnap.abt_encoded);
+          // Remove synthetic demo backups; keep authoritative FORSCAN_ABT if identical lines/sha256 already exist
+          const existingAuth = state.backups.find(
+            (b) =>
+              !b.is_synthetic &&
+              (b.sha256 === parsed.sha256 || b.sha256 === rawPlainDigest) &&
+              b.kind === 'FORSCAN_BACKUP' &&
+              !b.is_usb_live &&
+              b.source !== 'USB_LIVE'
+          );
+          if (existingAuth) {
+            existingAuth.software_version = mSnap.f188 || existingAuth.software_version || null;
+          } else {
+            state.backups = state.backups.filter(
+              (b) => !b.is_synthetic && b.sha256 !== parsed.sha256 && b.sha256 !== rawPlainDigest
+            );
+            state.backups.push({
+              id: `usb-${Date.now()}-${mod}`,
+              label: `USB-C Live ${mod} (${mSnap.bus})`,
+              filename: fname,
+              taken_at: dateShort,
+              kind: 'FORSCAN_BACKUP',
+              source: 'USB_LIVE',
+              is_usb_live: true,
+              is_synthetic: false,
+              vin: mSnap.vin || scanRes.vin || state.profile.vin,
+              software_version: mSnap.f188 || null,
+              modules: parsed.modules,
+              line_count: parsed.lines.length,
+              sha256: parsed.sha256,
+              dict: parsed.dict,
+              nodes: {},
+              warnings: parsed.warnings || [],
+              raw_text: rawUsb
+            });
+          }
+          importedCount++;
+          totalLinesSaved += parsed.lines.length;
+        }
+      });
+
+      saveLiveScans();
+      if (importedCount > 0) saveBackups();
+      state.usb.lastResult = {
+        mode,
+        at: nowIso,
+        vin: scanRes.vin,
+        voltage: scanRes.voltage,
+        respondedModules: Object.keys(scanRes.modules || {}),
+        importedCount,
+        totalLinesSaved
+      };
+      state.usb.progressText = '';
+      showToast(
+        importedCount > 0
+          ? `Saved ${importedCount} live .abt backup(s) (${totalLinesSaved} lines) with F188 strategy tags!`
+          : `Health scan complete: ${Object.keys(scanRes.modules || {}).length} module(s) responded.`
+      );
+    } catch (err) {
+      if (err && err.lowVoltageBlocked && err.voltage != null) {
+        state.usb.lastVoltage = err.voltage;
+      }
+      state.usb.lastError = (err && err.message) || String(err);
+      state.usb.progressText = '';
+      showToast(state.usb.lastError, true);
+    } finally {
+      state.usb.busy = false;
+      renderActiveTab();
+    }
+  };
+
+  function parsePairingText(rawStr) {
+    const s = String(rawStr || '').trim();
+    const m = /^(https?:\/\/[^#\s?]+?)\/?(?:[#?&]pin=(\d{6}))?$/i.exec(s);
+    if (m) {
+      return { url: m[1].replace(/\/+$/, ''), pin: m[2] || null };
+    }
+    return null;
+  }
+
+  global.updatePcSyncInputs = function () {
+    const uEl = document.getElementById('pc-sync-url');
+    const pEl = document.getElementById('pc-sync-pin');
+    let pinExtractedFromUrl = false;
+    if (uEl) {
+      const parsed = parsePairingText(uEl.value);
+      if (parsed) {
+        savePcSyncUrl(parsed.url);
+        uEl.value = parsed.url;
+        if (parsed.pin) {
+          pinExtractedFromUrl = true;
+          state.pcSync.pin = parsed.pin;
+          if (pEl) pEl.value = parsed.pin;
+        }
+      } else {
+        savePcSyncUrl(uEl.value);
+      }
+    }
+    if (pEl && !pinExtractedFromUrl) {
+      const pinParsed = parsePairingText(pEl.value);
+      if (pinParsed && pinParsed.pin) {
+        savePcSyncUrl(pinParsed.url);
+        state.pcSync.pin = pinParsed.pin;
+        if (uEl) uEl.value = pinParsed.url;
+        pEl.value = pinParsed.pin;
+      } else {
+        state.pcSync.pin = String(pEl.value || '').trim();
+      }
+    }
+  };
+
+  global.scanPcSyncQrImage = async function (event) {
+    const file = event && event.target && event.target.files && event.target.files[0];
+    if (event && event.target) event.target.value = '';
+    if (!file) return;
+    if (typeof global.BarcodeDetector !== 'function') {
+      showToast('QR BarcodeDetector not supported in this browser; paste Pairing URI or enter 6-digit PIN.', true);
+      return;
+    }
+    try {
+      const bitmap = await createImageBitmap(file);
+      const detector = new global.BarcodeDetector({ formats: ['qr_code'] });
+      const codes = await detector.detect(bitmap);
+      if (!codes || !codes.length || !codes[0].rawValue) {
+        showToast('No Desktop Sync QR code detected in image — move closer and retry.', true);
+        return;
+      }
+      const parsed = parsePairingText(codes[0].rawValue);
+      if (!parsed) {
+        showToast(`Unrecognized QR payload: ${codes[0].rawValue.slice(0, 60)}`, true);
+        return;
+      }
+      savePcSyncUrl(parsed.url);
+      if (parsed.pin) state.pcSync.pin = parsed.pin;
+      renderActiveTab();
+      showToast(`Paired with Desktop Sync (${parsed.url})`);
+    } catch (err) {
+      showToast(`QR scan failed: ${err.message || err}`, true);
+    }
+  };
+
+  async function executeLanSync(url, method, token, bodyObj) {
+    if (global.RollupBridge && typeof RollupBridge.lanSyncRequest === 'function') {
+      return RollupBridge.lanSyncRequest(url, { method, token, body: bodyObj });
+    }
+    const headers = { 'X-Sync-Token': token };
+    if (method === 'POST') headers['Content-Type'] = 'application/json';
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body: method === 'POST' ? JSON.stringify(bodyObj) : undefined
+    });
+    const data = await resp.json().catch(() => ({}));
+    return { ok: resp.ok, status: resp.status, data };
+  }
+
+  global.pushSyncToPc = async function (fromPlanTab = false) {
+    global.updatePcSyncInputs();
+    const baseUrl = state.pcSync.url;
+    const pin = state.pcSync.pin;
+    if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
+      if (fromPlanTab) switchTab('backups');
+      showToast('Enter PC Sync URL (or scan Desktop QR) & 6-digit PIN from Desktop app.', true);
+      return;
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      if (fromPlanTab) switchTab('backups');
+      showToast('Enter the 6-digit Sync PIN displayed in Desktop LightningGarage.', true);
+      return;
+    }
+
+    const handoff = computeCurrentHandoff('encoded');
+    if (fromPlanTab && (!handoff.ok || handoff.stale_blocked || handoff.parity_blocked)) {
+      showToast(handoff.error || 'Blocked by Safety Gate (Baseline Parity or F188 OTA Guard).', true);
+      return;
+    }
+
+    const realBackups = state.backups
+      .filter((b) => b.kind === 'FORSCAN_BACKUP' && !b.is_synthetic && b.raw_text)
+      .map((b) => {
+        const isUsb = Boolean(b.is_usb_live || b.source === 'USB_LIVE' || String(b.id || '').startsWith('usb-'));
+        return {
+          label: b.label || b.filename,
+          filename: b.filename || 'phone_backup.abt',
+          taken_at: b.taken_at,
+          software_version: b.software_version || null,
+          source: isUsb ? 'USB_LIVE' : 'FORSCAN_ABT',
+          is_usb_live: isUsb,
+          vin: b.vin || state.profile.vin,
+          raw_text: b.raw_text
+        };
+      });
+
+    const factoryBackups = state.backups
+      .filter((b) => b.kind === 'FORD_AB' && !b.is_synthetic && b.raw_text)
+      .map((b) => ({
+        label: b.label || b.filename,
+        filename: b.filename || 'factory.ab',
+        vin: b.vin || state.profile.vin,
+        raw_text: b.raw_text
+      }));
+
+    const stagedAbt = handoff.ok && !handoff.stale_blocked && !handoff.parity_blocked
+      ? (handoff.modules || []).map((m) => ({
+          filename: m.filename,
+          content: m.abt_encoded,
+          checklist_text: handoff.checklist_text
+        }))
+      : [];
+
+    const allEntries = getHydratedEntries(false);
+    const wantedKeys = allEntries.filter((e) => e.wanted && e.source_key).map((e) => e.source_key);
+    const approvedKeys = allEntries.filter((e) => e.status === 'APPROVED' && e.source_key).map((e) => e.source_key);
+
+    state.pcSync.busy = true;
+    state.pcSync.lastError = false;
+    renderActiveTab();
+
+    try {
+      const { ok, status, data } = await executeLanSync(`${baseUrl}/sync/push`, 'POST', pin, {
+        vin: state.profile.vin,
+        backups: realBackups,
+        factory_backups: factoryBackups,
+        staged_abt: stagedAbt,
+        wanted_keys: wantedKeys,
+        approved_keys: approvedKeys,
+        sync_mod_state_full: true,
+        live_scans: state.liveScans || {}
+      });
+      if (!ok || !data.ok) {
+        throw new Error(data.error || `PC Sync HTTP ${status}`);
+      }
+      const stagedNames = (data.staged_files || []).map((f) => f.filename).join(', ');
+      const skipNote = handoff.stale_blocked
+        ? ' (⚠️ Modded .abt staging skipped due to F188 OTA strategy drift — raw backups & live scan synced)'
+        : handoff.parity_blocked
+        ? ' (ℹ️ Modded .abt staging held by Baseline Parity Gate — import .ab XML or FORScan Save-All .abt first)'
+        : '';
+      state.pcSync.lastMessage = `✓ Synced ${data.imported_backups ? data.imported_backups.length : 0} backup(s), ${
+        data.synced_mods || 0
+      } mod selection(s), & staged ${
+        data.staged_files ? data.staged_files.length : 0
+      } modded .abt file(s) to ${data.staging_dir || 'FORScan Staging'}${stagedNames ? ` (${stagedNames})` : ''}${skipNote}.`;
+      state.pcSync.lastError = false;
+      showToast(
+        handoff.stale_blocked
+          ? 'Synced raw backups & live scan to PC (modded .abt skipped: F188 OTA drift).'
+          : handoff.parity_blocked
+          ? 'Synced raw backups to PC (modded .abt held until .ab / Save-All .abt is present).'
+          : `Staged ${(data.staged_files || []).length} modded .abt file(s) to PC FORScan folder!`
+      );
+    } catch (err) {
+      state.pcSync.lastError = true;
+      state.pcSync.lastMessage = `Sync failed: ${err.message || err}`;
+      showToast(state.pcSync.lastMessage, true);
+    } finally {
+      state.pcSync.busy = false;
+      renderActiveTab();
+    }
+  };
+
+  global.pullSyncFromPc = async function () {
+    global.updatePcSyncInputs();
+    const baseUrl = state.pcSync.url;
+    const pin = state.pcSync.pin;
+    if (!baseUrl || !/^https?:\/\//i.test(baseUrl) || !/^\d{6}$/.test(pin)) {
+      showToast('Enter both PC Sync URL (or scan QR) and 6-digit Sync PIN first.', true);
+      return;
+    }
+
+    state.pcSync.busy = true;
+    state.pcSync.lastError = false;
+    renderActiveTab();
+
+    try {
+      const qs = state.profile && state.profile.vin ? `?vin=${encodeURIComponent(state.profile.vin)}` : '';
+      const { ok, status, data } = await executeLanSync(`${baseUrl}/sync/pull${qs}`, 'GET', pin, null);
+      if (!ok || !data.ok) {
+        throw new Error(data.error || `PC Sync HTTP ${status}`);
+      }
+      let added = 0;
+      (data.factory_backups || []).forEach((fb) => {
+        if (!fb.raw_text) return;
+        try {
+          const parsedAb = GarageEngine.parseAnyBackupFile(fb.filename || 'pc_factory.ab', fb.raw_text);
+          state.backups = state.backups.filter((x) => !x.is_synthetic);
+          if (!state.backups.some((x) => x.sha256 === parsedAb.sha256 && x.kind === 'FORD_AB')) {
+            state.backups.push({
+              id: `pc-ab-${fb.id || Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+              label: fb.label || fb.filename || 'PC Factory .ab',
+              filename: fb.filename || 'pc_factory.ab',
+              taken_at: (fb.imported_at || new Date().toISOString()).slice(0, 10),
+              kind: 'FORD_AB',
+              source: 'FORD_FACTORY',
+              is_usb_live: false,
+              is_synthetic: false,
+              vin: parsedAb.vin || fb.vin || state.profile.vin,
+              modules: parsedAb.modules,
+              line_count: parsedAb.lines.length,
+              sha256: parsedAb.sha256,
+              dict: parsedAb.dict,
+              nodes: parsedAb.nodes || {},
+              warnings: parsedAb.warnings || [],
+              raw_text: fb.raw_text
+            });
+            added++;
+          }
+        } catch (e) {}
+      });
+      (data.backups || []).forEach((b) => {
+        if (!b.raw_text) return;
+        try {
+          const parsed = GarageEngine.parseAnyBackupFile(b.filename || 'pc_backup.abt', b.raw_text);
+          const isUsb = String(b.source || '').toUpperCase() === 'USB_LIVE';
+          state.backups = state.backups.filter((x) => !x.is_synthetic);
+          const existing = state.backups.find((x) => x.sha256 === parsed.sha256 && x.kind === 'FORSCAN_BACKUP');
+          if (existing) {
+            if (!isUsb && (existing.is_usb_live || existing.source === 'USB_LIVE')) {
+              existing.source = 'FORSCAN_ABT';
+              existing.is_usb_live = false;
+              existing.label = b.label || existing.label;
+              added++;
+            }
+          } else {
+            state.backups.push({
+              id: `pc-${b.id || Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+              label: b.label || b.filename || 'PC Backup',
+              filename: b.filename || 'pc_backup.abt',
+              taken_at: b.taken_at || new Date().toISOString().slice(0, 10),
+              kind: 'FORSCAN_BACKUP',
+              source: isUsb ? 'USB_LIVE' : 'FORSCAN_ABT',
+              is_usb_live: isUsb,
+              is_synthetic: false,
+              vin: b.vin || state.profile.vin,
+              software_version: b.software_version || null,
+              modules: parsed.modules,
+              line_count: parsed.lines.length,
+              sha256: parsed.sha256,
+              dict: parsed.dict,
+              nodes: {},
+              warnings: parsed.warnings || [],
+              raw_text: b.raw_text
+            });
+            added++;
+          }
+        } catch (e) {}
+      });
+      if (added > 0) saveBackups();
+
+      let syncedModCount = 0;
+      if (Array.isArray(data.wanted_keys) || Array.isArray(data.approved_keys)) {
+        const wantSet = new Set(data.wanted_keys || []);
+        const appSet = new Set(data.approved_keys || []);
+        const allBase = [...(state.customMods || []), ...((BUNDLE && BUNDLE.entries) || [])];
+        allBase.forEach((raw) => {
+          if (!raw.source_key || raw.id === undefined) return;
+          const prev = state.modOverrides[raw.id] || {};
+          const nextWanted = wantSet.has(raw.source_key) ? 1 : 0;
+          const nextStatus = appSet.has(raw.source_key)
+            ? (prev.status === 'APPLIED' ? 'APPLIED' : 'APPROVED')
+            : (prev.status === 'APPLIED' ? 'APPLIED' : (raw.status || 'DRAFT'));
+          if ((prev.wanted || 0) !== nextWanted || (prev.status || raw.status || 'DRAFT') !== nextStatus) {
+            state.modOverrides[raw.id] = { ...prev, wanted: nextWanted, status: nextStatus };
+            syncedModCount++;
+          }
+        });
+        saveModOverrides();
+      }
+
+      if (data.live_scans && typeof data.live_scans === 'object') {
+        Object.entries(data.live_scans).forEach(([mod, mObj]) => {
+          if (mObj && typeof mObj === 'object') {
+            const f188Val = (mObj.ids && mObj.ids.F188 && mObj.ids.F188.value) || mObj.f188 || null;
+            state.liveScans[mod.toUpperCase()] = { ...mObj, f188: f188Val };
+          }
+        });
+        saveLiveScans();
+      }
+
+      state.pcSync.lastMessage = `✓ Pulled ${added} new backup/factory item(s) (${(data.backups || []).length} .abt on PC) & synced ${syncedModCount} mod selection(s).`;
+      state.pcSync.lastError = false;
+      showToast(state.pcSync.lastMessage);
+    } catch (err) {
+      state.pcSync.lastError = true;
+      state.pcSync.lastMessage = `Pull failed: ${err.message || err}`;
+      showToast(state.pcSync.lastMessage, true);
+    } finally {
+      state.pcSync.busy = false;
+      renderActiveTab();
+    }
+  };
+
+  global.setAbtExportFormat = function (fmt) {
+    state.abtExportFmt = fmt === 'dashed' ? 'dashed' : 'encoded';
+    renderPlanTab();
+  };
+
+  global.downloadModdedAbtModule = function (modAddr) {
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    if (!handoff.ok) {
+      showToast(handoff.error || 'Cannot export modded .abt yet.', true);
+      return;
+    }
+    const item = (handoff.modules || []).find((m) => m.module === modAddr);
+    if (!item || !global.RollupBridge) return;
+    RollupBridge.files.downloadText(item.filename, item.abt_text);
+    showToast(`Saved ${item.filename} (${state.abtExportFmt === 'encoded' ? 'FORScan G0 Load All' : 'Dashed'})`);
+  };
+
+  global.shareModdedAbtModule = function (modAddr) {
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    if (!handoff.ok) {
+      showToast(handoff.error || 'Cannot share modded .abt yet.', true);
+      return;
+    }
+    const item = (handoff.modules || []).find((m) => m.module === modAddr);
+    if (!item || !global.RollupBridge) return;
+    RollupBridge.files.shareTextFile(item.filename, item.abt_text, 'text/plain;charset=utf-8', `FORScan Modded As-Built (${item.module})`);
+  };
+
+  function _buildCurrentVaultZip(includeModdedHandoff = true) {
+    const handoff = includeModdedHandoff ? computeCurrentHandoff(state.abtExportFmt) : null;
+    const realCount = (state.backups || []).filter((b) => !b.is_synthetic).length;
+    return GarageEngine.buildVaultZipArchive({
+      backups: state.backups || [],
+      includeSynthetic: realCount === 0,
+      vehicle: state.profile || {},
+      handoff: handoff && handoff.ok && !handoff.stale_blocked && !handoff.parity_blocked ? handoff : null,
+      vaultSnapshot: {
+        app: APP_ID,
+        version: '2.1.2',
+        exported_at: new Date().toISOString(),
+        profile: state.profile,
+        modOverrides: state.modOverrides,
+        customMods: state.customMods,
+        changeLog: state.changeLog,
+        liveScans: state.liveScans
+      }
+    });
+  }
+
+  global.downloadVaultZip = function () {
+    if (!global.RollupBridge) return;
+    try {
+      const zip = _buildCurrentVaultZip(true);
+      RollupBridge.files.downloadBase64(zip.filename, zip.base64, 'application/zip');
+      showToast(`Saved ${zip.filename} (${zip.backupCount} backup(s) + MANIFEST.json)`);
+    } catch (err) {
+      showToast(`Vault .zip export failed: ${err.message || err}`, true);
+    }
+  };
+
+  global.shareVaultZip = function () {
+    if (!global.RollupBridge) return;
+    try {
+      const zip = _buildCurrentVaultZip(true);
+      RollupBridge.files.shareBase64File(
+        zip.filename,
+        zip.base64,
+        'application/zip',
+        `Blue Oval Garage Vault (${state.profile.vin || 'Backups'})`
+      );
+    } catch (err) {
+      showToast(`Vault .zip share failed: ${err.message || err}`, true);
+    }
+  };
+
+  global.downloadModdedHandoffZip = function () {
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    if (!handoff.ok || handoff.stale_blocked || handoff.parity_blocked) {
+      showToast(handoff.error || 'Cannot export modded .abt bundle yet.', true);
+      return;
+    }
+    if (!global.RollupBridge) return;
+    const safeVin = String(state.profile.vin || 'GARAGE').replace(/[^A-Z0-9]/gi, '') || 'GARAGE';
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const zip = GarageEngine.buildVaultZipArchive({
+      backups: [],
+      vehicle: state.profile || {},
+      handoff,
+      filename: `${safeVin}_FORScan_LoadAll_${dateTag}.zip`
+    });
+    RollupBridge.files.downloadBase64(zip.filename, zip.base64, 'application/zip');
+    showToast(`Saved ${zip.filename} (${handoff.modules.length} modded .abt + checklist)`);
+  };
+
+  global.shareModdedHandoffZip = function () {
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    if (!handoff.ok || handoff.stale_blocked || handoff.parity_blocked) {
+      showToast(handoff.error || 'Cannot share modded .abt bundle yet.', true);
+      return;
+    }
+    if (!global.RollupBridge) return;
+    const safeVin = String(state.profile.vin || 'GARAGE').replace(/[^A-Z0-9]/gi, '') || 'GARAGE';
+    const dateTag = new Date().toISOString().slice(0, 10);
+    const zip = GarageEngine.buildVaultZipArchive({
+      backups: [],
+      vehicle: state.profile || {},
+      handoff,
+      filename: `${safeVin}_FORScan_LoadAll_${dateTag}.zip`
+    });
+    RollupBridge.files.shareBase64File(zip.filename, zip.base64, 'application/zip', `FORScan Load-All Bundle (${safeVin})`);
+  };
+
+  // =========================================================================
+  // TAB 4: BACKUPS, USB-C LIVE SNAPSHOT, PC SYNC & CHECKSUM TOOLS
   // =========================================================================
   function renderBackupsTab() {
     const container = document.getElementById('backups-tab-content');
@@ -1669,6 +2430,7 @@
 
     const entries = getHydratedEntries(false);
     const wanted = entries.filter((e) => e.wanted || e.status === 'APPROVED');
+    const g = GarageEngine.adapterGuidance(state.profile.model_year, state.profile.platform_slug);
     const requiredMods = new Set();
     wanted.forEach((e) => {
       (e.steps || []).forEach((s) => {
@@ -1678,22 +2440,72 @@
     });
 
     const backedUpMods = new Set();
-    state.backups
-      .filter((b) => b.kind === 'FORSCAN_BACKUP' && !b.is_synthetic)
-      .forEach((b) => (b.modules || []).forEach((m) => backedUpMods.add(m)));
+    const authMods = new Set();
+    state.backups.forEach((b) => {
+      if (b.is_synthetic) return;
+      const isUsb = Boolean(b.is_usb_live || String(b.source || '').toUpperCase() === 'USB_LIVE');
+      if (b.kind === 'FORSCAN_BACKUP') {
+        (b.modules || []).forEach((m) => backedUpMods.add(String(m || '').toUpperCase()));
+        if (!isUsb) {
+          (b.modules || []).forEach((m) => authMods.add(String(m || '').toUpperCase()));
+        }
+      } else if (b.kind === 'FORD_AB') {
+        (b.modules || []).forEach((m) => authMods.add(String(m || '').toUpperCase()));
+      }
+    });
+
+    const isNativeUsb = Boolean(global.RollupBridge && RollupBridge.usbSerial && RollupBridge.usbSerial.isNativeApk());
+    const isWebSerial = Boolean(!isNativeUsb && global.RollupBridge && RollupBridge.usbSerial && RollupBridge.usbSerial.isSupported());
+    const usbGateBadge = isNativeUsb
+      ? `<span class="pill pill-green">🔒 Native Kotlin Read-Only UDS Gate</span>`
+      : isWebSerial
+      ? `<span class="pill pill-blue">💻 Desktop WebSerial Ready</span>`
+      : `<span class="pill pill-muted">📱 Requires RollupOS v1.2+ APK for USB-C OTG</span>`;
+
+    const voltVal = state.usb.lastVoltage;
+    const voltBadge =
+      voltVal === null || voltVal === undefined
+        ? `<span class="pill pill-dark">🔋 12V ATRV: --</span>`
+        : voltVal >= 12.5
+        ? `<span class="pill pill-green">🔋 ${voltVal.toFixed(2)}V (&ge;12.5V Ready)</span>`
+        : `<span class="pill pill-amber">⚠️ ${voltVal.toFixed(2)}V (&lt;12.5V KOEO)</span>`;
+
+    const targetListPreview = getTargetModulesForMode(state.usb.mode).join(', ');
+    const lastRes = state.usb.lastResult;
+    const lastScanHtml = lastRes
+      ? `
+        <div class="alert alert-green" style="margin-top:8px;">
+          <strong>✓ Last Live Scan (${escapeHtml(lastRes.mode)}):</strong>
+          Responded: <strong>${escapeHtml(lastRes.respondedModules.join(', ') || 'none')}</strong>
+          ${lastRes.vin ? ` • Live VIN: <code>${escapeHtml(lastRes.vin)}</code>` : ''}
+          ${lastRes.importedCount ? ` • Auto-saved <strong>${lastRes.importedCount}</strong> <code>.abt</code> file(s) (${lastRes.totalLinesSaved} lines)` : ''}
+        </div>
+      `
+      : '';
 
     const coverageRows = Array.from(requiredMods)
       .sort()
       .map((m) => {
         const fn = (BUNDLE.ford_modules[m] && BUNDLE.ford_modules[m].short) || m;
-        const ok = backedUpMods.has(m);
+        const hasAbt = backedUpMods.has(m);
+        const hasAuth = authMods.has(m);
+        const ok = hasAbt && hasAuth;
+        const ls = state.liveScans[m];
+        let statusBadge = `<span class="pill pill-amber">⚠️ Needs .abt + Auth Baseline</span>`;
+        if (ok) {
+          statusBadge = `<span class="pill pill-green">✓ Parity Baseline Ready</span>`;
+        } else if (hasAbt && !hasAuth) {
+          statusBadge = `<span class="pill pill-amber">⚠️ USB-C Only (Import .ab or Save-All)</span>`;
+        } else if (!hasAbt && hasAuth) {
+          statusBadge = `<span class="pill pill-amber">⚠️ .ab Only (Run USB Scan or Import .abt)</span>`;
+        }
         return `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#090e1a;border:1px solid ${ok ? '#166534' : '#7c2d12'};border-radius:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#090e1a;border:1px solid ${ok ? '#166534' : '#7c2d12'};border-radius:8px;gap:6px;flex-wrap:wrap;">
             <div>
               <strong style="color:#f8fafc;">${escapeHtml(m)} (${escapeHtml(fn)})</strong>
-              <span style="font-size:11px;color:#94a3b8;margin-left:6px;">Required by your Wanted/Approved mods</span>
+              <span style="font-size:11px;color:#94a3b8;margin-left:6px;">${ls && ls.f188 ? `Live F188: ${escapeHtml(ls.f188)}` : 'Required by Wanted/Approved mods'}</span>
             </div>
-            ${ok ? `<span class="pill pill-green">✓ Real .abt Saved</span>` : `<span class="pill pill-amber">⚠️ Needs FORScan .abt Backup</span>`}
+            ${statusBadge}
           </div>
         `;
       })
@@ -1702,25 +2514,44 @@
     const backupsListHtml = state.backups.length
       ? state.backups
           .map(
-            (b, idx) => `
+            (b, idx) => {
+              const isUsb = Boolean(b.is_usb_live || String(b.source || '').toUpperCase() === 'USB_LIVE');
+              const provLabel =
+                b.kind === 'FORD_AB'
+                  ? 'FORD_AB (Auth Blocks)'
+                  : b.is_synthetic
+                  ? 'SYNTHETIC'
+                  : isUsb
+                  ? 'USB-C Live (Needs .ab)'
+                  : 'FORScan Save-All';
+              const provClass =
+                b.kind === 'FORD_AB'
+                  ? 'pill-blue'
+                  : b.is_synthetic || isUsb
+                  ? 'pill-amber'
+                  : 'pill-green';
+              return `
           <div style="padding:10px;background:#090e1a;border:1px solid #1e293b;border-radius:10px;margin-top:8px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
               <div>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                   <strong style="font-size:13px;color:#f8fafc;">${escapeHtml(b.label || b.filename)}</strong>
-                  <span class="pill ${b.kind === 'FORD_AB' ? 'pill-blue' : b.is_synthetic ? 'pill-amber' : 'pill-green'}">${escapeHtml(b.kind)}</span>
+                  <span class="pill ${provClass}">${escapeHtml(provLabel)}</span>
+                  ${b.software_version ? `<span class="pill pill-dark">F188: ${escapeHtml(b.software_version)}</span>` : ''}
                 </div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
                   Modules: <strong>${escapeHtml((b.modules || []).join(', '))}</strong> • ${b.line_count || Object.keys(b.dict || {}).length} lines • SHA-256: <code>${escapeHtml(String(b.sha256 || '').slice(0, 10))}</code>
                 </div>
               </div>
-              <div style="display:flex;gap:5px;">
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
                 <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="downloadBackupFile(${idx})">⬇️ Save</button>
+                <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="shareBackupFile(${idx})">📤 Share</button>
                 <button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteBackupAt(${idx})">🗑️</button>
               </div>
             </div>
           </div>
-        `
+        `;
+            }
           )
           .join('')
       : `<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px;">No <code>.abt</code> or <code>.ab</code> files imported for this vehicle yet.</div>`;
@@ -1766,13 +2597,111 @@
     }
 
     container.innerHTML = `
+      <!-- USB-C Live OBD-II Read-Only Snapshot -->
+      <div class="card card-accent">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <div>
+            <h3 style="margin:0;font-size:14.5px;color:#f8fafc;">🔌 USB-C Live OBD-II As-Built Backup (Read-Only UDS)</h3>
+            <p style="margin:3px 0 0 0;font-size:11.5px;color:#cbd5e1;">
+              Plug <strong>OBDLink EX</strong> or <strong>Vgate vLinker FS</strong> into your phone via USB-C OTG. Reads live <code>DExx</code> As-Built &amp; <code>F188</code> strategy IDs; <code>0x2E</code> writes are hardware-blocked.
+            </p>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            ${usbGateBadge}
+            ${voltBadge}
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          ${
+            state.usb.connected
+              ? `
+                <span class="pill pill-green" style="padding:5px 10px;">✓ ${escapeHtml(state.usb.deviceInfo)}</span>
+                <button class="btn btn-secondary" onclick="probeUsbVoltage(false)" ${state.usb.busy ? 'disabled' : ''}>🔋 Check 12V</button>
+                <button class="btn btn-danger" onclick="disconnectUsbAdapter()" ${state.usb.busy ? 'disabled' : ''}>⏏️ Disconnect</button>
+              `
+              : `<button class="btn btn-blue" onclick="connectUsbAdapter()" ${state.usb.busy ? 'disabled' : ''}>🔌 Connect USB-C Adapter</button>`
+          }
+        </div>
+
+        <div class="form-grid" style="margin-bottom:8px;">
+          <div>
+            <label class="field-label">USB Scan Mode</label>
+            <select class="field-input" onchange="setUsbScanOption('mode', this.value)" ${state.usb.busy ? 'disabled' : ''}>
+              <option value="targeted_backup" ${state.usb.mode === 'targeted_backup' ? 'selected' : ''}>⚡ Targeted Mod Backup (~20s • ${escapeHtml(targetListPreview)})</option>
+              <option value="quick_health" ${state.usb.mode === 'quick_health' ? 'selected' : ''}>🩺 Quick Health (VIN F190 + F188 + DTCs)</option>
+              <option value="full_backup" ${state.usb.mode === 'full_backup' ? 'selected' : ''}>🗄️ Full Truck As-Built Sweep (13 Modules)</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:center;gap:5px;font-size:11.5px;color:#cbd5e1;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" ${state.usb.dualBus ? 'checked' : ''} onchange="setUsbScanOption('dualBus', this.checked)">
+              <span>${g.ms_can_required ? 'Auto-Switch HS-CAN (STP33) + MS-CAN 125k (STP53)' : 'Dual 500k Bus (DIAG1 STP33 + Secondary DIAG2 STP53 for IPMA 706)'}</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" ${state.usb.allowExtended ? 'checked' : ''} onchange="setUsbScanOption('allowExtended', this.checked)">
+              <span>Parked Extended Session Fallback (<code>10 03 &rarr; DExx &rarr; 10 01</code>)</span>
+            </label>
+            ${
+              state.usb.allowExtended
+                ? `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#fde68a;padding-left:18px;">
+                    <input type="checkbox" ${state.usb.confirmParked ? 'checked' : ''} onchange="setUsbScanOption('confirmParked', this.checked)">
+                    <span><strong>Confirm vehicle is stationary in PARK</strong></span>
+                  </label>`
+                : ''
+            }
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="checkbox" ${state.usb.overrideLowV ? 'checked' : ''} onchange="setUsbScanOption('overrideLowV', this.checked)">
+              <span>Override &lt;12.5V Battery Gate (external 12V maintainer attached)</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="startUsbVehicleScan()" ${state.usb.busy ? 'disabled' : ''}>
+            ${state.usb.busy ? '⏳ Scanning Vehicle...' : '⚡ Run Live USB-C Scan &amp; Save .abt'}
+          </button>
+          <span id="usb-live-progress" style="font-size:11.5px;color:#38bdf8;font-family:monospace;">${escapeHtml(state.usb.progressText || '')}</span>
+        </div>
+
+        ${state.usb.lastError ? `<div class="alert alert-red" style="margin-top:8px;">⚠️ ${escapeHtml(state.usb.lastError)}</div>` : ''}
+        ${lastScanHtml}
+      </div>
+
+      <!-- Time-Boxed Phone <-> PC FORScan Staging Sync -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+          <h3 style="margin:0;font-size:14px;color:#f8fafc;">📡 Phone &harr; PC Wi-Fi Sync &amp; FORScan Staging</h3>
+          <label class="btn btn-secondary" style="cursor:pointer;font-size:11.5px;padding:4px 8px;">
+            📷 Scan Desktop QR
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="scanPcSyncQrImage(event)">
+          </label>
+        </div>
+        <p style="margin:0 0 8px 0;font-size:11.5px;color:#94a3b8;">
+          On your Windows laptop, click <strong>Enable Phone Sync (15 min)</strong> in <code>LightningGarage.exe</code>, then scan the QR code (or paste the Pairing URI / 6-digit PIN) to sync your Vault and auto-stage modded <code>.abt</code> files into <code>Documents\\FORScan\\LightningGarage_Staging\\</code>.
+        </p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <input type="text" id="pc-sync-url" class="field-input" style="flex:2;min-width:190px;font-family:monospace;" maxlength="128" value="${escapeHtml(state.pcSync.url)}" placeholder="http://192.168.1.50:54321 (or paste #pin=...)" onchange="updatePcSyncInputs()">
+          <input type="text" id="pc-sync-pin" class="field-input" style="width:120px;font-family:monospace;letter-spacing:2px;text-align:center;" maxlength="96" inputmode="numeric" value="${escapeHtml(state.pcSync.pin)}" placeholder="6-Digit PIN" onchange="updatePcSyncInputs()">
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="pushSyncToPc(false)" ${state.pcSync.busy ? 'disabled' : ''}>⬆️ Push Backups &amp; Stage Modded .abt to PC</button>
+          <button class="btn btn-secondary" onclick="pullSyncFromPc()" ${state.pcSync.busy ? 'disabled' : ''}>⬇️ Pull Vault &amp; Backups from PC</button>
+        </div>
+        ${
+          state.pcSync.lastMessage
+            ? `<div class="alert ${state.pcSync.lastError ? 'alert-red' : 'alert-green'}" style="margin-top:8px;">${escapeHtml(state.pcSync.lastMessage)}</div>`
+            : ''
+        }
+      </div>
+
       <!-- Pre-Flight Backup Coverage -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
           <div>
             <h3 style="margin:0;font-size:14px;color:#f8fafc;">🛡️ Pre-Flight Module Backup Checklist</h3>
             <p style="margin:2px 0 0 0;font-size:11.5px;color:#94a3b8;">
-              Before writing any change in FORScan, save an untouched <code>.abt</code> backup for each module below.
+              Before writing any change in FORScan, ensure a real <code>.abt</code> backup is saved for each module below.
             </p>
           </div>
           <label class="btn btn-primary" style="cursor:pointer;">
@@ -1787,7 +2716,16 @@
 
       <!-- Imported Backups Vault -->
       <div class="card">
-        <h3 style="margin:0 0 4px 0;font-size:14px;color:#f8fafc;">🗄️ Imported Backups &amp; Factory Files (${state.backups.length})</h3>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <div>
+            <h3 style="margin:0;font-size:14px;color:#f8fafc;">🗄️ Imported Backups &amp; Factory Files (${state.backups.length})</h3>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Offline-first: save or share individual <code>.abt</code> files or a complete checksummed <code>Vault.zip</code> (+ <code>MANIFEST.json</code>).</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-primary" style="font-size:11.5px;padding:5px 9px;" onclick="downloadVaultZip()" ${state.backups.length ? '' : 'disabled'}>📦 Save Vault .zip</button>
+            <button class="btn btn-secondary" style="font-size:11.5px;padding:5px 9px;" onclick="shareVaultZip()" ${state.backups.length ? '' : 'disabled'}>📤 Share Vault .zip</button>
+          </div>
+        </div>
         ${backupsListHtml}
       </div>
 
@@ -1834,6 +2772,11 @@
         try {
           const text = String(e.target.result || '');
           const parsed = GarageEngine.parseAnyBackupFile(file.name, text);
+          const inferredSrc =
+            parsed.kind === 'FORD_AB'
+              ? 'FORD_FACTORY'
+              : GarageEngine.inferAbtBackupSource(text, file.name, file.name);
+          const isUsb = inferredSrc === 'USB_LIVE';
           state.backups = state.backups.filter((b) => !b.is_synthetic && b.sha256 !== parsed.sha256);
           state.backups.push({
             id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -1841,6 +2784,8 @@
             filename: file.name,
             taken_at: new Date().toISOString().slice(0, 10),
             kind: parsed.kind,
+            source: inferredSrc,
+            is_usb_live: isUsb,
             is_synthetic: false,
             vin: parsed.vin,
             modules: parsed.modules,
@@ -1885,6 +2830,19 @@
     }
   };
 
+  global.shareBackupFile = function (idx) {
+    const b = state.backups[idx];
+    if (!b || !global.RollupBridge) return;
+    const text =
+      b.raw_text ||
+      Object.keys(b.dict || {})
+        .sort()
+        .map((k) => `${k} ${b.dict[k]}`)
+        .join('\n');
+    const fname = b.filename || `${b.label || 'backup'}.${b.kind === 'FORD_AB' ? 'ab' : 'abt'}`;
+    RollupBridge.files.shareTextFile(fname, text, 'text/plain;charset=utf-8', `As-Built Backup (${fname})`);
+  };
+
   global.runChecksumCalc = function () {
     const addrStr = (document.getElementById('cs-addr') || {}).value || '';
     const payloadStr = (document.getElementById('cs-payload') || {}).value || '';
@@ -1902,7 +2860,7 @@
   };
 
   // =========================================================================
-  // TAB 5: PRINTABLE / IN-CAB FORSCAN SESSION PLAN
+  // TAB 5: PRINTABLE / IN-CAB FORSCAN SESSION PLAN & MODDED .ABT HANDOFF
   // =========================================================================
   function renderPlanTab() {
     const container = document.getElementById('plan-tab-content');
@@ -1918,6 +2876,87 @@
         if (m.length === 3) modsToBackup.add(m);
       });
     });
+
+    const handoff = computeCurrentHandoff(state.abtExportFmt);
+    let handoffBodyHtml = '';
+    if (handoff.stale_blocked) {
+      handoffBodyHtml = `
+        <div class="alert alert-red" style="margin-top:8px;">
+          <strong>⛔ Stale Pre-OTA F188 Guard Blocked "Load All" Export:</strong>
+          <ul style="margin:6px 0 6px 18px;padding:0;">
+            ${(handoff.blockers || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('')}
+          </ul>
+          <button class="btn btn-primary" onclick="switchTab('backups')">🔌 Run Fresh USB-C Backup Now</button>
+        </div>
+      `;
+    } else if (handoff.parity_blocked) {
+      handoffBodyHtml = `
+        <div class="alert alert-red" style="margin-top:8px;">
+          <strong>⛔ Baseline Parity Safety Gate Blocked "Load All" Export:</strong>
+          <ul style="margin:6px 0 6px 18px;padding:0;">
+            ${(handoff.blockers || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('')}
+          </ul>
+          <button class="btn btn-primary" onclick="switchTab('backups')">📂 Import Motorcraft .ab or FORScan Save-All .abt</button>
+        </div>
+      `;
+    } else if (!handoff.ok) {
+      handoffBodyHtml = `
+        <div class="alert alert-amber" style="margin-top:8px;">
+          <strong>ℹ️ Modded <code>.abt</code> Handoff Pending:</strong> ${escapeHtml(handoff.error || 'Import or capture module backups first.')}
+          ${
+            (handoff.blockers || []).length
+              ? `<div style="margin-top:4px;font-size:11px;color:#fde68a;">${escapeHtml(handoff.blockers.slice(0, 3).join(' • '))}</div>`
+              : ''
+          }
+        </div>
+      `;
+    } else {
+      const warnHtml = (handoff.warnings || []).length
+        ? `<div class="alert alert-amber" style="margin-top:8px;">${handoff.warnings.map((w) => escapeHtml(w)).join('<br>')}</div>`
+        : '';
+      const modCards = (handoff.modules || [])
+        .map((m) => {
+          const fn = (BUNDLE.ford_modules[m.module] && BUNDLE.ford_modules[m.module].short) || m.module;
+          const f188Pill = m.f188_verified_match
+            ? `<span class="pill pill-green">✓ F188 Match (${escapeHtml(m.live_f188)})</span>`
+            : m.baseline_f188
+            ? `<span class="pill pill-dark">F188: ${escapeHtml(m.baseline_f188)}</span>`
+            : `<span class="pill pill-muted">F188 Unrecorded</span>`;
+          const parityPill = m.parity_verified
+            ? `<span class="pill pill-green">✓ Block Parity (${m.actual_block_count || 0} blk)</span>`
+            : `<span class="pill pill-amber">⚠️ Unverified USB</span>`;
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;background:#070c18;border:1px solid #1e293b;border-radius:8px;margin-top:8px;">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <strong style="color:#38bdf8;font-family:monospace;">${escapeHtml(m.filename)}</strong>
+                  <span class="pill pill-blue">${escapeHtml(m.module)} (${escapeHtml(fn)})</span>
+                  ${parityPill}
+                  ${f188Pill}
+                </div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
+                  <strong>${m.changed_lines.length}</strong> mutated line(s) across ${m.total_lines} module lines • Ready for FORScan <strong>Load All &rarr; Write All</strong>
+                </div>
+              </div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button class="btn btn-primary" style="padding:5px 9px;font-size:11px;" onclick="downloadModdedAbtModule('${escapeHtml(m.module)}')">⬇️ Save .abt</button>
+                <button class="btn btn-secondary" style="padding:5px 9px;font-size:11px;" onclick="shareModdedAbtModule('${escapeHtml(m.module)}')">📤 Share .abt</button>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+      handoffBodyHtml = `
+        ${warnHtml}
+        ${modCards}
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-primary" onclick="downloadModdedHandoffZip()">📦 Save All .zip</button>
+          <button class="btn btn-secondary" onclick="shareModdedHandoffZip()">📤 Share All .zip</button>
+          <button class="btn btn-blue" onclick="pushSyncToPc(true)">📡 1-Tap Stage .abt File(s) to PC FORScan Folder</button>
+          <span style="font-size:11px;color:#94a3b8;">Offline <code>.zip</code> (+ checklist) or Wi-Fi stage into <code>Documents\\FORScan\\LightningGarage_Staging\\</code></span>
+        </div>
+      `;
+    }
 
     const planStepsHtml = planned.length
       ? planned
@@ -1977,6 +3016,23 @@
         </div>
       </div>
 
+      <!-- FORScan "Load All" Modded .abt Handoff -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h4 style="margin:0;font-size:13.5px;color:#f8fafc;">💾 FORScan "Load All" Modded <code>.abt</code> Handoff</h4>
+            <p style="margin:3px 0 0 0;font-size:11.5px;color:#94a3b8;">
+              Pre-computes checksum-verified <code>.abt</code> files from your vehicle's real baseline backup, guarded against Ford OTA strategy drift (<code>F188</code>). Write modules strictly in Windows <code>FORScan.exe</code> (directly or via phone RustDesk/RDP).
+            </p>
+          </div>
+          <div class="chip-row" style="padding:0;">
+            <button class="chip-btn ${state.abtExportFmt === 'encoded' ? 'active' : ''}" onclick="setAbtExportFormat('encoded')">FORScan &ge;2.3.23 G0 (.abt)</button>
+            <button class="chip-btn ${state.abtExportFmt === 'dashed' ? 'active' : ''}" onclick="setAbtExportFormat('dashed')">Dashed Readable (.abt)</button>
+          </div>
+        </div>
+        ${handoffBodyHtml}
+      </div>
+
       ${
         g.ms_can_required
           ? `<div class="alert alert-amber" style="margin-bottom:10px;"><strong>⚠️ MS-CAN (125 kbaud) Vehicle (${escapeHtml(g.architecture)}):</strong> ${escapeHtml(g.note)}</div>`
@@ -1986,14 +3042,14 @@
       <div class="card">
         <h4 style="margin:0 0 6px 0;font-size:13px;color:#38bdf8;">Step 1 — Vehicle &amp; 12V Pre-Flight</h4>
         <ul style="margin:0;padding-left:18px;font-size:12px;color:#cbd5e1;line-height:1.55;">
-          <li>Connect <strong>${escapeHtml(state.profile.adapter || 'OBDLink EX')}</strong> to the OBD-II port; turn vehicle to <strong>Key-On Engine-Off (KOEO) / Ready</strong>.</li>
-          <li>Ensure 12V battery is supported by a maintainer (on BEVs, the <code>746 SOBDMC</code> DC-DC converter supports 12V when HV contactors are closed).</li>
-          <li>Before modifying any line, open FORScan &rarr; <strong>Configuration and Programming</strong> &rarr; <strong>Save All</strong> into a dated <code>.abt</code> backup for: <strong>${escapeHtml(Array.from(modsToBackup).join(', ') || '726, 7D0, 720, 740, 741, 724')}</strong>.</li>
+          <li>Connect <strong>${escapeHtml(state.profile.adapter || 'OBDLink EX')}</strong> to the OBD-II port; put vehicle in <strong>Ready / KOER (~14.4V DC-DC active)</strong> or attach a 12V maintainer (&ge;12.5V).</li>
+          <li>Capture a fresh USB-C Targeted Backup (or FORScan <strong>Save All</strong>) for: <strong>${escapeHtml(Array.from(modsToBackup).join(', ') || '726, 7D0, 720, 740, 741, 724')}</strong>.</li>
+          <li>In Windows <code>FORScan.exe</code> &rarr; <strong>Configuration and Programming</strong> &rarr; open Module Configuration (AS BUILT format) &rarr; click <strong>Load All</strong> &rarr; select staged <code>*_MODDED.abt</code> &rarr; verify diff &rarr; click <strong>Write All</strong>.</li>
         </ul>
       </div>
 
       <div style="margin:8px 2px;font-size:12px;font-weight:800;color:#f8fafc;">
-        Step 2 — Selected Mod Changes (${planned.length})
+        Step 2 — Selected Mod Line-by-Line Verification (${planned.length})
       </div>
       ${planStepsHtml}
     `;
@@ -2030,6 +3086,7 @@
     saveBackups();
     saveCustomMods();
     saveChangeLog();
+    saveLiveScans();
     const vehicleStates = {};
     (state.vehicles || []).forEach((v) => {
       const vid = v.id;
@@ -2038,20 +3095,22 @@
           modOverrides: state.modOverrides,
           backups: state.backups,
           customMods: state.customMods,
-          changeLog: state.changeLog
+          changeLog: state.changeLog,
+          liveScans: state.liveScans
         };
       } else if (global.RollupBridge) {
         vehicleStates[vid] = {
           modOverrides: RollupBridge.storage.get(getScopedKey(KEY_MOD_OVERRIDES, vid), {}, APP_ID) || {},
           backups: RollupBridge.storage.get(getScopedKey(KEY_BACKUPS, vid), [], APP_ID) || [],
           customMods: RollupBridge.storage.get(getScopedKey(KEY_CUSTOM_MODS, vid), [], APP_ID) || [],
-          changeLog: RollupBridge.storage.get(getScopedKey(KEY_CHANGE_LOG, vid), [], APP_ID) || []
+          changeLog: RollupBridge.storage.get(getScopedKey(KEY_CHANGE_LOG, vid), [], APP_ID) || [],
+          liveScans: RollupBridge.storage.get(getScopedKey(KEY_LIVE_SCANS, vid), {}, APP_ID) || {}
         };
       }
     });
     const payload = {
       app: APP_ID,
-      version: '2.0.0',
+      version: '2.1.0',
       exported_at: new Date().toISOString(),
       activeVehicleId: state.activeVehicleId,
       vehicles: state.vehicles,
@@ -2060,7 +3119,8 @@
       modOverrides: state.modOverrides,
       backups: state.backups,
       customMods: state.customMods,
-      changeLog: state.changeLog
+      changeLog: state.changeLog,
+      liveScans: state.liveScans
     };
     if (global.RollupBridge) {
       RollupBridge.files.exportJSON(`blue_oval_garage_vault_${state.profile.vin || 'export'}.json`, payload);
@@ -2092,6 +3152,7 @@
             if (Array.isArray(vs.backups)) RollupBridge.storage.set(getScopedKey(KEY_BACKUPS, vid), vs.backups, APP_ID);
             if (Array.isArray(vs.customMods)) RollupBridge.storage.set(getScopedKey(KEY_CUSTOM_MODS, vid), vs.customMods, APP_ID);
             if (Array.isArray(vs.changeLog)) RollupBridge.storage.set(getScopedKey(KEY_CHANGE_LOG, vid), vs.changeLog, APP_ID);
+            if (vs.liveScans) RollupBridge.storage.set(getScopedKey(KEY_LIVE_SCANS, vid), vs.liveScans, APP_ID);
           });
           loadScopedVehicleData(state.activeVehicleId);
         } else {
@@ -2110,6 +3171,10 @@
           if (Array.isArray(data.changeLog)) {
             state.changeLog = data.changeLog;
             saveChangeLog();
+          }
+          if (data.liveScans) {
+            state.liveScans = data.liveScans;
+            saveLiveScans();
           }
         }
         renderActiveTab();

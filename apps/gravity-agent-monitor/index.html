@@ -243,6 +243,7 @@
     .state-RUNNING_TOOL, .state-THINKING { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
     .state-DONE { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
     .state-ERROR { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+    .state-IDLE { background: rgba(148, 163, 184, 0.14); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
 
     /* Antigravity Left-Sidebar Replica Styles */
     .agy-sidebar-section {
@@ -1158,10 +1159,54 @@
       font-weight: 800;
     }
 
+    .icon-btn.stop-btn {
+      background: rgba(244, 63, 94, 0.22);
+      border: 1.5px solid #f43f5e;
+      color: #fecdd3;
+      font-weight: 800;
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.38);
+      animation: pulseGlow 1.6s infinite;
+    }
+
     .icon-btn.recording {
       background: var(--accent-rose);
       color: white;
       animation: pulseGlow 1s infinite;
+    }
+
+    /* Model Tier Selector Pills */
+    .model-tier-bar {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+    }
+
+    .model-tier-bar::-webkit-scrollbar { display: none; }
+
+    .model-tier-pill {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 3.5px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.14s ease;
+    }
+
+    .model-tier-pill.active, .model-tier-pill.active-model-pill {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.28));
+      border-color: var(--accent-cyan);
+      color: #f8fafc;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
     }
 
     /* Artifact Vault Cards */
@@ -1380,10 +1425,25 @@
         📡 Offline Snapshot Mode — Viewing cached workstation state
       </div>
       <!-- Multi-PC Follow-Me Fleet Bar -->
-      <div id="fleetBar" class="quick-chips" style="margin-bottom:10px;">
+      <div id="fleetBar" class="quick-chips" style="margin-bottom:8px;">
         <button class="quick-chip" style="border-color:var(--accent-cyan);color:var(--accent-cyan);font-weight:700;" onclick="setHostFilter('ALL')">
           🌐 All PCs (Auto Follow-Me)
         </button>
+      </div>
+
+      <!-- Compact Quick-Launch & Model Tier Card in Pulse -->
+      <div class="session-card" style="padding:10px 12px;margin-bottom:10px;cursor:default;">
+        <div class="model-tier-bar" id="pulseModelTierBar">
+          <span style="font-size:10.5px;font-weight:700;color:var(--text-secondary);margin-right:2px;">MODEL:</span>
+          <button type="button" class="model-tier-pill" data-model="inherit" onclick="selectModelTier('inherit')">🧠 Auto</button>
+          <button type="button" class="model-tier-pill" data-model="flash_lite" onclick="selectModelTier('flash_lite')">⚡ Flash Lite</button>
+          <button type="button" class="model-tier-pill" data-model="flash" onclick="selectModelTier('flash')">🚀 Flash</button>
+          <button type="button" class="model-tier-pill" data-model="pro" onclick="selectModelTier('pro')">💎 Pro</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+          <input id="pulseQuickLaunchInput" class="steer-input" style="padding:7px 10px;font-size:12.5px;" placeholder="➕ Quick-launch new chat or /command…" onkeydown="if(event.key==='Enter'){event.preventDefault();quickLaunchFromPulse();}" />
+          <button class="icon-btn send" style="height:36px;width:36px;" onclick="quickLaunchFromPulse()" title="Quick Launch Conversation">🚀</button>
+        </div>
       </div>
 
       <div class="section-header">
@@ -1424,6 +1484,13 @@
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/compact')">🗜️ /compact</button>
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/goal')">🎯 /goal</button>
         </div>
+        <div class="model-tier-bar" id="trajModelTierBar">
+          <span style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-right:2px;">MODEL:</span>
+          <button type="button" class="model-tier-pill" data-model="inherit" onclick="selectModelTier('inherit')">🧠 Auto</button>
+          <button type="button" class="model-tier-pill" data-model="flash_lite" onclick="selectModelTier('flash_lite')">⚡ Flash Lite</button>
+          <button type="button" class="model-tier-pill" data-model="flash" onclick="selectModelTier('flash')">🚀 Flash</button>
+          <button type="button" class="model-tier-pill" data-model="pro" onclick="selectModelTier('pro')">💎 Pro</button>
+        </div>
         <div id="steerAttachmentStrip" class="steer-attachment-strip" style="display:none;"></div>
         <input type="file" id="steerImageInput" accept="image/*" multiple style="display:none;" onchange="handleSteerImageSelect(event)" />
         <div class="steer-input-row">
@@ -1434,6 +1501,7 @@
             <div id="steerCommandPills" class="steer-cmd-pills"></div>
             <textarea id="steerInput" class="steer-input" rows="1" enterkeyhint="send" placeholder="Steer agent or type /command…" oninput="handleSteerInputChange(this)" onkeydown="handleSteerInputKeydown(event)"></textarea>
           </div>
+          <button id="stopGenBtn" class="icon-btn stop-btn" style="display:none;" onclick="stopActiveGeneration()" title="Stop Active Generation">🛑</button>
           <button class="icon-btn send" onclick="submitSteerInput()">↑</button>
         </div>
       </div>
@@ -1490,11 +1558,50 @@
       </div>
 
       <div class="section-header">
+        <span class="section-title">Push Notifications (🔔 Web & ntfy.sh)</span>
+      </div>
+      <div class="session-card" style="cursor:default;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="pushEnabledToggle" checked onchange="handleBrowserNotificationPermissionToggle(this)" />
+            <span>Enable Lock-Screen & Browser Alerts</span>
+          </label>
+          <span id="pushPermissionStatusBadge" class="state-badge state-DONE" style="font-size:10px;">Active</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text-secondary);">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="pushOnApprovalToggle" checked onchange="savePushConfigFromUI()" />
+            <span>⚠️ Approval Gate</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="pushOnDoneToggle" checked onchange="savePushConfigFromUI()" />
+            <span>✅ Response Done</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="pushOnErrorToggle" checked onchange="savePushConfigFromUI()" />
+            <span>🚨 Error</span>
+          </label>
+        </div>
+        <input id="pushNtfyTopicInput" class="steer-input" style="width:100%;margin-bottom:10px;" placeholder="Optional ntfy.sh topic or webhook URL (e.g. csc-gravity-alerts)" />
+        <div class="thumb-grid">
+          <button class="thumb-btn approve" onclick="savePushConfigFromUI()">💾 Save Settings</button>
+          <button class="thumb-btn secondary" onclick="sendTestPushFromUI()">🔔 Test Push</button>
+        </div>
+      </div>
+
+      <div class="section-header">
         <span class="section-title">Quick-Launch Task / Live AgentAPI Bridge</span>
       </div>
       <div class="session-card" style="cursor:default;">
         <div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary);">
           Dispatches directly into your running Antigravity Desktop app via native <code>language_server.exe agentapi</code>:
+        </div>
+        <div class="model-tier-bar" id="opsModelTierBar" style="margin-bottom:6px;">
+          <span style="font-size:10.5px;font-weight:700;color:var(--text-secondary);margin-right:2px;">MODEL:</span>
+          <button type="button" class="model-tier-pill" data-model="inherit" onclick="selectModelTier('inherit')">🧠 Auto</button>
+          <button type="button" class="model-tier-pill" data-model="flash_lite" onclick="selectModelTier('flash_lite')">⚡ Flash Lite</button>
+          <button type="button" class="model-tier-pill" data-model="flash" onclick="selectModelTier('flash')">🚀 Flash</button>
+          <button type="button" class="model-tier-pill" data-model="pro" onclick="selectModelTier('pro')">💎 Pro</button>
         </div>
         <select id="launchTargetSelect" class="steer-input" style="width:100%;margin-bottom:8px;">
           <option value="ACTIVE_CONVO">💬 Send into Currently Selected Conversation</option>
@@ -1557,7 +1664,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_CLOUD_TUNNEL_URL = 'https://unexpected-computing-director-atmosphere.trycloudflare.com';
+    const DEFAULT_CLOUD_TUNNEL_URL = 'https://retained-humanity-avoiding-controls.trycloudflare.com';
     const WORK_PC_LAN_URL = 'http://10.0.0.91:8765';
     const HOME_PC_LAN_URL = 'http://192.168.86.47:8765';
     function resolveDefaultLanUrl() {
@@ -1568,7 +1675,7 @@
       if (DEFAULT_CLOUD_TUNNEL_URL && DEFAULT_CLOUD_TUNNEL_URL.startsWith('https://')) {
         return DEFAULT_CLOUD_TUNNEL_URL;
       }
-      return 'http://192.168.86.47:8765';
+      return 'http://10.0.0.91:8765';
     }
     const DEFAULT_ADMIN_LAN_URL = resolveDefaultLanUrl();
     const DEFAULT_ADMIN_TS_URL = '';
@@ -1686,13 +1793,12 @@
     }
 
     async function gravityFetch(urlOrPath, options = {}) {
-      const method = (options.method || 'GET').toUpperCase();
       const headers = Object.assign({}, options.headers || {});
       let finalUrl = urlOrPath;
-      if (method !== 'GET') {
-        const tok = getSidecarToken();
-        if (tok) {
-          headers['X-Gravity-Token'] = tok;
+      const tok = getSidecarToken();
+      if (tok) {
+        headers['X-Gravity-Token'] = tok;
+        if (!/[?&]token=/.test(finalUrl)) {
           const sep = finalUrl.includes('?') ? '&' : '?';
           finalUrl = `${finalUrl}${sep}token=${encodeURIComponent(tok)}`;
         }
@@ -1704,6 +1810,339 @@
         return await fetch(finalUrl, Object.assign({}, options, { headers, signal: controller.signal }));
       } finally {
         clearTimeout(timer);
+      }
+    }
+
+    function buildAuthenticatedFileUrl(rawOrEncodedPath, isAlreadyEncoded = false) {
+      const encPath = isAlreadyEncoded ? rawOrEncodedPath : encodeURIComponent(rawOrEncodedPath || '');
+      const tok = getSidecarToken();
+      const tokParam = tok ? `&token=${encodeURIComponent(tok)}` : '';
+      return `${getActiveHostBase()}/api/v1/file?path=${encPath}${tokParam}`;
+    }
+
+    // Feature 4: Model Tier Selector Pill (Inherit, Flash Lite, Flash, Pro)
+    let selectedModelTier = localStorage.getItem('gravity_model_tier') || 'inherit';
+
+    function syncModelTierPillsUI() {
+      const normTier = (!selectedModelTier || selectedModelTier === 'auto') ? 'inherit' : selectedModelTier;
+      document.querySelectorAll('.model-tier-pill').forEach(btn => {
+        const m = btn.getAttribute('data-model') || 'inherit';
+        const isActive = (m === normTier);
+        btn.classList.toggle('active', isActive);
+        btn.classList.toggle('active-model-pill', isActive);
+      });
+    }
+
+    function selectModelTier(tier) {
+      selectedModelTier = (!tier || tier === 'auto') ? 'inherit' : tier;
+      localStorage.setItem('gravity_model_tier', selectedModelTier);
+      syncModelTierPillsUI();
+      const labels = {
+        inherit: '🧠 Auto (Inherit)',
+        flash_lite: '⚡ Flash Lite',
+        flash: '🚀 Flash',
+        pro: '💎 Pro'
+      };
+      showToast(`Model set to ${labels[selectedModelTier] || selectedModelTier}`);
+    }
+
+    async function quickLaunchFromPulse() {
+      const inp = document.getElementById('pulseQuickLaunchInput');
+      const val = inp ? inp.value.trim() : '';
+      if (!val) {
+        showToast('Enter a prompt or /command first');
+        return;
+      }
+      const targetSel = document.getElementById('launchTargetSelect');
+      let projId = 'bf5fbfae-02df-43df-a82c-0aca5ccb1710';
+      if (targetSel && targetSel.value && targetSel.value.startsWith('PROJ:')) {
+        projId = targetSel.value.slice(5);
+      }
+      showToast('🚀 Spawning new conversation in Antigravity…');
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idempotency_key: uuid4(),
+            project_id: projId,
+            action: 'NEW_CONVERSATION',
+            message: val,
+            model: selectedModelTier || 'inherit'
+          })
+        });
+        const data = await res.json();
+        if (inp) inp.value = '';
+        if (data.status === 'dispatched') {
+          showToast('✅ Live conversation started!');
+          fetchPulse();
+        } else {
+          showToast('⏳ Queued for workstation');
+        }
+      } catch (e) {
+        showToast('⚠️ Dispatch error — queued locally');
+      }
+    }
+
+    // Feature 1: 1-Tap Stop Generation Button
+    async function stopActiveGeneration() {
+      if (!currentConversationId) {
+        showToast('No active conversation selected');
+        return;
+      }
+      const stopBtn = document.getElementById('stopGenBtn');
+      if (stopBtn) stopBtn.style.display = 'none';
+      showToast('🛑 Stopping generation…');
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/steer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          timeoutMs: 6000,
+          body: JSON.stringify({
+            idempotency_key: uuid4(),
+            conversation_id: currentConversationId,
+            action: 'STOP',
+            message: 'Stop active generation'
+          })
+        });
+        const data = await res.json();
+        if (data && data.status === 'stopped') {
+          showToast('🛑 Generation stopped');
+        } else {
+          showToast('🛑 Stop signal sent');
+        }
+      } catch (e) {
+        showToast('🛑 Stop signal dispatched');
+      }
+      window._lastRenderedTrajEtag = null;
+      await syncActiveConversation(false);
+      await fetchPulse();
+    }
+
+    // Feature 5: Event-Driven Push Notifications (NEEDS_APPROVAL, DONE, ERROR)
+    window._prevSessionStates = null;
+    window._pushSettings = {
+      enabled: localStorage.getItem('gravity_push_enabled') !== '0',
+      ntfy_topic: localStorage.getItem('gravity_push_ntfy_topic') || '',
+      notify_on_approval: localStorage.getItem('gravity_push_approval') !== '0',
+      notify_on_done: localStorage.getItem('gravity_push_done') !== '0',
+      notify_on_error: localStorage.getItem('gravity_push_error') !== '0'
+    };
+
+    function updatePushPermissionBadge() {
+      const badge = document.getElementById('pushPermissionStatusBadge');
+      if (!badge) return;
+      if (!window._pushSettings.enabled) {
+        badge.textContent = 'Disabled';
+        badge.className = 'state-badge state-IDLE';
+        return;
+      }
+      if (!('Notification' in window)) {
+        badge.textContent = window._pushSettings.ntfy_topic ? 'ntfy.sh Active' : 'In-App Toast';
+        badge.className = 'state-badge state-DONE';
+        return;
+      }
+      const perm = Notification.permission;
+      if (perm === 'granted') {
+        badge.textContent = 'Web Push Active';
+        badge.className = 'state-badge state-DONE';
+      } else if (perm === 'denied') {
+        badge.textContent = window._pushSettings.ntfy_topic ? 'ntfy.sh Only' : 'Blocked by Browser';
+        badge.className = 'state-badge state-NEEDS_APPROVAL';
+      } else {
+        badge.textContent = 'Tap Enable to Grant';
+        badge.className = 'state-badge state-THINKING';
+      }
+    }
+
+    async function handleBrowserNotificationPermissionToggle(cb) {
+      window._pushSettings.enabled = Boolean(cb && cb.checked);
+      localStorage.setItem('gravity_push_enabled', window._pushSettings.enabled ? '1' : '0');
+      if (window._pushSettings.enabled && ('Notification' in window) && Notification.permission === 'default') {
+        try {
+          await Notification.requestPermission();
+        } catch (e) {}
+      }
+      updatePushPermissionBadge();
+      await savePushConfigFromUI();
+    }
+
+    async function loadPushConfig() {
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/push-config`);
+        if (res.ok) {
+          const raw = await res.json();
+          const cfg = raw.config || raw;
+          window._pushSettings = {
+            enabled: cfg.enabled !== undefined ? Boolean(cfg.enabled) : true,
+            ntfy_topic: cfg.ntfy_topic_or_url || cfg.ntfy_topic || '',
+            notify_on_approval: cfg.notify_on_approval !== undefined ? Boolean(cfg.notify_on_approval) : true,
+            notify_on_done: cfg.notify_on_done !== undefined ? Boolean(cfg.notify_on_done) : true,
+            notify_on_error: cfg.notify_on_error !== undefined ? Boolean(cfg.notify_on_error) : true
+          };
+        }
+      } catch (e) {}
+      const enEl = document.getElementById('pushEnabledToggle');
+      const apEl = document.getElementById('pushOnApprovalToggle');
+      const dnEl = document.getElementById('pushOnDoneToggle');
+      const erEl = document.getElementById('pushOnErrorToggle');
+      const tpEl = document.getElementById('pushNtfyTopicInput');
+      if (enEl) enEl.checked = window._pushSettings.enabled;
+      if (apEl) apEl.checked = window._pushSettings.notify_on_approval;
+      if (dnEl) dnEl.checked = window._pushSettings.notify_on_done;
+      if (erEl) erEl.checked = window._pushSettings.notify_on_error;
+      if (tpEl) tpEl.value = window._pushSettings.ntfy_topic || '';
+      updatePushPermissionBadge();
+    }
+
+    async function savePushConfigFromUI() {
+      const enEl = document.getElementById('pushEnabledToggle');
+      const apEl = document.getElementById('pushOnApprovalToggle');
+      const dnEl = document.getElementById('pushOnDoneToggle');
+      const erEl = document.getElementById('pushOnErrorToggle');
+      const tpEl = document.getElementById('pushNtfyTopicInput');
+      const topicVal = tpEl ? tpEl.value.trim() : '';
+      const payload = {
+        enabled: enEl ? Boolean(enEl.checked) : true,
+        ntfy_topic: topicVal,
+        ntfy_topic_or_url: topicVal,
+        notify_on_approval: apEl ? Boolean(apEl.checked) : true,
+        notify_on_done: dnEl ? Boolean(dnEl.checked) : true,
+        notify_on_error: erEl ? Boolean(erEl.checked) : true
+      };
+      window._pushSettings = payload;
+      localStorage.setItem('gravity_push_enabled', payload.enabled ? '1' : '0');
+      localStorage.setItem('gravity_push_ntfy_topic', payload.ntfy_topic);
+      localStorage.setItem('gravity_push_approval', payload.notify_on_approval ? '1' : '0');
+      localStorage.setItem('gravity_push_done', payload.notify_on_done ? '1' : '0');
+      localStorage.setItem('gravity_push_error', payload.notify_on_error ? '1' : '0');
+      if (payload.enabled && ('Notification' in window) && Notification.permission === 'default') {
+        try { await Notification.requestPermission(); } catch (e) {}
+      }
+      updatePushPermissionBadge();
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/push-config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast('💾 Push notification settings saved');
+          return;
+        }
+      } catch (e) {}
+      showToast('💾 Saved push preferences locally');
+    }
+
+    async function triggerBrowserPushNotification(title, body, convId = '', hostBase = '', hostName = 'PC') {
+      showToast(title);
+      if (!window._pushSettings.enabled || !('Notification' in window)) return;
+      if (Notification.permission === 'default') {
+        try { await Notification.requestPermission(); } catch (e) {}
+      }
+      if (Notification.permission !== 'granted') return;
+      try {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, {
+              body: body,
+              tag: convId ? `gravity_${convId}` : 'gravity_test',
+              renotify: true,
+              data: { conversation_id: convId, host_base: hostBase, host_name: hostName }
+            });
+            return;
+          }
+        }
+        const n = new Notification(title, {
+          body: body,
+          tag: convId ? `gravity_${convId}` : 'gravity_test'
+        });
+        n.onclick = () => {
+          window.focus();
+          if (convId) openConversation(convId, hostBase, hostName);
+          n.close();
+        };
+      } catch (e) {}
+    }
+
+    async function sendTestPushFromUI() {
+      await savePushConfigFromUI();
+      triggerBrowserPushNotification(
+        '🔔 Gravity Push Alert Test',
+        'Lock-screen & browser alerts are active for NEEDS_APPROVAL, DONE, and ERROR transitions.',
+        currentConversationId || ''
+      );
+      try {
+        const res = await gravityFetch(`${getActiveHostBase()}/api/v1/push-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: '🔔 Gravity Push Alert Test',
+            message: 'Test notification from Gravity for Android v1.4.0'
+          })
+        });
+        const data = await res.json();
+        if (data && data.ntfy && data.ntfy.ok) {
+          showToast('🔔 Test push sent to Browser + ntfy.sh!');
+        }
+      } catch (e) {}
+    }
+
+    function checkSessionPushTransitions(allSessions) {
+      if (!Array.isArray(allSessions)) return;
+      // Seed on first poll so opening the app doesn't spam historical sessions
+      if (!window._prevSessionStates) {
+        window._prevSessionStates = new Map();
+        for (const s of allSessions) {
+          if (s && s.conversation_id) {
+            window._prevSessionStates.set(s.conversation_id, {
+              state: s.state || 'IDLE',
+              step_count: Number(s.step_count || 0)
+            });
+          }
+        }
+        return;
+      }
+      for (const s of allSessions) {
+        if (!s || !s.conversation_id) continue;
+        const cid = s.conversation_id;
+        const curState = s.state || 'IDLE';
+        const curSteps = Number(s.step_count || 0);
+        const prev = window._prevSessionStates.get(cid);
+        window._prevSessionStates.set(cid, { state: curState, step_count: curSteps });
+        if (!prev || !window._pushSettings.enabled) continue;
+        if (prev.state === curState) continue;
+
+        const wasActive = (prev.state === 'THINKING' || prev.state === 'RUNNING_TOOL');
+        const titleShort = (s.title || 'Agent Session').slice(0, 56);
+        const bodyText = `[${s.project_name || 'Workspace'}] ${s.state_label || curState} • ${curSteps} steps`;
+
+        if (curState === 'NEEDS_APPROVAL' && window._pushSettings.notify_on_approval) {
+          triggerBrowserPushNotification(
+            `⚠️ Approval Needed: ${titleShort}`,
+            bodyText,
+            cid,
+            s._base || '',
+            s._host || 'PC'
+          );
+        } else if (curState === 'ERROR' && window._pushSettings.notify_on_error) {
+          triggerBrowserPushNotification(
+            `🚨 Agent Error: ${titleShort}`,
+            bodyText,
+            cid,
+            s._base || '',
+            s._host || 'PC'
+          );
+        } else if (curState === 'DONE' && wasActive && window._pushSettings.notify_on_done && s.state_label !== 'Stopped by User') {
+          triggerBrowserPushNotification(
+            `✅ Response Complete: ${titleShort}`,
+            bodyText,
+            cid,
+            s._base || '',
+            s._host || 'PC'
+          );
+        }
       }
     }
 
@@ -1789,6 +2228,7 @@
       if (tabName === 'ops') {
         renderPeersList();
         loadSkillsCatalog();
+        loadPushConfig();
       }
     }
 
@@ -1821,7 +2261,9 @@
       const sel = document.getElementById('skillQuickSelect');
       const inp = document.getElementById('launchPrompt');
       if (!sel || !inp || !sel.value) return;
-      inp.value = `Activate the ${sel.value} skill and `;
+      const slugCmd = `/${sel.value}`;
+      const cur = inp.value.trim();
+      inp.value = cur.startsWith(slugCmd) ? cur + ' ' : `${slugCmd} ${cur}`.trim() + ' ';
       autoResizeChatBox(inp);
       inp.focus();
     }
@@ -2023,6 +2465,7 @@
         }
       }
       const allSessions = Array.from(sessionById.values());
+      checkSessionPushTransitions(allSessions);
 
       const sessEl = document.getElementById('sessionsContainer');
 
@@ -2485,6 +2928,17 @@
            </div>`
         : '';
 
+      const isAgentWorking = Boolean(
+        data.sidebar_indicator === 'BOUNCING_DOTS' ||
+        data.state === 'THINKING' ||
+        data.state === 'RUNNING_TOOL' ||
+        (bgTasks && bgTasks.some(t => t.status === 'RUNNING'))
+      );
+      const stopBtn = document.getElementById('stopGenBtn');
+      if (stopBtn) {
+        stopBtn.style.display = isAgentWorking ? 'flex' : 'none';
+      }
+
       const newEtag = data.etag || `${data.updated_at}_${(data.steps || []).length}`;
       if (!forceScroll && window._lastRenderedTrajEtag === newEtag) {
         return;
@@ -2498,11 +2952,6 @@
       const stepsEl = document.getElementById('stepsContainer');
       const html = [];
       let pendingPlumbing = [];
-      const isAgentWorking = Boolean(
-        data.sidebar_indicator === 'BOUNCING_DOTS' ||
-        data.state === 'THINKING' ||
-        data.state === 'RUNNING_TOOL'
-      );
 
       function parseIsoMs(ts) {
         if (!ts) return 0;
@@ -2829,7 +3278,7 @@
         const thumbs = mediaList.map((m, mIdx) => {
           const imgSrc = m.data_url
             ? m.data_url
-            : `${getActiveHostBase()}/api/v1/file?path=${encodeURIComponent(m.uri || '')}`;
+            : buildAuthenticatedFileUrl(m.uri || '', false);
           return `<img class="user-msg-thumb" src="${escapeHtml(imgSrc)}" alt="Attachment ${mIdx + 1}" loading="lazy" onclick="openImageLightbox('${escapeHtml(imgSrc)}', 'Attached Image ${mIdx + 1}', event)" />`;
         }).join('');
         mediaGridHtml = `<div class="user-msg-media-grid">${thumbs}</div>`;
@@ -3219,7 +3668,8 @@
         idempotency_key: uuid4(),
         conversation_id: currentConversationId,
         action: action,
-        message: cleanMsg
+        message: cleanMsg,
+        model: selectedModelTier || 'inherit'
       };
       if (attList.length > 0) {
         payload.attachments = attList.map(a => ({
@@ -3350,7 +3800,7 @@
     }
 
     async function openArtifact(encodedPath, ext, name) {
-      const url = `${getActiveHostBase()}/api/v1/file?path=${encodedPath}`;
+      const url = buildAuthenticatedFileUrl(encodedPath, true);
       if (ext === 'pdf' || ext === 'html') {
         window.open(url, '_blank');
         return;
@@ -3402,7 +3852,8 @@
             idempotency_key: uuid4(),
             project_id: projId,
             action: 'NEW_CONVERSATION',
-            message: val
+            message: val,
+            model: selectedModelTier || 'inherit'
           })
         });
         const data = await res.json();
@@ -3436,10 +3887,12 @@
     }
     scrollToTopImmediate();
     initQuickChipsBar();
+    syncModelTierPillsUI();
     initRollupCartridgeBridge();
     refreshDynamicEndpoints().finally(() => {
       fetchPulse();
       loadSkillsCatalog();
+      loadPushConfig();
     });
     setInterval(async () => {
       await fetchPulse();

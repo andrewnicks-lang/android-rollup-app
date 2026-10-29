@@ -1,21 +1,27 @@
 {
-  "updated_at": "2026-10-26T22:33:42.524432",
-  "active_tunnel_url": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-  "primary_lan_url": "http://192.168.86.47:8765",
+  "updated_at": "2026-10-27T09:22:57.424097",
+  "hostname": "NicksAndrew",
+  "active_tunnel_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+  "primary_lan_url": "http://10.0.0.91:8765",
+  "office_wifi_drop_lan_url": "http://10.0.0.91:8766",
   "work_lan_url": "http://10.0.0.91:8765",
   "home_lan_url": "http://192.168.86.47:8765",
   "nodes": [
+    {
+      "name": "NicksAndrew (HTTPS Tunnel)",
+      "url": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+    },
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
       "url": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
     },
     {
-      "name": "Active Workstation (192.168.86.47)",
-      "url": "http://192.168.86.47:8765"
+      "name": "Active Workstation (10.0.0.91)",
+      "url": "http://10.0.0.91:8765"
     },
     {
-      "name": "Work PC (LAN)",
-      "url": "http://10.0.0.91:8765"
+      "name": "Home PC (LAN)",
+      "url": "http://192.168.86.47:8765"
     }
   ]
 }

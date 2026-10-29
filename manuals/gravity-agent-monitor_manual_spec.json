@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.3.5",
-  "build_hash": "a87886b381",
+  "version": "1.4.1",
+  "build_hash": "e84c3a9e49",
   "visibility": "admin_only",
-  "updated_at": "2026-10-26T22:33:43.504577",
-  "generated_at": "2026-10-26 22:33",
+  "updated_at": "2026-10-27T09:22:57.683857",
+  "generated_at": "2026-10-27 09:22",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,15 +71,15 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://unexpected-computing-director-atmosphere.trycloudflare.com",
-      "defaultForAdmin": "https://unexpected-computing-director-atmosphere.trycloudflare.com"
+      "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+      "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
       "label": "Secondary / Tailscale Workstation URL (Optional)",
       "type": "text",
-      "default": "http://192.168.86.47:8765",
-      "defaultForAdmin": "http://192.168.86.47:8765"
+      "default": "http://10.0.0.91:8765",
+      "defaultForAdmin": "http://10.0.0.91:8765"
     },
     {
       "key": "sidecar_token",
@@ -132,6 +132,26 @@
         "action": "setHostFilter('ALL')"
       },
       {
+        "label": "\ud83e\udde0 Auto",
+        "action": "selectModelTier('inherit')"
+      },
+      {
+        "label": "\u26a1 Flash Lite",
+        "action": "selectModelTier('flash_lite')"
+      },
+      {
+        "label": "\ud83d\ude80 Flash",
+        "action": "selectModelTier('flash')"
+      },
+      {
+        "label": "\ud83d\udc8e Pro",
+        "action": "selectModelTier('pro')"
+      },
+      {
+        "label": "\ud83d\ude80",
+        "action": "quickLaunchFromPulse()"
+      },
+      {
         "label": "\u2190",
         "action": "switchTab('pulse')"
       },
@@ -166,26 +186,6 @@
       {
         "label": "\ud83d\udddc\ufe0f /compact",
         "action": "sendQuickSteer('SLASH_COMMAND', '/compact')"
-      },
-      {
-        "label": "\ud83c\udfaf /goal",
-        "action": "sendQuickSteer('SLASH_COMMAND', '/goal')"
-      },
-      {
-        "label": "\u26a1",
-        "action": "toggleQuickChipsBar()"
-      },
-      {
-        "label": "\ud83c\udf99\ufe0f",
-        "action": "toggleVoiceInput()"
-      },
-      {
-        "label": "\ud83d\udcf7",
-        "action": "triggerSteerImagePicker()"
-      },
-      {
-        "label": "\u2191",
-        "action": "submitSteerInput()"
       }
     ],
     "modals": [
@@ -196,9 +196,11 @@
       "modalBody"
     ],
     "inputs": [
+      "\u2795 Quick-launch new chat or /command\u2026",
       "Steer agent or type /command\u2026",
       "Name (e.g. Office-PC)",
       "http://100.x.y.z:8765",
+      "Optional ntfy.sh topic or webhook URL (e.g. csc-gravity-alerts)",
       "Type message or new conversation prompt\u2026"
     ],
     "storage_keys": [],
@@ -212,29 +214,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "b55e402",
+        "sha": "40e1064",
         "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:42)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 23:51)"
       },
       {
-        "sha": "2721026",
+        "sha": "5451a48",
         "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:41)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 23:41)"
       },
       {
-        "sha": "14a7159",
+        "sha": "6537ac7",
         "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:40)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:35)"
       },
       {
-        "sha": "c4e5aad",
+        "sha": "c0874e1",
         "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 16:38)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 22:18)"
       },
       {
-        "sha": "b0823ca",
+        "sha": "76f709e",
         "date": "2026-10-26",
-        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 11:00)"
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-26 20:02)"
       }
     ]
   }

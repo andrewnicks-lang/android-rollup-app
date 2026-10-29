@@ -413,20 +413,47 @@
     return meta;
   }
 
-  // Unified Camera / Image Picker — Extracts raw EXIF BEFORE <canvas> resize!
-  async function captureImage(options = {}) {
+  // File-input fallback / gallery picker — Extracts raw EXIF BEFORE <canvas> resize!
+  function captureImageFromFileInput(options = {}) {
     const maxDim = options.maxDim || 1440;
     const quality = options.quality || 0.85;
+    const wantCameraCapture = options.useRearCamera !== false && options.source !== 'file';
 
     return new Promise((resolve) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = options.accept || 'image/*';
-      if (options.useRearCamera !== false) {
-        input.setAttribute('capture', 'environment');
+      if (wantCameraCapture) {
+        input.setAttribute('capture', options.facingMode === 'user' ? 'user' : 'environment');
       }
+      input.style.display = 'none';
+      if (document.body) document.body.appendChild(input);
+
+      let settled = false;
+      const cleanup = () => {
+        try {
+          input.removeEventListener('cancel', onCancel);
+        } catch (e) {}
+        try {
+          if (input.parentNode) input.parentNode.removeChild(input);
+        } catch (e) {}
+      };
+
+      const onCancel = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(null);
+      };
+
+      input.addEventListener('cancel', onCancel);
+      input.oncancel = onCancel;
+
       input.onchange = async () => {
+        if (settled) return;
+        settled = true;
         const file = input.files && input.files[0];
+        cleanup();
         if (!file) {
           resolve(null);
           return;
@@ -462,6 +489,7 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
             const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const sharpnessScore = computeCanvasLaplacianSharpness(canvas);
             resolve({
               width: w,
               height: h,
@@ -469,6 +497,11 @@
               capturedAt: new Date().toISOString(),
               originalName: file.name,
               exif,
+              canvas,
+              sharpnessScore,
+              isBlurry: sharpnessScore < 28,
+              capturedFromCamera: wantCameraCapture,
+              source: options.source || (wantCameraCapture ? 'os_camera' : 'file'),
               dataUrl
             });
           };
@@ -480,6 +513,324 @@
       };
       input.click();
     });
+  }
+
+  // Live In-App WebRTC Camera Viewfinder Modal (with Torch, Front/Rear Flip, Gallery Picker & OS Camera Fallback)
+  async function captureImageFromLiveCamera(options = {}) {
+    const maxDim = options.maxDim || 1440;
+    const quality = options.quality || 0.85;
+    let currentFacing = options.facingMode || (options.useRearCamera === false ? 'user' : 'environment');
+
+    if (
+      !global.navigator ||
+      !global.navigator.mediaDevices ||
+      typeof global.navigator.mediaDevices.getUserMedia !== 'function' ||
+      !global.document ||
+      !global.document.body
+    ) {
+      return captureImageFromFileInput({ ...options, useRearCamera: true, source: 'os_camera' });
+    }
+
+    let activeStream = null;
+    let torchEnabled = false;
+
+    const requestCameraStream = async (facing) => {
+      const constraintsList = [
+        {
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1920 },
+            height: { ideal: 1440 }
+          },
+          audio: false
+        },
+        {
+          video: { facingMode: facing },
+          audio: false
+        },
+        {
+          video: true,
+          audio: false
+        }
+      ];
+      let lastErr = null;
+      for (const c of constraintsList) {
+        try {
+          const streamPromise = global.navigator.mediaDevices.getUserMedia(c);
+          const timeoutPromise = new Promise((_, rej) =>
+            setTimeout(() => rej(new Error('Camera stream start timeout')), 6500)
+          );
+          return await Promise.race([streamPromise, timeoutPromise]);
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('Camera unavailable');
+    };
+
+    try {
+      activeStream = await requestCameraStream(currentFacing);
+    } catch (e) {
+      return captureImageFromFileInput({ ...options, useRearCamera: true, source: 'os_camera' });
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const stopStream = () => {
+        if (activeStream) {
+          try {
+            activeStream.getTracks().forEach((t) => t.stop());
+          } catch (e) {}
+          activeStream = null;
+        }
+      };
+
+      const existingModal = document.getElementById('cscLiveCameraModal');
+      if (existingModal && existingModal.parentNode) {
+        existingModal.parentNode.removeChild(existingModal);
+      }
+
+      const modal = document.createElement('div');
+      modal.id = 'cscLiveCameraModal';
+      modal.style.cssText = [
+        'position:fixed',
+        'inset:0',
+        'z-index:9999',
+        'background:rgba(2,6,23,0.96)',
+        'display:flex',
+        'flex-direction:column',
+        'justify-content:space-between',
+        'padding:12px',
+        'color:#f8fafc',
+        'font-family:"Segoe UI",system-ui,sans-serif'
+      ].join(';');
+
+      const headerTitle = String(options.title || '📸 Live Field Camera');
+      modal.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 4px 8px 4px;">
+          <div style="min-width:0;flex:1;">
+            <div id="cscLiveCamTitle" style="font-size:15px;font-weight:900;color:#2dd4bf;"></div>
+            <div id="cscLiveCamSub" style="font-size:11px;color:#94a3b8;">Saves captured photo to BOTH App &amp; Device Gallery</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button id="cscLiveCamTorchBtn" type="button" style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;">🔦 Torch</button>
+            <button id="cscLiveCamFlipBtn" type="button" style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;">🔄 Flip</button>
+            <button id="cscLiveCamCancelBtn" type="button" style="background:#334155;color:#f8fafc;border:1px solid #475569;border-radius:8px;padding:6px 11px;font-size:13px;font-weight:900;cursor:pointer;">✕</button>
+          </div>
+        </div>
+        <div style="position:relative;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;border:2px solid #0d9488;background:#000000;min-height:240px;">
+          <video id="cscLiveCameraVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:contain;background:#000;"></video>
+          <div style="position:absolute;inset:12%;border:1.5px dashed rgba(45,212,191,0.65);border-radius:12px;pointer-events:none;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;">
+            <span style="background:rgba(2,6,23,0.78);color:#5eead4;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;">Align Nameplate or Unit Inside Frame</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:8px;align-items:center;padding:12px 2px 4px 2px;">
+          <button id="cscLiveCamGalleryBtn" type="button" style="min-height:48px;border-radius:12px;border:1px solid #475569;background:#1e293b;color:#e2e8f0;font-size:12px;font-weight:800;cursor:pointer;">
+            🖼️ Pick Existing
+          </button>
+          <button id="cscLiveCamShutterBtn" type="button" style="min-height:56px;border-radius:14px;border:2px solid #5eead4;background:linear-gradient(135deg,#0d9488,#0284c7);color:#ffffff;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(13,148,136,0.45);">
+            📸 SNAP PHOTO
+          </button>
+          <button id="cscLiveCamOsBtn" type="button" style="min-height:48px;border-radius:12px;border:1px solid #475569;background:#1e293b;color:#e2e8f0;font-size:12px;font-weight:800;cursor:pointer;">
+            📷 OS Camera
+          </button>
+        </div>
+      `;
+
+      const titleNode = modal.querySelector('#cscLiveCamTitle');
+      if (titleNode) titleNode.textContent = headerTitle;
+
+      document.body.appendChild(modal);
+
+      const videoEl = modal.querySelector('#cscLiveCameraVideo');
+      const torchBtn = modal.querySelector('#cscLiveCamTorchBtn');
+      const flipBtn = modal.querySelector('#cscLiveCamFlipBtn');
+      const cancelBtn = modal.querySelector('#cscLiveCamCancelBtn');
+      const galleryBtn = modal.querySelector('#cscLiveCamGalleryBtn');
+      const shutterBtn = modal.querySelector('#cscLiveCamShutterBtn');
+      const osBtn = modal.querySelector('#cscLiveCamOsBtn');
+
+      const onKeyDown = (ev) => {
+        if (ev && ev.key === 'Escape') {
+          if (settled) return;
+          settled = true;
+          closeModalAndCleanup();
+          resolve(null);
+        }
+      };
+
+      const closeModalAndCleanup = () => {
+        try {
+          document.removeEventListener('keydown', onKeyDown);
+        } catch (e) {}
+        stopStream();
+        try {
+          if (modal.parentNode) modal.parentNode.removeChild(modal);
+        } catch (e) {}
+      };
+
+      try {
+        document.addEventListener('keydown', onKeyDown);
+      } catch (e) {}
+
+      const attachStreamToVideo = (stream) => {
+        if (!videoEl) return;
+        videoEl.srcObject = stream;
+        const p = videoEl.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      };
+
+      attachStreamToVideo(activeStream);
+
+      if (torchBtn) {
+        torchBtn.onclick = async () => {
+          if (!activeStream) return;
+          const track = activeStream.getVideoTracks()[0];
+          if (!track || typeof track.applyConstraints !== 'function') return;
+          torchEnabled = !torchEnabled;
+          try {
+            await track.applyConstraints({ advanced: [{ torch: torchEnabled }] });
+            torchBtn.style.background = torchEnabled ? '#d97706' : '#1e293b';
+            torchBtn.textContent = torchEnabled ? '🔦 Torch ON' : '🔦 Torch';
+          } catch (e) {
+            torchEnabled = false;
+          }
+        };
+      }
+
+      if (flipBtn) {
+        flipBtn.onclick = async () => {
+          currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+          torchEnabled = false;
+          if (torchBtn) {
+            torchBtn.style.background = '#1e293b';
+            torchBtn.textContent = '🔦 Torch';
+          }
+          stopStream();
+          try {
+            activeStream = await requestCameraStream(currentFacing);
+            attachStreamToVideo(activeStream);
+          } catch (e) {}
+        };
+      }
+
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          if (settled) return;
+          settled = true;
+          closeModalAndCleanup();
+          resolve(null);
+        };
+      }
+
+      if (galleryBtn) {
+        galleryBtn.onclick = async () => {
+          if (settled) return;
+          settled = true;
+          closeModalAndCleanup();
+          const picked = await captureImageFromFileInput({
+            ...options,
+            useRearCamera: false,
+            source: 'file'
+          });
+          resolve(picked);
+        };
+      }
+
+      if (osBtn) {
+        osBtn.onclick = async () => {
+          if (settled) return;
+          settled = true;
+          closeModalAndCleanup();
+          const snappedOs = await captureImageFromFileInput({
+            ...options,
+            useRearCamera: true,
+            facingMode: currentFacing,
+            source: 'os_camera'
+          });
+          resolve(snappedOs);
+        };
+      }
+
+      if (shutterBtn) {
+        shutterBtn.onclick = async () => {
+          if (settled) return;
+          settled = true;
+          if (videoEl && (!videoEl.videoWidth || !videoEl.videoHeight || videoEl.readyState < 2)) {
+            await new Promise((r) => {
+              let done = false;
+              const finish = () => {
+                if (done) return;
+                done = true;
+                r();
+              };
+              if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0 && videoEl.readyState >= 2) {
+                finish();
+                return;
+              }
+              videoEl.addEventListener('loadeddata', finish, { once: true });
+              videoEl.addEventListener('playing', finish, { once: true });
+              setTimeout(finish, 250);
+            });
+          }
+          const vw = (videoEl && videoEl.videoWidth) || 1280;
+          const vh = (videoEl && videoEl.videoHeight) || 960;
+          let w = vw;
+          let h = vh;
+          if (w > maxDim || h > maxDim) {
+            const scale = maxDim / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (videoEl) {
+            try {
+              ctx.drawImage(videoEl, 0, 0, w, h);
+            } catch (e) {}
+          }
+          closeModalAndCleanup();
+
+          const nowIso = new Date().toISOString();
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const sharpnessScore = computeCanvasLaplacianSharpness(canvas);
+          resolve({
+            width: w,
+            height: h,
+            sizeKB: Math.round((dataUrl.length * 0.75) / 1024),
+            capturedAt: nowIso,
+            originalName: `CSC_Camera_${nowIso.slice(0, 19).replace(/[:T]/g, '-')}.jpg`,
+            exif: {
+              gpsLat: null,
+              gpsLon: null,
+              gpsAltFt: null,
+              compassDeg: null,
+              dateTimeOriginal: nowIso.slice(0, 19).replace('T', ' '),
+              orientation: 1
+            },
+            canvas,
+            sharpnessScore,
+            isBlurry: sharpnessScore < 28,
+            capturedFromCamera: true,
+            source: 'live_camera',
+            dataUrl
+          });
+        };
+      }
+    });
+  }
+
+  // Unified Camera / Image Picker — Opens Live Camera by default (with Gallery & OS Camera options)!
+  async function captureImage(options = {}) {
+    if (options.source === 'file' || options.useRearCamera === false) {
+      return captureImageFromFileInput({ ...options, useRearCamera: false, source: 'file' });
+    }
+    if (options.source === 'os_camera' || options.preferLiveCamera === false) {
+      return captureImageFromFileInput({ ...options, useRearCamera: true, source: 'os_camera' });
+    }
+    return captureImageFromLiveCamera(options);
   }
 
   // ============================================================================
@@ -604,10 +955,17 @@
   /**
    * Deterministic 3x3 Discrete Laplacian Variance Calculator: Var(∇²I)
    */
-  function computeCanvasLaplacianSharpness(canvas) {
+  function computeCanvasLaplacianSharpness(canvasOrObj) {
+    if (!canvasOrObj) return 0;
+    if (typeof canvasOrObj.sharpnessScore === 'number' && !canvasOrObj.getContext && !canvasOrObj.canvas) {
+      return canvasOrObj.sharpnessScore;
+    }
+    const canvas = canvasOrObj.getContext ? canvasOrObj : canvasOrObj.canvas;
+    if (!canvas || typeof canvas.getContext !== 'function') return 0;
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
+    if (!w || !h) return 0;
     const d = ctx.getImageData(0, 0, w, h).data;
     const gray = new Float32Array(w * h);
 
@@ -631,6 +989,143 @@
     const mean = sum / count;
     const variance = sumSq / count - mean * mean;
     return Math.round(variance * 10) / 10;
+  }
+
+  /**
+   * Deterministically parses a raw 1D/2D barcode or QR payload into HVAC manufacturer, model & serial fields.
+   */
+  function parseEquipmentBarcodeText(rawText) {
+    const raw = String(rawText || '').trim();
+    if (!raw) {
+      return { detected: false, rawValue: '', manufacturer: '', modelNumber: '', serialNumber: '' };
+    }
+    let manufacturer = '';
+    let modelNumber = '';
+    let serialNumber = '';
+
+    // 1. JSON QR payload check
+    if (raw.startsWith('{') && raw.endsWith('}')) {
+      try {
+        const obj = JSON.parse(raw);
+        manufacturer = String(obj.manufacturer || obj.mfg || obj.make || '').trim();
+        modelNumber = String(obj.model_number || obj.model || obj.mn || '').trim();
+        serialNumber = String(obj.serial_number || obj.serial || obj.sn || '').trim();
+      } catch (e) {}
+    }
+
+    // 2. Key-Value / Delimited QR or DataMatrix payload (e.g., "M/N: YSC120H4RMA; S/N: 231914582L" or "MFG:TRANE;MDL:YSC090H4RMA;SN:241510884L")
+    if (!modelNumber && !serialNumber) {
+      const mMfg = raw.match(/(?:MFG|MAKE|BRAND)\s*[:=]\s*([A-Za-z0-9 _-]+?)(?:[;|,\r\n]|$)/i);
+      const mMod = raw.match(/(?:M\/N|MDL|MODEL(?:\s*NO)?|MOD|P\/N)\s*[:=#]?\s*([A-Za-z0-9._/-]{4,28})/i);
+      const mSer = raw.match(/(?:S\/N|SN|SERIAL(?:\s*NO)?|SER)\s*[:=#]?\s*([A-Za-z0-9._/-]{4,28})/i);
+      if (mMfg) manufacturer = mMfg[1].trim();
+      if (mMod) modelNumber = mMod[1].trim();
+      if (mSer) serialNumber = mSer[1].trim();
+    }
+
+    // 3. Pipe or slash separated pair (e.g., "YSC120H4RMA|231914582L")
+    if (!modelNumber && !serialNumber && /[|;]/.test(raw)) {
+      const parts = raw.split(/[|;]/).map((s) => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        modelNumber = parts[0];
+        serialNumber = parts[1];
+      }
+    }
+
+    // 4. Single 1D barcode token (Code 128 / Code 39)
+    if (!modelNumber && !serialNumber) {
+      const token = raw.replace(/[^A-Za-z0-9._/-]/g, '');
+      if (token.length >= 4) {
+        if (/^(?:YSC|YCD|TCD|WSC|CSAA|ACH580|ACH550|DESV|PESV|FB\d|KBN\d|48[A-Z]{2}|50[A-Z]{2})/i.test(token)) {
+          modelNumber = token;
+        } else {
+          serialNumber = token;
+        }
+      }
+    }
+
+    return {
+      detected: Boolean(modelNumber || serialNumber || raw),
+      rawValue: raw,
+      manufacturer,
+      modelNumber,
+      serialNumber,
+      mfg: manufacturer,
+      model: modelNumber,
+      serial: serialNumber
+    };
+  }
+
+  /**
+   * Offline 1D/2D Barcode & QR Detector using browser native `BarcodeDetector` when available,
+   * with graceful fallback so it never blocks or throws in unsupported WebViews.
+   */
+  async function detectBarcodeFromImage(source) {
+    const empty = { detected: false, format: '', rawValue: '', manufacturer: '', modelNumber: '', serialNumber: '' };
+    if (!source || typeof global.BarcodeDetector !== 'function') {
+      return empty;
+    }
+    try {
+      let detector;
+      try {
+        detector = new global.BarcodeDetector({
+          formats: ['qr_code', 'code_128', 'code_39', 'data_matrix', 'pdf417', 'ean_13', 'itf', 'upc_a']
+        });
+      } catch (e) {
+        detector = new global.BarcodeDetector();
+      }
+
+      let target = source;
+      if (typeof source === 'string' && source.startsWith('data:image/')) {
+        target = await new Promise((resolve) => {
+          const im = new Image();
+          im.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = im.width || 640;
+            c.height = im.height || 480;
+            c.getContext('2d').drawImage(im, 0, 0);
+            resolve(c);
+          };
+          im.onerror = () => resolve(null);
+          im.src = source;
+        });
+      } else if (source && source.canvas) {
+        target = source.canvas;
+      }
+      if (!target) return empty;
+
+      const results = await detector.detect(target);
+      if (!Array.isArray(results) || results.length === 0) return empty;
+
+      let mergedMfg = '';
+      let mergedModel = '';
+      let mergedSerial = '';
+      const rawValues = [];
+      let firstFmt = '';
+
+      for (const hit of results) {
+        const val = String(hit.rawValue || '').trim();
+        if (!val) continue;
+        rawValues.push(val);
+        if (!firstFmt && hit.format) firstFmt = String(hit.format);
+        const parsed = parseEquipmentBarcodeText(val);
+        if (parsed.manufacturer && !mergedMfg) mergedMfg = parsed.manufacturer;
+        if (parsed.modelNumber && !mergedModel) mergedModel = parsed.modelNumber;
+        if (parsed.serialNumber && !mergedSerial) mergedSerial = parsed.serialNumber;
+      }
+
+      if (rawValues.length === 0) return empty;
+      return {
+        detected: true,
+        format: firstFmt || 'barcode',
+        rawValue: rawValues.join(' | '),
+        manufacturer: mergedMfg,
+        modelNumber: mergedModel,
+        serialNumber: mergedSerial
+      };
+    } catch (e) {
+      return empty;
+    }
   }
 
   // ============================================================================
@@ -811,13 +1306,75 @@
   }
 
   // ============================================================================
-  // v3.2.0: Burned-In CSC Field Evidence Watermark Renderer (<canvas>)
-  // Stamps Job #, Unit #/Tag, Condition Pill, Location, Decoded Nameplate Specs,
-  // ALC Target, Quick Issues & Voice Notes onto the bottom of full-color photos.
+  // v3.4.0: Burned-In CSC Field Evidence Watermark Renderer (<canvas>)
+  // Portrait-9:16-safe layout: zero header overlap, deduplicated Unit/Tag title,
+  // wrapped title clear of Condition Pill, wrapped Location & ALC rows,
+  // ellipsis-safe Spec/Notes wrapping, and dynamic footer height.
   // ============================================================================
-  function _wrapCanvasText(ctx, text, maxWidth) {
-    const words = String(text || '').split(/\s+/).filter(Boolean);
-    if (!words.length) return [];
+  function _formatStampTimestamp(rawTs) {
+    if (!rawTs) {
+      return new Date().toISOString().slice(0, 16).replace('T', ' ');
+    }
+    const s = String(rawTs).trim();
+    // EXIF format "YYYY:MM:DD HH:MM:SS"
+    const exifMatch = s.match(/^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}:\d{2})/);
+    if (exifMatch) {
+      return `${exifMatch[1]}-${exifMatch[2]}-${exifMatch[3]} ${exifMatch[4]}`;
+    }
+    // ISO format "YYYY-MM-DDTHH:MM..."
+    const isoMatch = s.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[1]} ${isoMatch[2]}`;
+    }
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      const pad2 = (n) => String(n).padStart(2, '0');
+      return `${parsed.getFullYear()}-${pad2(parsed.getMonth() + 1)}-${pad2(parsed.getDate())} ${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}`;
+    }
+    return s.slice(0, 19);
+  }
+
+  function _fitTextWithEllipsis(ctx, text, maxWidth) {
+    const str = String(text || '').trim();
+    if (!str || maxWidth <= 0) return '';
+    if (ctx.measureText(str).width <= maxWidth) return str;
+    const ell = '…';
+    let lo = 0;
+    let hi = str.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      if (ctx.measureText(str.slice(0, mid).trimEnd() + ell).width <= maxWidth) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return lo > 0 ? (str.slice(0, lo).trimEnd() + ell) : ell;
+  }
+
+  function _wrapCanvasText(ctx, text, maxWidth, maxLines = 0) {
+    const rawTokens = String(text || '').split(/\s+/).filter(Boolean);
+    if (!rawTokens.length || maxWidth <= 0) return [];
+
+    // Break any single ultra-long unbroken token so it can never overflow maxWidth
+    const words = [];
+    for (const tok of rawTokens) {
+      if (ctx.measureText(tok).width <= maxWidth) {
+        words.push(tok);
+      } else {
+        let chunk = '';
+        for (const ch of tok) {
+          if (chunk && ctx.measureText(chunk + ch).width > maxWidth) {
+            words.push(chunk);
+            chunk = ch;
+          } else {
+            chunk += ch;
+          }
+        }
+        if (chunk) words.push(chunk);
+      }
+    }
+
     const lines = [];
     let current = words[0];
     for (let i = 1; i < words.length; i++) {
@@ -830,6 +1387,13 @@
       }
     }
     lines.push(current);
+
+    if (maxLines > 0 && lines.length > maxLines) {
+      const kept = lines.slice(0, maxLines);
+      const overflowRemainder = lines.slice(maxLines - 1).join(' ');
+      kept[maxLines - 1] = _fitTextWithEllipsis(ctx, overflowRemainder, maxWidth);
+      return kept;
+    }
     return lines;
   }
 
@@ -843,28 +1407,41 @@
       img.onload = () => {
         const w = Math.max(640, img.width || 1200);
         const h = Math.max(480, img.height || 900);
-        const scale = w / 1200;
-        const padX = Math.round(22 * scale);
-        const padY = Math.round(16 * scale);
+        // Scale smoothly using effective width clamped so 810x1440 portrait stays crisp & readable
+        const scale = Math.max(0.68, Math.min(1.35, w / 1200));
+        const padX = Math.max(14, Math.round(22 * scale));
+        const padY = Math.max(12, Math.round(16 * scale));
         const fontMain = Math.max(15, Math.round(21 * scale));
         const fontSub = Math.max(13, Math.round(17 * scale));
         const fontSmall = Math.max(12, Math.round(15 * scale));
-        const lineHeight = Math.round(fontSub * 1.38);
+        const titleLineH = Math.round(fontMain * 1.28);
+        const subLineH = Math.round(fontSub * 1.34);
+        const smallLineH = Math.round(fontSmall * 1.38);
 
-        const jobNum = stampMeta.jobNumber || 'CSC-26-WALK';
-        const projName = stampMeta.projectName || 'CSC Site Discovery';
-        const unitLabel = stampMeta.unitNumber ? `Unit #${stampMeta.unitNumber}` : (stampMeta.stationId || 'UNIT');
-        const eqTag = stampMeta.tag || unitLabel;
-        const slotName = stampMeta.slotLabel || 'FIELD PHOTO';
+        const jobNum = String(stampMeta.jobNumber || 'CSC-26-WALK').trim();
+        const projName = String(stampMeta.projectName || 'CSC Site Discovery').trim();
+        const unitLabel = stampMeta.unitNumber ? `Unit #${stampMeta.unitNumber}` : String(stampMeta.stationId || 'UNIT').trim();
+        const rawTag = String(stampMeta.tag || stampMeta.stationTag || '').trim();
+        const slotName = String(stampMeta.slotLabel || (stampMeta.photoSlot === 1 ? 'WIDE CONTEXT' : 'FIELD PHOTO')).trim();
+
+        // Prevent duplicate "Unit #1: Unit #1" when default tag matches unitLabel
+        let unitDisplay = unitLabel;
+        if (rawTag && rawTag.toLowerCase() !== unitLabel.toLowerCase()) {
+          unitDisplay = rawTag.toLowerCase().startsWith('unit #') ? rawTag : `${unitLabel}: ${rawTag}`;
+        }
+        const titleStr = `${unitDisplay}  [${slotName}]`;
+
         const condRaw = String(stampMeta.condition || 'good').toUpperCase();
         const condColors = {
-          GOOD: { bg: '#059669', border: '#34d399', text: '🟢 GOOD — OVERLAY READY' },
-          CAUTION: { bg: '#d97706', border: '#fbbf24', text: '🟡 CAUTION — VERIFY / REPAIR' },
-          REPLACE: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED' }
+          GOOD: { bg: '#059669', border: '#34d399', text: '🟢 GOOD — OVERLAY READY', shortText: '🟢 GOOD' },
+          CAUTION: { bg: '#d97706', border: '#fbbf24', text: '🟡 CAUTION — VERIFY / REPAIR', shortText: '🟡 CAUTION' },
+          REPLACE: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED', shortText: '🔴 REPLACE' },
+          ACTION: { bg: '#dc2626', border: '#f87171', text: '🔴 REPLACE — EOL / FAILED', shortText: '🔴 REPLACE' }
         };
         const condStyle = condColors[condRaw] || condColors.GOOD;
 
-        const locLine = `📍 ${stampMeta.floorName || stampMeta.floorId || 'Floor 1'} • ${stampMeta.location || 'Field Pin'}${stampMeta.gpsText ? ' (' + stampMeta.gpsText + ')' : ''}`;
+        const locVal = stampMeta.location || stampMeta.room || 'Field Pin';
+        const locLine = `📍 ${stampMeta.floorName || stampMeta.floorId || 'Floor 1'} • ${locVal}${stampMeta.gpsText ? ' (' + stampMeta.gpsText + ')' : ''}`;
         const specParts = [];
         if (stampMeta.mfg || stampMeta.model) specParts.push(`Make/Model: ${[stampMeta.mfg, stampMeta.model].filter(Boolean).join(' ')}`);
         if (stampMeta.serial) specParts.push(`S/N: ${stampMeta.serial}`);
@@ -874,101 +1451,150 @@
         const specLine = specParts.length ? `⚙️ ${specParts.join('  |  ')}` : '⚙️ Specs: Pending Nameplate Decode / Manual Review';
 
         const alcLine = stampMeta.alcTarget ? `🎛️ ALC WebCTRL Target: ${stampMeta.alcTarget}` : '';
+        const fieldNoteVal = stampMeta.fieldNote || stampMeta.userNote || '';
         const notesRaw = [
           ...(Array.isArray(stampMeta.quickIssues) && stampMeta.quickIssues.length ? [`Issues: ${stampMeta.quickIssues.join(', ')}`] : []),
-          stampMeta.fieldNote ? `Notes: ${stampMeta.fieldNote}` : '',
+          fieldNoteVal ? `Notes: ${fieldNoteVal}` : '',
           stampMeta.voiceTranscript ? `🎙️ "${stampMeta.voiceTranscript}"` : ''
         ].filter(Boolean).join('  •  ');
 
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
         const maxTextW = w - padX * 2;
-        const wrappedSpec = _wrapCanvasText(tempCtx, specLine, maxTextW).slice(0, 2);
-        const wrappedNotes = notesRaw ? _wrapCanvasText(tempCtx, notesRaw, maxTextW).slice(0, 2) : [];
 
-        const totalLines = 2 + wrappedSpec.length + (alcLine ? 1 : 0) + wrappedNotes.length;
-        const bannerH = padY * 2 + Math.round(fontMain * 1.55) + totalLines * lineHeight + Math.round(10 * scale);
+        // Measure Condition Pill first so Row 1 Title never collides with it on 9:16 portrait photos
+        tempCtx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        let condTxt = condStyle.text;
+        let pillW = Math.ceil(tempCtx.measureText(condTxt).width + Math.round(24 * scale));
+        if (pillW > w * 0.42) {
+          condTxt = condStyle.shortText;
+          pillW = Math.ceil(tempCtx.measureText(condTxt).width + Math.round(20 * scale));
+        }
+        const pillGap = Math.round(14 * scale);
+        const availTitleW = Math.max(180, maxTextW - pillW - pillGap);
+
+        tempCtx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
+        const wrappedTitle = _wrapCanvasText(tempCtx, titleStr, availTitleW, 2);
+
+        tempCtx.font = `700 ${fontSub}px "Segoe UI", Arial, sans-serif`;
+        const wrappedLoc = _wrapCanvasText(tempCtx, locLine, maxTextW, 2);
+
+        tempCtx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const wrappedSpec = _wrapCanvasText(tempCtx, specLine, maxTextW, 2);
+
+        tempCtx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const wrappedAlc = alcLine ? _wrapCanvasText(tempCtx, alcLine, maxTextW, 2) : [];
+        const wrappedNotes = notesRaw ? _wrapCanvasText(tempCtx, notesRaw, maxTextW, 2) : [];
+
+        const pillH = Math.round(fontMain * 1.35);
+        const titleBlockH = Math.max(pillH, wrappedTitle.length * titleLineH);
+        const sectionGap = Math.max(4, Math.round(6 * scale));
+        const bannerH =
+          padY * 2 +
+          titleBlockH +
+          sectionGap +
+          wrappedLoc.length * subLineH +
+          wrappedSpec.length * smallLineH +
+          wrappedAlc.length * smallLineH +
+          wrappedNotes.length * smallLineH +
+          Math.round(8 * scale);
 
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h + bannerH;
         const ctx = canvas.getContext('2d');
 
-        // 1. Draw original full-color photo at top
+        // 1. Draw full-resolution source photo (raw or CLAHE-enhanced) at top
         ctx.drawImage(img, 0, 0, w, h);
 
-        // 2. Top-left subtle unit badge overlay on the photo corner
-        const topChipH = Math.round(36 * scale);
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.86)';
+        // 2. Top header bar with guaranteed left/right separation on narrow portrait photos
+        const topChipH = Math.max(28, Math.round(36 * scale));
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
         ctx.fillRect(0, 0, w, topChipH);
-        ctx.fillStyle = '#2dd4bf';
-        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
-        ctx.fillText(`🧭 CONTROL SERVICE COMPANY (CSC)  •  ${jobNum}  •  ${projName}`, padX, Math.round(topChipH * 0.68));
-        const tsStr = stampMeta.capturedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
-        const tsWidth = ctx.measureText(tsStr).width;
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText(tsStr, w - padX - tsWidth, Math.round(topChipH * 0.68));
 
-        // 3. Draw high-contrast footer banner below the photo (never covers up equipment details!)
+        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        const tsStr = _formatStampTimestamp(stampMeta.capturedAt);
+        const tsWidth = Math.ceil(ctx.measureText(tsStr).width);
+        const tsX = w - padX - tsWidth;
+        const topBaselineY = Math.round(topChipH * 0.68);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(tsStr, tsX, topBaselineY);
+
+        const maxLeftHeaderW = Math.max(120, tsX - padX - Math.round(16 * scale));
+        let leftHeaderCandidate = `🧭 CONTROL SERVICE COMPANY (CSC)  •  ${jobNum}  •  ${projName}`;
+        if (ctx.measureText(leftHeaderCandidate).width > maxLeftHeaderW) {
+          leftHeaderCandidate = `🧭 CSC  •  ${jobNum}  •  ${projName}`;
+        }
+        ctx.fillStyle = '#2dd4bf';
+        ctx.fillText(_fitTextWithEllipsis(ctx, leftHeaderCandidate, maxLeftHeaderW), padX, topBaselineY);
+
+        // 3. High-contrast footer banner below the photo (never covers equipment details)
         const by = h;
         ctx.fillStyle = '#090e1a';
         ctx.fillRect(0, by, w, bannerH);
 
         // Accent top border bar in Condition color
+        const borderBarH = Math.max(4, Math.round(5 * scale));
         ctx.fillStyle = condStyle.border;
-        ctx.fillRect(0, by, w, Math.max(4, Math.round(5 * scale)));
+        ctx.fillRect(0, by, w, borderBarH);
 
-        let curY = by + padY + fontMain;
-
-        // Row 1: Unit # + Tag + Slot Label on left, Condition Pill on right
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
-        const titleStr = `${unitLabel}: ${eqTag}  [${slotName}]`;
-        ctx.fillText(titleStr, padX, curY);
-
-        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
-        const condTxt = condStyle.text;
-        const pillW = ctx.measureText(condTxt).width + Math.round(24 * scale);
-        const pillH = Math.round(fontMain * 1.35);
+        // Condition Pill on top-right of footer
         const pillX = w - padX - pillW;
-        const pillY = curY - Math.round(fontMain * 0.92);
+        const pillY = by + padY;
         ctx.fillStyle = condStyle.bg;
         ctx.fillRect(pillX, pillY, pillW, pillH);
         ctx.strokeStyle = condStyle.border;
         ctx.lineWidth = Math.max(1.5, 2 * scale);
         ctx.strokeRect(pillX, pillY, pillW, pillH);
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(condTxt, pillX + Math.round(12 * scale), curY - Math.round(fontMain * 0.08));
+        ctx.font = `800 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
+        ctx.fillText(condTxt, pillX + Math.round((pillW - ctx.measureText(condTxt).width) / 2), pillY + Math.round(pillH * 0.70));
 
-        // Row 2: Floor & Location
-        curY += Math.round(lineHeight * 1.1);
+        // Row 1+: Wrapped Unit / Tag / Slot title on left (strictly <= availTitleW)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `900 ${fontMain}px "Segoe UI", Arial, sans-serif`;
+        let titleY = by + padY + Math.round(fontMain * 0.92);
+        for (let i = 0; i < wrappedTitle.length; i++) {
+          if (i > 0) titleY += titleLineH;
+          ctx.fillText(wrappedTitle[i], padX, titleY);
+        }
+
+        let curY = by + padY + titleBlockH + sectionGap;
+
+        // Row 2+: Wrapped Floor & Location
         ctx.fillStyle = '#5eead4';
         ctx.font = `700 ${fontSub}px "Segoe UI", Arial, sans-serif`;
-        ctx.fillText(locLine, padX, curY);
+        for (const ll of wrappedLoc) {
+          curY += Math.round(subLineH * 0.88);
+          ctx.fillText(ll, padX, curY);
+          curY += Math.round(subLineH * 0.12);
+        }
 
-        // Row 3+: Decoded Nameplate Specs
+        // Row 3+: Wrapped Decoded Nameplate Specs
         ctx.fillStyle = '#e2e8f0';
         ctx.font = `600 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
         for (const sl of wrappedSpec) {
-          curY += lineHeight;
+          curY += smallLineH;
           ctx.fillText(sl, padX, curY);
         }
 
-        // Row 4: ALC Target
-        if (alcLine) {
-          curY += lineHeight;
+        // Row 4+: Wrapped ALC WebCTRL Target
+        if (wrappedAlc.length) {
           ctx.fillStyle = '#93c5fd';
           ctx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
-          ctx.fillText(alcLine, padX, curY);
+          for (const al of wrappedAlc) {
+            curY += smallLineH;
+            ctx.fillText(al, padX, curY);
+          }
         }
 
-        // Row 5+: Field Issues & Voice Notes
+        // Row 5+: Wrapped Field Issues & Voice Notes
         if (wrappedNotes.length) {
           ctx.fillStyle = '#fde68a';
           ctx.font = `700 ${fontSmall}px "Segoe UI", Arial, sans-serif`;
           for (const nl of wrappedNotes) {
-            curY += lineHeight;
+            curY += smallLineH;
             ctx.fillText(nl, padX, curY);
           }
         }
@@ -980,26 +1606,46 @@
     });
   }
 
+  function dataUrlToBlob(dataUrl, fallbackMime = 'image/jpeg') {
+    const str = String(dataUrl || '');
+    const commaIdx = str.indexOf(',');
+    let mime = fallbackMime;
+    if (commaIdx > 0) {
+      const m = str.slice(0, commaIdx).match(/data:([^;]+)/i);
+      if (m && m[1]) mime = m[1];
+    }
+    const bytes = dataUrlToUint8Array(str);
+    return new Blob([bytes], { type: mime });
+  }
+
   // ============================================================================
   // Native Android APK (`window.RollupNative`), Web Share & Browser Download Bridge
   // ============================================================================
   async function saveOrShareBlob(filename, mimeType, blob, shareTitle) {
-    // 1. Inside RollupOS Android WebView APK -> Direct Kotlin MediaStore/Downloads + Share!
+    // 1. Inside RollupOS Android WebView APK:
+    //    - If shareTitle is provided, launch native Android Share Sheet via shareBase64File!
+    //    - Otherwise save directly to Gallery (Pictures/CSC_Site_Discovery for images) or Downloads!
     if (hasRollupNative()) {
       try {
         const ab = await blob.arrayBuffer();
         const b64 = uint8ArrayToBase64(new Uint8Array(ab));
-        global.RollupNative.saveBase64File(filename, mimeType, b64);
-        return { ok: true, channel: 'RollupNative.saveBase64File' };
+        if (shareTitle && typeof global.RollupNative.shareBase64File === 'function') {
+          const shared = global.RollupNative.shareBase64File(filename, mimeType, b64, String(shareTitle));
+          if (shared !== false) {
+            return { ok: true, channel: 'RollupNative.shareBase64File' };
+          }
+        }
+        const savedUri = global.RollupNative.saveBase64File(filename, mimeType, b64);
+        return { ok: Boolean(savedUri !== ''), channel: 'RollupNative.saveBase64File', uri: savedUri };
       } catch (e) {
-        console.warn('[CSCDiscoveryAdapter] RollupNative save error:', e);
+        console.warn('[CSCDiscoveryAdapter] RollupNative save/share error:', e);
       }
     }
 
     // 2. Mobile Browser Web Share Level 2 (Files) when supported & explicitly requested
     if (shareTitle && navigator.canShare && typeof File !== 'undefined') {
       try {
-        const f = new File([blob], filename, { type: mimeType });
+        const f = blob instanceof File ? blob : new File([blob], filename, { type: mimeType });
         if (navigator.canShare({ files: [f] })) {
           await navigator.share({ title: shareTitle, text: filename, files: [f] });
           return { ok: true, channel: 'navigator.share(files)' };
@@ -1013,11 +1659,17 @@
     }
 
     // 3. RollupBridge.files base64 helper if present
-    if (hasRollupBridge() && global.RollupBridge.files && typeof global.RollupBridge.files.downloadBase64 === 'function') {
+    if (hasRollupBridge() && global.RollupBridge.files) {
       const ab = await blob.arrayBuffer();
       const b64 = uint8ArrayToBase64(new Uint8Array(ab));
-      global.RollupBridge.files.downloadBase64(filename, b64, mimeType);
-      return { ok: true, channel: 'RollupBridge.files.downloadBase64' };
+      if (shareTitle && typeof global.RollupBridge.files.shareBase64 === 'function') {
+        const ok = global.RollupBridge.files.shareBase64(filename, b64, mimeType, shareTitle);
+        if (ok) return { ok: true, channel: 'RollupBridge.files.shareBase64' };
+      }
+      if (typeof global.RollupBridge.files.downloadBase64 === 'function') {
+        global.RollupBridge.files.downloadBase64(filename, b64, mimeType);
+        return { ok: true, channel: 'RollupBridge.files.downloadBase64' };
+      }
     }
 
     // 4. Standard Desktop / Chrome Browser Anchor Download
@@ -1036,6 +1688,75 @@
 
   async function shareFilesNative(filesArray, title, text) {
     if (!filesArray || !filesArray.length) return { ok: false, reason: 'no_files' };
+
+    // 1. Inside RollupOS Android APK: use native ACTION_SEND_MULTIPLE / ACTION_SEND bridge!
+    if (hasRollupNative()) {
+      try {
+        const encodedItems = [];
+        for (const f of filesArray) {
+          const ab = await f.arrayBuffer();
+          encodedItems.push({
+            filename: f.name || 'CSC_Stamped_Photo.jpg',
+            mimeType: f.type || 'image/jpeg',
+            base64: uint8ArrayToBase64(new Uint8Array(ab))
+          });
+        }
+        if (encodedItems.length === 1 && typeof global.RollupNative.shareBase64File === 'function') {
+          // Also save image to Gallery if saveBase64File is present so user keeps a local copy in Gallery
+          if (encodedItems[0].mimeType.startsWith('image/')) {
+            try { global.RollupNative.saveBase64File(encodedItems[0].filename, encodedItems[0].mimeType, encodedItems[0].base64); } catch (e) {}
+          }
+          const ok = global.RollupNative.shareBase64File(
+            encodedItems[0].filename,
+            encodedItems[0].mimeType,
+            encodedItems[0].base64,
+            String(title || 'CSC Field Discovery')
+          );
+          if (ok !== false) return { ok: true, channel: 'RollupNative.shareBase64File' };
+        }
+        if (typeof global.RollupNative.shareMultipleBase64Files === 'function') {
+          const ok = global.RollupNative.shareMultipleBase64Files(
+            JSON.stringify(encodedItems),
+            String(title || 'CSC Field Discovery')
+          );
+          if (ok !== false) return { ok: true, channel: 'RollupNative.shareMultipleBase64Files' };
+        }
+        // Fallback for older APK without shareMultipleBase64Files: save all to Gallery/Downloads and share first
+        for (const item of encodedItems) {
+          global.RollupNative.saveBase64File(item.filename, item.mimeType, item.base64);
+        }
+        if (typeof global.RollupNative.shareBase64File === 'function') {
+          global.RollupNative.shareBase64File(
+            encodedItems[0].filename,
+            encodedItems[0].mimeType,
+            encodedItems[0].base64,
+            String(title || 'CSC Field Discovery')
+          );
+        }
+        return { ok: true, channel: 'RollupNative.saveAndShareFallback' };
+      } catch (e) {
+        console.warn('[CSCDiscoveryAdapter] Native multi-file share error:', e);
+      }
+    }
+
+    // 2. RollupBridge.files.shareMultipleBase64Files if present
+    if (hasRollupBridge() && global.RollupBridge.files && typeof global.RollupBridge.files.shareMultipleBase64Files === 'function') {
+      try {
+        const encodedItems = [];
+        for (const f of filesArray) {
+          const ab = await f.arrayBuffer();
+          encodedItems.push({
+            filename: f.name || 'CSC_Stamped_Photo.jpg',
+            mimeType: f.type || 'image/jpeg',
+            base64: uint8ArrayToBase64(new Uint8Array(ab))
+          });
+        }
+        const ok = await global.RollupBridge.files.shareMultipleBase64Files(encodedItems, title || 'CSC Field Discovery');
+        if (ok) return { ok: true, channel: 'RollupBridge.files.shareMultipleBase64Files' };
+      } catch (e) {}
+    }
+
+    // 3. Web Share API Level 2 (Mobile Chrome / Edge PWA)
     if (navigator.canShare && typeof File !== 'undefined') {
       try {
         if (navigator.canShare({ files: filesArray })) {
@@ -1060,6 +1781,90 @@
     if (hasRollupBridge() && global.RollupBridge.files && navigator.share) {
       await global.RollupBridge.files.share(title, text);
     }
+  }
+
+  const _deviceSavedPhotosHistory = [];
+
+  function getDeviceSavedPhotosHistory() {
+    return _deviceSavedPhotosHistory.slice();
+  }
+
+  /**
+   * Saves a captured photo (dataUrl or Blob) directly to the device storage:
+   * - Inside RollupOS Android APK (`window.RollupNative.saveBase64File`): writes directly to
+   *   `MediaStore.Images.Media.EXTERNAL_CONTENT_URI` (`Pictures/CSC_Site_Discovery/<filename>`).
+   * - Inside RollupOS Hub (`RollupBridge.files.downloadBase64`): saves via bridge downloader.
+   * - Standalone Browser / PWA: triggers direct file download (`<a download>`) to device Downloads.
+   */
+  async function savePhotoToDevice(filename, dataUrlOrBlob, options = {}) {
+    const safeName = String(filename || `CSC_Field_Photo_${Date.now()}.jpg`)
+      .replace(/[^a-zA-Z0-9._-]/g, '_') || 'CSC_Field_Photo.jpg';
+    const mimeType = options.mimeType || 'image/jpeg';
+
+    let blob = null;
+    let b64 = '';
+    if (typeof dataUrlOrBlob === 'string') {
+      b64 = dataUrlOrBlob.includes(',') ? dataUrlOrBlob.split(',')[1] : dataUrlOrBlob;
+      blob = dataUrlToBlob(dataUrlOrBlob, mimeType);
+    } else if (dataUrlOrBlob instanceof Blob) {
+      blob = dataUrlOrBlob;
+      const ab = await blob.arrayBuffer();
+      b64 = uint8ArrayToBase64(new Uint8Array(ab));
+    } else {
+      return { ok: false, reason: 'invalid_photo_payload' };
+    }
+
+    const recordSave = (channel, destination, extra = {}) => {
+      const entry = {
+        filename: safeName,
+        mimeType,
+        sizeBytes: blob ? blob.size : Math.round((b64.length * 3) / 4),
+        channel,
+        destination,
+        stationId: options.stationId || null,
+        slot: options.slot || null,
+        savedAt: new Date().toISOString(),
+        ...extra
+      };
+      _deviceSavedPhotosHistory.unshift(entry);
+      if (_deviceSavedPhotosHistory.length > 50) _deviceSavedPhotosHistory.length = 50;
+      return { ok: true, ...entry };
+    };
+
+    if (hasRollupNative()) {
+      try {
+        const res = global.RollupNative.saveBase64File(safeName, mimeType, b64);
+        if (res !== false && res !== '') {
+          return recordSave('RollupNative.saveBase64File', 'Phone Gallery (Pictures/CSC_Site_Discovery)', { uri: res });
+        }
+      } catch (e) {
+        console.warn('[CSCDiscoveryAdapter] savePhotoToDevice native error:', e);
+      }
+    }
+
+    if (hasRollupBridge() && global.RollupBridge.files && typeof global.RollupBridge.files.downloadBase64 === 'function') {
+      try {
+        global.RollupBridge.files.downloadBase64(safeName, b64, mimeType);
+        return recordSave('RollupBridge.files.downloadBase64', 'Device Downloads');
+      } catch (e) {}
+    }
+
+    if (options.suppressAnchorClickInHeadless) {
+      return recordSave('headless-device-save', 'Device Storage');
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeName;
+    a.style.display = 'none';
+    if (document.body) document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      try { a.remove(); } catch (e) {}
+      URL.revokeObjectURL(url);
+    }, 1500);
+    return recordSave('anchor-download', 'Device Downloads');
   }
 
   // Mount RollupOS Floating Pill automatically when running inside RollupOS Hub
@@ -1094,13 +1899,21 @@
     listSessionMediaEntries,
     extractJpegExifFromArrayBuffer,
     captureImage,
+    captureImageFromLiveCamera,
+    captureImageFromFileInput,
     enhanceStampedPlateDataUrl,
     renderStampedFieldPhotoDataUrl,
+    _formatStampTimestamp,
     computeCanvasLaplacianSharpness,
+    parseEquipmentBarcodeText,
+    detectBarcodeFromImage,
     dataUrlToUint8Array,
+    dataUrlToBlob,
     uint8ArrayToBase64,
     buildCscWalkZipBlob,
     parseCscWalkZipBuffer,
+    savePhotoToDevice,
+    getDeviceSavedPhotosHistory,
     saveOrShareBlob,
     shareFilesNative,
     shareOrExport

@@ -527,7 +527,7 @@ def cmd_publish(repo_name: str = "android-rollup-app") -> None:
     import tempfile
 
     reg = load_registry()
-    reg.setdefault("hub", {})["apk_version"] = "1.1.0"
+    reg.setdefault("hub", {})["apk_version"] = "1.3.0"
     save_registry(reg)
     stamp_build_hashes(persist=True)
 
