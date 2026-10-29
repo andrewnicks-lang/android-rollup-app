@@ -990,6 +990,15 @@ class MainActivity : ComponentActivity() {
                 }
                 val wantsImages = isCapture || rawAccepts.any { it.contains("image") || it.endsWith(".jpg") || it.endsWith(".png") }
 
+                val isCapture = fileChooserParams?.isCaptureEnabled == true
+                val rawAccepts = fileChooserParams?.acceptTypes
+                    ?.map { it.trim().lowercase() }
+                    ?.filter { it.isNotEmpty() }
+                    ?: emptyList()
+                val wantsArchiveOrMixed = !isCapture && rawAccepts.any {
+                    it.contains("zip") || it.contains("json") || it.contains("octet-stream") || it.startsWith(".")
+                }
+
                 val intent = try {
                     if (isCapture) {
                         createCameraCaptureIntent() ?: (fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
