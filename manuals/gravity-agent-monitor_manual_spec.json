@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.0",
-  "build_hash": "fcfb9ea6a4",
+  "version": "1.4.1",
+  "build_hash": "7aa380db0b",
   "visibility": "admin_only",
-  "updated_at": "2026-10-28T23:03:38.341659",
-  "generated_at": "2026-10-28 23:03",
+  "updated_at": "2026-10-31T11:34:11.402298",
+  "generated_at": "2026-10-31 11:34",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,8 +71,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://oclc-sleeping-fountain-clusters.trycloudflare.com",
-      "defaultForAdmin": "https://oclc-sleeping-fountain-clusters.trycloudflare.com"
+      "default": "https://minus-selected-connect-review.trycloudflare.com",
+      "defaultForAdmin": "https://minus-selected-connect-review.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",

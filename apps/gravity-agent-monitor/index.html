@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#090d16" />
+  <meta name="color-scheme" content="dark" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Gravity for Android — Antigravity Mobile Mission Control</title>
@@ -908,13 +909,28 @@
     .steer-dock {
       position: sticky;
       bottom: 68px;
-      background: var(--bg-glass);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--border-highlight);
+      z-index: 45;
+      background: rgba(13, 19, 33, 0.96);
+      backdrop-filter: blur(18px);
+      border: 1.5px solid var(--border-highlight);
       border-radius: var(--radius-lg);
-      padding: 10px;
+      padding: 10px 11px;
       margin-top: 12px;
-      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6);
+      transition: bottom 0.15s ease;
+    }
+
+    body.keyboard-open .bottom-nav {
+      transform: translateY(110%);
+      pointer-events: none;
+    }
+
+    body.keyboard-open .steer-dock {
+      bottom: 6px;
+    }
+
+    body.keyboard-open {
+      padding-bottom: 18px;
     }
 
     .quick-chips {
@@ -1038,32 +1054,33 @@
       line-height: 1;
     }
 
-    .steer-input-row {
-      display: flex;
-      gap: 6px;
-      align-items: flex-end;
-    }
-
     .steer-composer-box {
-      flex: 1;
-      min-width: 0;
-      background: #0b1120;
-      border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 5px 9px;
+      width: 100%;
+      background: #070b14;
+      border: 1.5px solid rgba(56, 189, 248, 0.28);
+      border-radius: 12px;
+      padding: 8px 11px;
+      margin-bottom: 8px;
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 5px;
-      transition: border-color 0.15s ease;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .steer-composer-box:focus-within {
       border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
     }
 
     .steer-cmd-pills {
-      display: contents;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .steer-cmd-pills:empty {
+      display: none;
     }
 
     .cmd-pill-chip {
@@ -1095,45 +1112,74 @@
 
     .steer-input {
       flex: 1;
-      background: #0b1120;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
+      width: 100%;
+      background: #070b14;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      caret-color: #38bdf8;
       border-radius: 10px;
       padding: 10px 12px;
       font-family: inherit;
-      font-size: 13.5px;
-      line-height: 20px;
+      font-size: 15px;
+      line-height: 22px;
       outline: none;
+      opacity: 1;
     }
 
-    .steer-composer-box textarea.steer-input {
-      border: none;
-      background: transparent;
-      padding: 4px 2px;
-      min-height: 30px;
-      max-height: 76px;
-      min-width: 110px;
-      flex: 1;
+    .steer-input::placeholder {
+      color: #94a3b8 !important;
+      -webkit-text-fill-color: #94a3b8 !important;
+      opacity: 0.85;
     }
 
     textarea.steer-input {
       resize: none;
-      min-height: 42px;
-      max-height: 82px;
-      overflow-y: hidden;
+      min-height: 46px;
+      max-height: 148px;
+      overflow-y: auto;
       white-space: pre-wrap;
       word-wrap: break-word;
       overflow-wrap: break-word;
       display: block;
+      width: 100%;
+    }
+
+    .steer-composer-box textarea.steer-input {
+      border: none !important;
+      background: transparent !important;
+      padding: 2px 1px;
+      min-height: 44px;
+      max-height: 148px;
+      width: 100%;
+      font-size: 15.5px;
+      line-height: 22px;
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
     }
 
     .steer-input:focus {
       border-color: var(--accent-cyan);
     }
 
+    .steer-input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .steer-left-tools, .steer-right-tools {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
     .icon-btn {
-      width: 38px;
-      height: 42px;
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
       border: 1px solid var(--border-subtle);
       background: var(--bg-card-elevated);
@@ -1141,7 +1187,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 15px;
       cursor: pointer;
       flex-shrink: 0;
     }
@@ -1157,6 +1203,7 @@
       color: #090d16;
       border: none;
       font-weight: 800;
+      width: 42px;
     }
 
     .icon-btn.stop-btn {
@@ -1174,11 +1221,162 @@
       animation: pulseGlow 1s infinite;
     }
 
+    /* Interactive Interview Question Card (ask_question) */
+    .interview-q-card {
+      background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(11, 17, 32, 0.99));
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: 14px;
+      padding: 13px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38);
+    }
+
+    .interview-q-card.pending-gate {
+      border-color: rgba(245, 158, 11, 0.65);
+      border-left-color: var(--accent-amber);
+      box-shadow: 0 0 22px rgba(245, 158, 11, 0.18);
+    }
+
+    .interview-q-card.answered-gate {
+      border-color: rgba(16, 185, 129, 0.38);
+      border-left-color: var(--accent-emerald);
+    }
+
+    .interview-q-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .interview-q-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
+    .interview-q-badge.pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.45);
+    }
+
+    .interview-q-badge.answered {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .interview-q-block {
+      margin-bottom: 12px;
+    }
+
+    .interview-q-block:last-of-type {
+      margin-bottom: 8px;
+    }
+
+    .interview-q-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.45;
+      margin-bottom: 9px;
+    }
+
+    .interview-opts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .interview-opt-btn {
+      width: 100%;
+      text-align: left;
+      background: rgba(30, 41, 59, 0.72);
+      border: 1.5px solid rgba(148, 163, 184, 0.24);
+      color: #f1f5f9;
+      border-radius: 11px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.45;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      transition: all 0.14s ease;
+    }
+
+    .interview-opt-btn:hover, .interview-opt-btn:active {
+      background: rgba(56, 189, 248, 0.14);
+      border-color: var(--accent-cyan);
+      transform: scale(0.995);
+    }
+
+    .interview-opt-btn.selected-opt {
+      background: rgba(16, 185, 129, 0.18);
+      border-color: #10b981;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .interview-opt-radio {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1.5px solid #64748b;
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .interview-opt-btn.selected-opt .interview-opt-radio {
+      background: #10b981;
+      border-color: #10b981;
+      color: #052e16;
+    }
+
+    .interview-rec-tag {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #34d399;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 5px;
+      margin-right: 5px;
+      vertical-align: baseline;
+    }
+
+    .interview-custom-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 9px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
     /* Model Tier Selector Pills */
     .model-tier-bar {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       overflow-x: auto;
       padding-bottom: 6px;
       scrollbar-width: none;
@@ -1190,15 +1388,15 @@
       background: rgba(15, 23, 42, 0.85);
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
-      padding: 3.5px 9px;
+      padding: 3.5px 8px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       white-space: nowrap;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       transition: all 0.14s ease;
     }
 
@@ -1250,6 +1448,7 @@
       backdrop-filter: blur(16px);
       border-top: 1px solid var(--border-subtle);
       padding: 6px 12px calc(6px + var(--safe-bottom));
+      transition: transform 0.15s ease;
     }
 
     .bottom-nav-inner {
@@ -1440,9 +1639,9 @@
           <button type="button" class="model-tier-pill" data-model="flash" onclick="selectModelTier('flash')">🚀 Flash</button>
           <button type="button" class="model-tier-pill" data-model="pro" onclick="selectModelTier('pro')">💎 Pro</button>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-          <input id="pulseQuickLaunchInput" class="steer-input" style="padding:7px 10px;font-size:12.5px;" placeholder="➕ Quick-launch new chat or /command…" onkeydown="if(event.key==='Enter'){event.preventDefault();quickLaunchFromPulse();}" />
-          <button class="icon-btn send" style="height:36px;width:36px;" onclick="quickLaunchFromPulse()" title="Quick Launch Conversation">🚀</button>
+        <div style="display:flex;gap:6px;align-items:flex-end;margin-top:4px;">
+          <textarea id="pulseQuickLaunchInput" class="steer-input" rows="1" style="padding:8px 11px;font-size:15px;min-height:40px;max-height:110px;" placeholder="➕ Quick-launch new chat or /command…" oninput="autoResizeChatBox(this)" onfocus="handleMobilePromptFocus(this)" onblur="handleMobilePromptBlur(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();quickLaunchFromPulse();}"></textarea>
+          <button class="icon-btn send" style="height:40px;width:40px;" onclick="quickLaunchFromPulse()" title="Quick Launch Conversation">🚀</button>
         </div>
       </div>
 
@@ -1484,25 +1683,28 @@
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/compact')">🗜️ /compact</button>
           <button class="quick-chip" onclick="sendQuickSteer('SLASH_COMMAND', '/goal')">🎯 /goal</button>
         </div>
-        <div class="model-tier-bar" id="trajModelTierBar">
-          <span style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-right:2px;">MODEL:</span>
-          <button type="button" class="model-tier-pill" data-model="inherit" onclick="selectModelTier('inherit')">🧠 Auto</button>
-          <button type="button" class="model-tier-pill" data-model="flash_lite" onclick="selectModelTier('flash_lite')">⚡ Flash Lite</button>
-          <button type="button" class="model-tier-pill" data-model="flash" onclick="selectModelTier('flash')">🚀 Flash</button>
-          <button type="button" class="model-tier-pill" data-model="pro" onclick="selectModelTier('pro')">💎 Pro</button>
-        </div>
         <div id="steerAttachmentStrip" class="steer-attachment-strip" style="display:none;"></div>
         <input type="file" id="steerImageInput" accept="image/*" multiple style="display:none;" onchange="handleSteerImageSelect(event)" />
+        <div class="steer-composer-box" onclick="document.getElementById('steerInput').focus()">
+          <div id="steerCommandPills" class="steer-cmd-pills"></div>
+          <textarea id="steerInput" class="steer-input" rows="2" enterkeyhint="send" placeholder="Steer agent or type /command…" oninput="handleSteerInputChange(this)" onkeydown="handleSteerInputKeydown(event)" onfocus="handleMobilePromptFocus(this)" onblur="handleMobilePromptBlur(this)"></textarea>
+        </div>
         <div class="steer-input-row">
-          <button id="quickChipsToggleBtn" class="icon-btn" onclick="toggleQuickChipsBar()" title="Toggle Quick Commands">⚡</button>
-          <button id="micBtn" class="icon-btn" onclick="toggleVoiceInput()" title="Push-to-Talk Voice Steer">🎙️</button>
-          <button id="attachImgBtn" class="icon-btn" onclick="triggerSteerImagePicker()" title="Attach Picture or Screenshot">📷</button>
-          <div class="steer-composer-box" onclick="document.getElementById('steerInput').focus()">
-            <div id="steerCommandPills" class="steer-cmd-pills"></div>
-            <textarea id="steerInput" class="steer-input" rows="1" enterkeyhint="send" placeholder="Steer agent or type /command…" oninput="handleSteerInputChange(this)" onkeydown="handleSteerInputKeydown(event)"></textarea>
+          <div class="steer-left-tools">
+            <button id="quickChipsToggleBtn" class="icon-btn" onclick="toggleQuickChipsBar()" title="Toggle Quick Commands">⚡</button>
+            <button id="micBtn" class="icon-btn" onclick="toggleVoiceInput()" title="Push-to-Talk Voice Steer">🎙️</button>
+            <button id="attachImgBtn" class="icon-btn" onclick="triggerSteerImagePicker()" title="Attach Picture or Screenshot">📷</button>
           </div>
-          <button id="stopGenBtn" class="icon-btn stop-btn" style="display:none;" onclick="stopActiveGeneration()" title="Stop Active Generation">🛑</button>
-          <button class="icon-btn send" onclick="submitSteerInput()">↑</button>
+          <div class="model-tier-bar" id="trajModelTierBar" style="flex:1;padding-bottom:0;margin:0 2px;">
+            <button type="button" class="model-tier-pill" data-model="inherit" onclick="selectModelTier('inherit')">🧠 Auto</button>
+            <button type="button" class="model-tier-pill" data-model="flash_lite" onclick="selectModelTier('flash_lite')">⚡ Lite</button>
+            <button type="button" class="model-tier-pill" data-model="flash" onclick="selectModelTier('flash')">🚀 Flash</button>
+            <button type="button" class="model-tier-pill" data-model="pro" onclick="selectModelTier('pro')">💎 Pro</button>
+          </div>
+          <div class="steer-right-tools">
+            <button id="stopGenBtn" class="icon-btn stop-btn" style="display:none;" onclick="stopActiveGeneration()" title="Stop Active Generation">🛑</button>
+            <button class="icon-btn send" onclick="submitSteerInput()" title="Send Message">↑</button>
+          </div>
         </div>
       </div>
     </section>
@@ -1617,7 +1819,7 @@
         <select id="skillQuickSelect" class="steer-input" style="width:100%;margin-bottom:8px;" onchange="applySkillQuickSelect()">
           <option value="">⚡ Streamlined Skill Call (Optional — 27 Installed Skills)…</option>
         </select>
-        <textarea id="launchPrompt" class="steer-input" rows="1" enterkeyhint="enter" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" oninput="autoResizeChatBox(this)"></textarea>
+        <textarea id="launchPrompt" class="steer-input" rows="2" enterkeyhint="enter" style="width:100%;margin-bottom:10px;" placeholder="Type message or new conversation prompt…" oninput="autoResizeChatBox(this)" onfocus="handleMobilePromptFocus(this)" onblur="handleMobilePromptBlur(this)"></textarea>
         <div class="thumb-grid">
           <button class="thumb-btn approve" onclick="launchNewTask()">🚀 Dispatch Live</button>
           <button class="thumb-btn secondary" onclick="toggleWakeLock()">☕ Toggle Keep-Awake</button>
@@ -1664,7 +1866,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_CLOUD_TUNNEL_URL = 'https://oclc-sleeping-fountain-clusters.trycloudflare.com';
+    const DEFAULT_CLOUD_TUNNEL_URL = 'https://minus-selected-connect-review.trycloudflare.com';
     const WORK_PC_LAN_URL = 'http://10.0.0.91:8765';
     const HOME_PC_LAN_URL = 'http://192.168.86.47:8765';
     function resolveDefaultLanUrl() {
@@ -2079,7 +2281,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: '🔔 Gravity Push Alert Test',
-            message: 'Test notification from Gravity for Android v1.4.0'
+            message: 'Test notification from Gravity for Android v1.4.1'
           })
         });
         const data = await res.json();
@@ -3170,24 +3372,55 @@
       }
       window._optimisticUserSteps = activeOpt;
 
+      window._questionStepRegistry = window._questionStepRegistry || new Map();
+      window._answeredQuestionSteps = window._answeredQuestionSteps || new Map();
+      window._questionDraftSelections = window._questionDraftSelections || {};
+
       const rawSteps = serverSteps;
+      let renderedAnyQuestionStep = false;
       for (let idx = 0; idx < rawSteps.length; idx++) {
         const st = rawSteps[idx];
         const hasMedia = Array.isArray(st.media) && st.media.length > 0;
+        const hasQuestions = Array.isArray(st.questions) && st.questions.length > 0;
         if (st.type === 'USER_INPUT' && (st.content || hasMedia)) {
           flushPlumbingGroup(false, st.created_at);
           html.push(renderUserMessageCard(st, idx));
         } else {
-          if (st.has_thinking || (st.tool_calls && st.tool_calls.length > 0)) {
-            pendingPlumbing.push(st);
+          const nonQuestionTools = (st.tool_calls || []).filter(tc => tc.name !== 'ask_question');
+          if (st.has_thinking || nonQuestionTools.length > 0) {
+            pendingPlumbing.push(Object.assign({}, st, { tool_calls: nonQuestionTools }));
           }
           if (st.type === 'PLANNER_RESPONSE' && st.content) {
             flushPlumbingGroup(false, st.created_at);
             html.push(`<div class="step-item"><div class="bubble-agent">${renderMarkdownFlow(st.content)}</div></div>`);
           }
+          if (hasQuestions) {
+            flushPlumbingGroup(false, st.created_at);
+            renderedAnyQuestionStep = true;
+            html.push(renderInterviewQuestionCard(st, idx));
+          }
         }
       }
       flushPlumbingGroup(true, '');
+
+      // Fallback if pending_approval is ASK_QUESTION or ARTIFACT_REVIEW
+      if (data.pending_approval && data.pending_approval.kind === 'ASK_QUESTION' && !renderedAnyQuestionStep) {
+        const fallbackQs = Array.isArray(data.pending_approval.questions) && data.pending_approval.questions.length > 0
+          ? data.pending_approval.questions
+          : [{
+              question: data.pending_approval.title || 'Agent Question',
+              options: Array.isArray(data.pending_approval.options) ? data.pending_approval.options : ['Approve', 'Skip'],
+              is_multi_select: false
+            }];
+        html.push(renderInterviewQuestionCard({
+          step_index: data.pending_approval.step_index || rawSteps.length,
+          questions: fallbackQs,
+          question_answered: false,
+          question_answers: []
+        }, rawSteps.length));
+      } else if (data.pending_approval && data.pending_approval.kind === 'ARTIFACT_REVIEW') {
+        html.push(renderArtifactReviewGateCard(data.pending_approval));
+      }
 
       stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
 
@@ -3197,6 +3430,249 @@
         requestAnimationFrame(() => scrollToTrajectoryBottom(!forceScroll));
         setTimeout(() => scrollToTrajectoryBottom(!forceScroll), 60);
       }
+    }
+
+    function formatInlineMarkdownSafe(raw) {
+      let safe = escapeHtml(String(raw || ''));
+      safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+      safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      return safe;
+    }
+
+    function formatQuestionOptionHtml(optText) {
+      let txt = String(optText || '').trim();
+      let recBadge = '';
+      if (/^\(Recommended\)\s*/i.test(txt)) {
+        txt = txt.replace(/^\(Recommended\)\s*/i, '');
+        recBadge = `<span class="interview-rec-tag">★ Recommended</span>`;
+      }
+      return `${recBadge}<span>${formatInlineMarkdownSafe(txt)}</span>`;
+    }
+
+    function renderInterviewQuestionCard(st, idx) {
+      const stepIdxVal = st.step_index !== undefined ? st.step_index : idx;
+      const stepKey = `${currentConversationId || 'conv'}_qstep_${stepIdxVal}`;
+      window._questionStepRegistry = window._questionStepRegistry || new Map();
+      window._questionStepRegistry.set(stepKey, st);
+
+      const clientAns = window._answeredQuestionSteps && window._answeredQuestionSteps.get(stepKey);
+      const serverAnswers = Array.isArray(st.question_answers) ? st.question_answers : [];
+      const effectiveAnswers = (clientAns && clientAns.length > 0) ? clientAns : serverAnswers;
+      const isAnswered = Boolean(st.question_answered || (clientAns && clientAns.length > 0));
+      const questions = Array.isArray(st.questions) ? st.questions : [];
+      const isMultiCard = questions.length > 1 || questions.some(q => q.is_multi_select);
+
+      window._questionDraftSelections = window._questionDraftSelections || {};
+      if (!window._questionDraftSelections[stepKey]) {
+        window._questionDraftSelections[stepKey] = {};
+      }
+      const draftForStep = window._questionDraftSelections[stepKey];
+
+      const badgeHtml = isAnswered
+        ? `<span class="interview-q-badge answered">✓ Interview Answered</span>`
+        : `<span class="interview-q-badge pending">❓ Action Required • Tap Option to Reply</span>`;
+
+      const questionBlocksHtml = questions.map((q, qIdx) => {
+        const qTitle = q.question || `Question ${qIdx + 1}`;
+        const opts = Array.isArray(q.options) ? q.options : [];
+        const isMultiSelect = Boolean(q.is_multi_select);
+        const draftSel = draftForStep[qIdx] || [];
+
+        const optsHtml = opts.map((optStr, optIdx) => {
+          const isChosenServer = effectiveAnswers.some(ans => {
+            const cleanAns = String(ans || '').trim();
+            const cleanOpt = String(optStr || '').trim();
+            return cleanAns === cleanOpt || (cleanOpt.length > 12 && cleanAns.includes(cleanOpt));
+          });
+          const isChosenDraft = Array.isArray(draftSel) && draftSel.includes(optIdx);
+          const isSelected = isChosenServer || isChosenDraft;
+          const radioSymbol = isSelected ? '✓' : (isMultiSelect ? '☐' : String.fromCharCode(65 + optIdx));
+          return `
+            <button type="button" class="interview-opt-btn ${isSelected ? 'selected-opt' : ''}" onclick="handleQuestionOptionTap('${escapeHtml(stepKey)}', ${qIdx}, ${optIdx}, event)">
+              <span class="interview-opt-radio">${escapeHtml(radioSymbol)}</span>
+              <div style="flex:1;min-width:0;">${formatQuestionOptionHtml(optStr)}</div>
+            </button>
+          `;
+        }).join('');
+
+        return `
+          <div class="interview-q-block">
+            <div class="interview-q-title">
+              ${questions.length > 1 ? `<span style="color:var(--accent-cyan);margin-right:5px;">Q${qIdx + 1}.</span>` : ''}
+              ${formatInlineMarkdownSafe(qTitle)}
+              ${isMultiSelect ? `<span style="font-size:11px;font-weight:600;color:var(--accent-cyan);margin-left:6px;">(Select all that apply)</span>` : ''}
+            </div>
+            <div class="interview-opts-list">
+              ${optsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const answeredSummaryHtml = (isAnswered && effectiveAnswers.length > 0)
+        ? `<div style="margin-top:8px;padding:8px 10px;border-radius:9px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.32);font-size:12px;color:#a7f3d0;">
+             <strong style="color:#34d399;">✓ Your Answer:</strong> ${escapeHtml(effectiveAnswers.join(' | '))}
+           </div>`
+        : '';
+
+      const multiSubmitBtnHtml = (isMultiCard && !isAnswered)
+        ? `<button type="button" class="thumb-btn approve" style="width:100%;margin-top:8px;" onclick="submitMultiQuestionCard('${escapeHtml(stepKey)}')">
+             ✅ Submit Selected Answer${questions.length > 1 ? 's' : ''}
+           </button>`
+        : '';
+
+      return `
+        <div class="step-item">
+          <div id="qcard_${escapeHtml(stepKey)}" class="interview-q-card ${isAnswered ? 'answered-gate' : 'pending-gate'}">
+            <div class="interview-q-header">
+              ${badgeHtml}
+              <span style="font-size:11px;color:var(--text-secondary);font-weight:600;">${questions.length > 1 ? `${questions.length} Questions` : '1-Tap Reply'}</span>
+            </div>
+            ${questionBlocksHtml}
+            ${answeredSummaryHtml}
+            ${multiSubmitBtnHtml}
+            <div class="interview-custom-row">
+              <input id="qother_${escapeHtml(stepKey)}" class="steer-input" style="padding:7px 10px;font-size:13.5px;min-height:36px;" placeholder="💬 Other / custom reply or note…" onfocus="handleMobilePromptFocus(this)" onblur="handleMobilePromptBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCustomQuestionAnswer('${escapeHtml(stepKey)}');}" />
+              <button type="button" class="pill-btn" style="padding:8px 12px;background:var(--accent-cyan);color:#090d16;font-weight:800;border:none;flex-shrink:0;" onclick="submitCustomQuestionAnswer('${escapeHtml(stepKey)}')">Send ↵</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleQuestionOptionTap(stepKey, qIdx, optIdx, ev) {
+      if (ev) ev.stopPropagation();
+      const st = window._questionStepRegistry && window._questionStepRegistry.get(stepKey);
+      if (!st || !Array.isArray(st.questions) || !st.questions[qIdx]) return;
+      const questions = st.questions;
+      const q = questions[qIdx];
+      const optText = (q.options || [])[optIdx];
+      if (!optText) return;
+
+      const isMultiCard = questions.length > 1 || questions.some(item => item.is_multi_select);
+      if (!isMultiCard) {
+        // Single-question, single-select: 1-tap dispatches immediately!
+        window._answeredQuestionSteps = window._answeredQuestionSteps || new Map();
+        window._answeredQuestionSteps.set(stepKey, [optText]);
+        st.question_answered = true;
+        st.question_answers = [optText];
+        if (window._lastTrajData) {
+          window._lastTrajData.pending_approval = null;
+          window._lastRenderedTrajEtag = null;
+          renderTrajectory(window._lastTrajData, false);
+        }
+        sendQuickSteer('APPROVE', optText);
+        return;
+      }
+
+      // Multi-question or multi-select: toggle selection in draft state and re-render card
+      window._questionDraftSelections = window._questionDraftSelections || {};
+      if (!window._questionDraftSelections[stepKey]) {
+        window._questionDraftSelections[stepKey] = {};
+      }
+      const draft = window._questionDraftSelections[stepKey];
+      const curArr = Array.isArray(draft[qIdx]) ? draft[qIdx].slice() : [];
+      if (q.is_multi_select) {
+        const pos = curArr.indexOf(optIdx);
+        if (pos >= 0) curArr.splice(pos, 1);
+        else curArr.push(optIdx);
+        draft[qIdx] = curArr;
+      } else {
+        draft[qIdx] = [optIdx];
+      }
+      if (window._lastTrajData) {
+        window._lastRenderedTrajEtag = null;
+        renderTrajectory(window._lastTrajData, false);
+      }
+    }
+
+    function submitMultiQuestionCard(stepKey) {
+      const st = window._questionStepRegistry && window._questionStepRegistry.get(stepKey);
+      if (!st || !Array.isArray(st.questions)) return;
+      const draft = (window._questionDraftSelections && window._questionDraftSelections[stepKey]) || {};
+      const otherInp = document.getElementById('qother_' + stepKey);
+      const customTxt = otherInp ? otherInp.value.trim() : '';
+
+      const parts = [];
+      const summaryList = [];
+      st.questions.forEach((q, qIdx) => {
+        const selIndices = Array.isArray(draft[qIdx]) ? draft[qIdx] : [];
+        const chosenTexts = selIndices.map(i => (q.options || [])[i]).filter(Boolean);
+        if (chosenTexts.length > 0) {
+          const joined = chosenTexts.join('; ');
+          parts.push(st.questions.length > 1 ? `A${qIdx + 1}: ${joined}` : joined);
+          summaryList.push(joined);
+        }
+      });
+      if (customTxt) {
+        parts.push(customTxt);
+        summaryList.push(customTxt);
+      }
+      if (parts.length === 0) {
+        showToast('Tap at least one option or enter a custom reply');
+        return;
+      }
+      const finalMsg = parts.join('\n');
+      window._answeredQuestionSteps = window._answeredQuestionSteps || new Map();
+      window._answeredQuestionSteps.set(stepKey, summaryList);
+      st.question_answered = true;
+      st.question_answers = summaryList;
+      if (otherInp) otherInp.value = '';
+      if (window._lastTrajData) {
+        window._lastTrajData.pending_approval = null;
+        window._lastRenderedTrajEtag = null;
+        renderTrajectory(window._lastTrajData, false);
+      }
+      sendQuickSteer('APPROVE', finalMsg);
+    }
+
+    function submitCustomQuestionAnswer(stepKey) {
+      const otherInp = document.getElementById('qother_' + stepKey);
+      const customTxt = otherInp ? otherInp.value.trim() : '';
+      if (!customTxt) {
+        submitMultiQuestionCard(stepKey);
+        return;
+      }
+      const st = window._questionStepRegistry && window._questionStepRegistry.get(stepKey);
+      window._answeredQuestionSteps = window._answeredQuestionSteps || new Map();
+      window._answeredQuestionSteps.set(stepKey, [customTxt]);
+      if (st) {
+        st.question_answered = true;
+        st.question_answers = [customTxt];
+      }
+      if (otherInp) otherInp.value = '';
+      if (window._lastTrajData) {
+        window._lastTrajData.pending_approval = null;
+        window._lastRenderedTrajEtag = null;
+        renderTrajectory(window._lastTrajData, false);
+      }
+      sendQuickSteer('APPROVE', customTxt);
+    }
+
+    function renderArtifactReviewGateCard(gate) {
+      const title = (gate && gate.title) || 'Artifact Review Requested';
+      const summary = (gate && gate.summary) || 'Agent requested feedback on an artifact before proceeding.';
+      const path = (gate && gate.path) || '';
+      const fileBtnHtml = path
+        ? `<button type="button" class="pill-btn" onclick="openArtifact('${encodeURIComponent(path)}', 'md', '${escapeHtml(path.split(/[\\\\/]/).pop() || 'Artifact')}')">📄 View Plan</button>`
+        : '';
+      return `
+        <div class="step-item">
+          <div class="interview-q-card pending-gate">
+            <div class="interview-q-header">
+              <span class="interview-q-badge pending">📋 ${escapeHtml(title)}</span>
+              ${fileBtnHtml}
+            </div>
+            <div style="font-size:13px;color:#e2e8f0;line-height:1.45;margin-bottom:10px;">
+              ${formatInlineMarkdownSafe(summary)}
+            </div>
+            <div class="thumb-grid">
+              <button type="button" class="thumb-btn approve" onclick="sendQuickSteer('APPROVE', 'Proceed with the recommended plan.')">✅ Approve & Proceed</button>
+              <button type="button" class="thumb-btn secondary" onclick="document.getElementById('steerInput').focus()">✏️ Request Changes</button>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     const BUILT_IN_SLASH_COMMANDS = [
@@ -3704,11 +4180,53 @@
 
     function autoResizeChatBox(el) {
       if (!el) return;
-      el.style.height = 'auto';
-      const maxH = 76;
-      const nextH = Math.min(el.scrollHeight, maxH);
-      el.style.height = Math.max(30, nextH) + 'px';
-      el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+      el.style.height = '0px';
+      const isQuickLaunch = el.id === 'pulseQuickLaunchInput';
+      const minH = isQuickLaunch ? 42 : 44;
+      const maxH = isQuickLaunch ? 120 : 148;
+      const measured = el.scrollHeight || minH;
+      const nextH = Math.min(Math.max(minH, measured), maxH);
+      el.style.height = nextH + 'px';
+      el.style.overflowY = measured > maxH ? 'auto' : 'hidden';
+    }
+
+    function handleMobilePromptFocus(el) {
+      document.body.classList.add('keyboard-open');
+      if (el) {
+        autoResizeChatBox(el);
+        setTimeout(() => {
+          try {
+            el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          } catch (e) {}
+        }, 180);
+      }
+    }
+
+    function handleMobilePromptBlur(el) {
+      setTimeout(() => {
+        const active = document.activeElement;
+        const stillInInput = active && (
+          active.tagName === 'TEXTAREA' ||
+          (active.tagName === 'INPUT' && !['button', 'checkbox', 'radio', 'file'].includes(active.type))
+        );
+        if (!stillInInput) {
+          document.body.classList.remove('keyboard-open');
+        }
+      }, 150);
+    }
+
+    if (window.visualViewport) {
+      const baseHeight = window.visualViewport.height || window.innerHeight;
+      window.visualViewport.addEventListener('resize', () => {
+        const curH = window.visualViewport.height;
+        const active = document.activeElement;
+        const inInput = active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT');
+        if (inInput && (baseHeight - curH > 120)) {
+          document.body.classList.add('keyboard-open');
+        } else if (!inInput || (baseHeight - curH < 60)) {
+          document.body.classList.remove('keyboard-open');
+        }
+      });
     }
 
     function submitSteerInput() {

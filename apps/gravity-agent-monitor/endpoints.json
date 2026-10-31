@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-10-28T23:03:37.993771",
+  "updated_at": "2026-10-31T11:34:11.238281",
   "hostname": "DESKTOP-UHI3BO3",
-  "active_tunnel_url": "https://oclc-sleeping-fountain-clusters.trycloudflare.com",
+  "active_tunnel_url": "https://minus-selected-connect-review.trycloudflare.com",
   "primary_lan_url": "http://192.168.86.47:8765",
   "office_wifi_drop_lan_url": "http://192.168.86.47:8766",
   "work_lan_url": "http://10.0.0.91:8765",
@@ -9,7 +9,7 @@
   "nodes": [
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
-      "url": "https://oclc-sleeping-fountain-clusters.trycloudflare.com"
+      "url": "https://minus-selected-connect-review.trycloudflare.com"
     },
     {
       "name": "NicksAndrew (HTTPS Tunnel)",

@@ -6,7 +6,7 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "entry": "apps/gravity-agent-monitor/index.html",
   "visibility": "admin_only",
   "offline_assets": [
@@ -18,8 +18,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://oclc-sleeping-fountain-clusters.trycloudflare.com",
-      "defaultForAdmin": "https://oclc-sleeping-fountain-clusters.trycloudflare.com"
+      "default": "https://minus-selected-connect-review.trycloudflare.com",
+      "defaultForAdmin": "https://minus-selected-connect-review.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
