@@ -926,11 +926,11 @@
     }
 
     body.keyboard-open .steer-dock {
-      bottom: 6px;
+      bottom: calc(6px + var(--kb-offset, 0px));
     }
 
     body.keyboard-open {
-      padding-bottom: 18px;
+      padding-bottom: calc(20px + var(--kb-offset, 0px));
     }
 
     .quick-chips {
@@ -1866,7 +1866,7 @@
 
   <script>
     window.ROLLUP_APP_ID = 'gravity-agent-monitor';
-    const DEFAULT_CLOUD_TUNNEL_URL = 'https://furniture-kelkoo-evaluation-substantial.trycloudflare.com';
+    const DEFAULT_CLOUD_TUNNEL_URL = 'https://gerald-edwards-employers-visitor.trycloudflare.com';
     const WORK_PC_LAN_URL = 'http://10.0.0.91:8765';
     const HOME_PC_LAN_URL = 'http://192.168.86.47:8765';
     function resolveDefaultLanUrl() {
@@ -3375,9 +3375,28 @@
       window._questionStepRegistry = window._questionStepRegistry || new Map();
       window._answeredQuestionSteps = window._answeredQuestionSteps || new Map();
       window._questionDraftSelections = window._questionDraftSelections || {};
+      window._questionCustomInputDrafts = window._questionCustomInputDrafts || {};
+
+      // Preserve any custom "Other" input text and focus before replacing stepsEl.innerHTML
+      let focusedQOtherId = null;
+      let focusedQOtherSelStart = null;
+      let focusedQOtherSelEnd = null;
+      if (stepsEl) {
+        stepsEl.querySelectorAll('.interview-custom-row input[id^="qother_"]').forEach(inp => {
+          window._questionCustomInputDrafts[inp.id] = inp.value;
+          if (document.activeElement === inp) {
+            focusedQOtherId = inp.id;
+            focusedQOtherSelStart = inp.selectionStart;
+            focusedQOtherSelEnd = inp.selectionEnd;
+          }
+        });
+      }
 
       const rawSteps = serverSteps;
-      let renderedAnyQuestionStep = false;
+      let renderedPendingQuestionStep = false;
+      const pendingStepIdx = (data.pending_approval && data.pending_approval.kind === 'ASK_QUESTION')
+        ? data.pending_approval.step_index
+        : null;
       for (let idx = 0; idx < rawSteps.length; idx++) {
         const st = rawSteps[idx];
         const hasMedia = Array.isArray(st.media) && st.media.length > 0;
@@ -3396,7 +3415,9 @@
           }
           if (hasQuestions) {
             flushPlumbingGroup(false, st.created_at);
-            renderedAnyQuestionStep = true;
+            if (!st.question_answered || (pendingStepIdx !== null && st.step_index === pendingStepIdx)) {
+              renderedPendingQuestionStep = true;
+            }
             html.push(renderInterviewQuestionCard(st, idx));
           }
         }
@@ -3404,7 +3425,7 @@
       flushPlumbingGroup(true, '');
 
       // Fallback if pending_approval is ASK_QUESTION or ARTIFACT_REVIEW
-      if (data.pending_approval && data.pending_approval.kind === 'ASK_QUESTION' && !renderedAnyQuestionStep) {
+      if (data.pending_approval && data.pending_approval.kind === 'ASK_QUESTION' && !renderedPendingQuestionStep) {
         const fallbackQs = Array.isArray(data.pending_approval.questions) && data.pending_approval.questions.length > 0
           ? data.pending_approval.questions
           : [{
@@ -3424,8 +3445,26 @@
 
       stepsEl.innerHTML = html.join('') || '<div style="color:var(--text-secondary);">No messages yet.</div>';
 
+      // Restore any in-progress custom reply drafts and active focus
+      stepsEl.querySelectorAll('.interview-custom-row input[id^="qother_"]').forEach(inp => {
+        if (window._questionCustomInputDrafts[inp.id]) {
+          inp.value = window._questionCustomInputDrafts[inp.id];
+        }
+      });
+      if (focusedQOtherId) {
+        const restoredInp = document.getElementById(focusedQOtherId);
+        if (restoredInp) {
+          try {
+            restoredInp.focus({ preventScroll: true });
+            if (focusedQOtherSelStart !== null && focusedQOtherSelEnd !== null) {
+              restoredInp.setSelectionRange(focusedQOtherSelStart, focusedQOtherSelEnd);
+            }
+          } catch (e) {}
+        }
+      }
+
       const distanceFromBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-      if (forceScroll || (hadPreviousEtag && distanceFromBottom < 260)) {
+      if (forceScroll || (hadPreviousEtag && distanceFromBottom < 260 && !focusedQOtherId)) {
         scrollToTrajectoryBottom(!forceScroll);
         requestAnimationFrame(() => scrollToTrajectoryBottom(!forceScroll));
         setTimeout(() => scrollToTrajectoryBottom(!forceScroll), 60);
@@ -3477,12 +3516,20 @@
         const opts = Array.isArray(q.options) ? q.options : [];
         const isMultiSelect = Boolean(q.is_multi_select);
         const draftSel = draftForStep[qIdx] || [];
+        const candidateAnswersForQ = (questions.length > 1 && effectiveAnswers.length === questions.length)
+          ? [effectiveAnswers[qIdx]]
+          : effectiveAnswers;
 
         const optsHtml = opts.map((optStr, optIdx) => {
-          const isChosenServer = effectiveAnswers.some(ans => {
-            const cleanAns = String(ans || '').trim();
-            const cleanOpt = String(optStr || '').trim();
-            return cleanAns === cleanOpt || (cleanOpt.length > 12 && cleanAns.includes(cleanOpt));
+          const cleanOpt = String(optStr || '').trim();
+          const cleanOptNoRec = cleanOpt.replace(/^\(Recommended\)\s*/i, '').trim();
+          const isChosenServer = candidateAnswersForQ.some(ans => {
+            const cleanAns = String(ans || '').replace(/^A\d+:\s*/i, '').trim();
+            if (!cleanAns || !cleanOpt) return false;
+            if (cleanAns === cleanOpt || (cleanOptNoRec && cleanAns === cleanOptNoRec)) return true;
+            const splitTokens = cleanAns.split(/\s*;\s*/).map(s => s.trim()).filter(Boolean);
+            if (splitTokens.includes(cleanOpt) || (cleanOptNoRec && splitTokens.includes(cleanOptNoRec))) return true;
+            return cleanOpt.length > 12 && cleanAns.includes(cleanOpt);
           });
           const isChosenDraft = Array.isArray(draftSel) && draftSel.includes(optIdx);
           const isSelected = isChosenServer || isChosenDraft;
@@ -3532,7 +3579,7 @@
             ${answeredSummaryHtml}
             ${multiSubmitBtnHtml}
             <div class="interview-custom-row">
-              <input id="qother_${escapeHtml(stepKey)}" class="steer-input" style="padding:7px 10px;font-size:13.5px;min-height:36px;" placeholder="💬 Other / custom reply or note…" onfocus="handleMobilePromptFocus(this)" onblur="handleMobilePromptBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCustomQuestionAnswer('${escapeHtml(stepKey)}');}" />
+              <input id="qother_${escapeHtml(stepKey)}" class="steer-input" style="padding:7px 10px;font-size:13.5px;min-height:36px;" placeholder="💬 Other / custom reply or note…" oninput="window._questionCustomInputDrafts=window._questionCustomInputDrafts||{};window._questionCustomInputDrafts[this.id]=this.value;" onfocus="handleMobilePromptFocus(this)" onblur="handleMobilePromptBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCustomQuestionAnswer('${escapeHtml(stepKey)}');}" />
               <button type="button" class="pill-btn" style="padding:8px 12px;background:var(--accent-cyan);color:#090d16;font-weight:800;border:none;flex-shrink:0;" onclick="submitCustomQuestionAnswer('${escapeHtml(stepKey)}')">Send ↵</button>
             </div>
           </div>
@@ -3618,6 +3665,9 @@
       st.question_answered = true;
       st.question_answers = summaryList;
       if (otherInp) otherInp.value = '';
+      if (window._questionCustomInputDrafts) {
+        delete window._questionCustomInputDrafts['qother_' + stepKey];
+      }
       if (window._lastTrajData) {
         window._lastTrajData.pending_approval = null;
         window._lastRenderedTrajEtag = null;
@@ -3641,6 +3691,9 @@
         st.question_answers = [customTxt];
       }
       if (otherInp) otherInp.value = '';
+      if (window._questionCustomInputDrafts) {
+        delete window._questionCustomInputDrafts['qother_' + stepKey];
+      }
       if (window._lastTrajData) {
         window._lastTrajData.pending_approval = null;
         window._lastRenderedTrajEtag = null;
@@ -4190,15 +4243,29 @@
       el.style.overflowY = measured > maxH ? 'auto' : 'hidden';
     }
 
+    function syncKeyboardViewportOffset() {
+      if (!window.visualViewport) return;
+      const vv = window.visualViewport;
+      const kbInset = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)));
+      document.documentElement.style.setProperty('--kb-offset', kbInset + 'px');
+    }
+
     function handleMobilePromptFocus(el) {
+      window._lastPromptFocusMs = Date.now();
+      window._vpWasShrunk = false;
       document.body.classList.add('keyboard-open');
+      syncKeyboardViewportOffset();
       if (el) {
-        autoResizeChatBox(el);
-        setTimeout(() => {
-          try {
-            el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          } catch (e) {}
-        }, 180);
+        if (el.tagName === 'TEXTAREA') autoResizeChatBox(el);
+        const scrollBlock = (el.id === 'steerInput') ? 'nearest' : 'center';
+        [120, 320].forEach(delay => {
+          setTimeout(() => {
+            syncKeyboardViewportOffset();
+            try {
+              el.scrollIntoView({ block: scrollBlock, behavior: 'smooth' });
+            } catch (e) {}
+          }, delay);
+        });
       }
     }
 
@@ -4211,22 +4278,48 @@
         );
         if (!stillInInput) {
           document.body.classList.remove('keyboard-open');
+          window._vpWasShrunk = false;
+          document.documentElement.style.setProperty('--kb-offset', '0px');
         }
-      }, 150);
+      }, 160);
     }
 
     if (window.visualViewport) {
-      const baseHeight = window.visualViewport.height || window.innerHeight;
-      window.visualViewport.addEventListener('resize', () => {
+      window._vpMaxHeight = Math.max(window.visualViewport.height || 0, window.innerHeight || 0);
+      const onViewportChange = () => {
         const curH = window.visualViewport.height;
-        const active = document.activeElement;
-        const inInput = active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT');
-        if (inInput && (baseHeight - curH > 120)) {
-          document.body.classList.add('keyboard-open');
-        } else if (!inInput || (baseHeight - curH < 60)) {
-          document.body.classList.remove('keyboard-open');
+        if (curH > (window._vpMaxHeight || 0)) {
+          window._vpMaxHeight = curH;
         }
-      });
+        const active = document.activeElement;
+        const inInput = active && (
+          active.tagName === 'TEXTAREA' ||
+          (active.tagName === 'INPUT' && !['button', 'checkbox', 'radio', 'file'].includes(active.type))
+        );
+        const shrinkDelta = (window._vpMaxHeight || window.innerHeight) - curH;
+        if (inInput) {
+          syncKeyboardViewportOffset();
+          if (shrinkDelta > 110) {
+            window._vpWasShrunk = true;
+            document.body.classList.add('keyboard-open');
+          } else if (
+            window._vpWasShrunk &&
+            shrinkDelta < 45 &&
+            Date.now() - (window._lastPromptFocusMs || 0) > 600
+          ) {
+            // User explicitly dismissed soft keyboard via Android back gesture after it had opened
+            window._vpWasShrunk = false;
+            document.body.classList.remove('keyboard-open');
+            document.documentElement.style.setProperty('--kb-offset', '0px');
+          }
+        } else if (shrinkDelta < 60) {
+          window._vpWasShrunk = false;
+          document.body.classList.remove('keyboard-open');
+          document.documentElement.style.setProperty('--kb-offset', '0px');
+        }
+      };
+      window.visualViewport.addEventListener('resize', onViewportChange);
+      window.visualViewport.addEventListener('scroll', syncKeyboardViewportOffset);
     }
 
     function submitSteerInput() {

@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.1",
-  "build_hash": "332b1fdbda",
+  "version": "1.4.2",
+  "build_hash": "68ed6b82f2",
   "visibility": "admin_only",
-  "updated_at": "2026-10-31T11:39:10.376526",
-  "generated_at": "2026-10-31 11:39",
+  "updated_at": "2026-10-31T11:51:27.979364",
+  "generated_at": "2026-10-31 11:51",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,8 +71,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com",
-      "defaultForAdmin": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com"
+      "default": "https://gerald-edwards-employers-visitor.trycloudflare.com",
+      "defaultForAdmin": "https://gerald-edwards-employers-visitor.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",

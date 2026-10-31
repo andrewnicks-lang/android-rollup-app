@@ -18,8 +18,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com",
-      "defaultForAdmin": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com"
+      "default": "https://gerald-edwards-employers-visitor.trycloudflare.com",
+      "defaultForAdmin": "https://gerald-edwards-employers-visitor.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
