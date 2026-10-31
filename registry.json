@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.10",
-    "updated_at": "2026-10-31T11:37:03.055076",
+    "updated_at": "2026-10-31T11:39:10.203456",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -39,7 +39,7 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "https://minus-selected-connect-review.trycloudflare.com",
+              "primary_workstation_url": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com",
               "tailscale_workstation_url": "http://192.168.86.47:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
@@ -110,7 +110,7 @@
     "apk_version": "1.3.0",
     "build_hash": "322a902198",
     "stamped_version": "1.0.10",
-    "ota_etag": "1bf01efd8b"
+    "ota_etag": "91f4143ba9"
   },
   "apps": [
     {
@@ -121,7 +121,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.4.2",
+      "version": "1.4.1",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -133,8 +133,8 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "https://minus-selected-connect-review.trycloudflare.com",
-          "defaultForAdmin": "https://minus-selected-connect-review.trycloudflare.com"
+          "default": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com",
+          "defaultForAdmin": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
@@ -151,13 +151,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "1fdcd7c561",
-      "stamped_version": "1.4.2",
-      "updated_at": "2026-10-31T11:37:03.186200",
+      "build_hash": "332b1fdbda",
+      "stamped_version": "1.4.1",
+      "updated_at": "2026-10-31T11:39:10.376526",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "1fdcd7c561",
-      "manual_updated_at": "2026-10-31T11:37:04.403460"
+      "manual_source_hash": "332b1fdbda",
+      "manual_updated_at": "2026-10-31T11:39:11.737929"
     },
     {
       "id": "fantasy-manager",

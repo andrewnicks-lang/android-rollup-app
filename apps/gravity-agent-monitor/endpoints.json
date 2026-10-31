@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-10-31T11:37:03.052407",
+  "updated_at": "2026-10-31T11:39:10.200603",
   "hostname": "DESKTOP-UHI3BO3",
-  "active_tunnel_url": "https://minus-selected-connect-review.trycloudflare.com",
+  "active_tunnel_url": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com",
   "primary_lan_url": "http://192.168.86.47:8765",
   "office_wifi_drop_lan_url": "http://192.168.86.47:8766",
   "work_lan_url": "http://10.0.0.91:8765",
@@ -9,7 +9,7 @@
   "nodes": [
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
-      "url": "https://minus-selected-connect-review.trycloudflare.com"
+      "url": "https://furniture-kelkoo-evaluation-substantial.trycloudflare.com"
     },
     {
       "name": "NicksAndrew (HTTPS Tunnel)",
