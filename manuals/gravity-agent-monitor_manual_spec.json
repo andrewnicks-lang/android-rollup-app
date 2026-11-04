@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.1",
-  "build_hash": "4935df371d",
+  "version": "1.4.2",
+  "build_hash": "19ed4818ac",
   "visibility": "admin_only",
-  "updated_at": "2026-11-02T12:10:51.137606",
-  "generated_at": "2026-11-02 12:10",
+  "updated_at": "2026-11-03T18:17:56.764706",
+  "generated_at": "2026-11-03 18:17",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,15 +71,15 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-      "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+      "default": "https://send-finishing-nodes-remained.trycloudflare.com",
+      "defaultForAdmin": "https://send-finishing-nodes-remained.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
       "label": "Secondary / Tailscale Workstation URL (Optional)",
       "type": "text",
-      "default": "http://10.0.0.91:8765",
-      "defaultForAdmin": "http://10.0.0.91:8765"
+      "default": "http://192.168.86.47:8765",
+      "defaultForAdmin": "http://192.168.86.47:8765"
     },
     {
       "key": "sidecar_token",
@@ -214,29 +214,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "09d731e3",
-        "date": "2026-10-31",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-31 11:52)"
-      },
-      {
-        "sha": "ad9fcf3e",
-        "date": "2026-10-31",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-31 11:40)"
-      },
-      {
-        "sha": "ce3a4776",
-        "date": "2026-10-31",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-31 11:37)"
-      },
-      {
-        "sha": "ad345066",
-        "date": "2026-10-31",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-31 11:34)"
-      },
-      {
-        "sha": "3083d500",
+        "sha": "53daf0c",
         "date": "2026-10-28",
-        "subject": "chore(gravity): sync updated cartridge, tunnels registry and assets"
+        "subject": "Auto-reconcile local work on DESKTOP-UHI3BO3 before pulling origin/main"
+      },
+      {
+        "sha": "49441bd",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 22:34)"
+      },
+      {
+        "sha": "fb38d7c",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 22:33)"
+      },
+      {
+        "sha": "9a2de8d",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 22:17)"
+      },
+      {
+        "sha": "4610b5b",
+        "date": "2026-10-26",
+        "subject": "feat(gravity): sync HTTPS tunnel & mobile UX to GitHub Pages (2026-10-26 20:01)"
       }
     ]
   }
