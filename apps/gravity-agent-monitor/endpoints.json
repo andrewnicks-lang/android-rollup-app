@@ -1,31 +1,31 @@
 {
-  "updated_at": "2026-11-06T11:23:19.750717",
-  "hostname": "NicksAndrew",
-  "active_tunnel_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-  "primary_lan_url": "http://10.0.0.91:8765",
-  "office_wifi_drop_lan_url": "http://10.0.0.91:8766",
+  "updated_at": "2026-11-08T16:43:25.687403",
+  "hostname": "DESKTOP-UHI3BO3",
+  "active_tunnel_url": "https://rider-onion-monitoring-menus.trycloudflare.com",
+  "primary_lan_url": "http://192.168.86.47:8765",
+  "office_wifi_drop_lan_url": "http://192.168.86.47:8766",
   "work_lan_url": "http://10.0.0.91:8765",
   "home_lan_url": "http://192.168.86.47:8765",
   "nodes": [
+    {
+      "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
+      "url": "https://rider-onion-monitoring-menus.trycloudflare.com"
+    },
     {
       "name": "NicksAndrew (HTTPS Tunnel)",
       "url": "https://retained-humanity-avoiding-controls.trycloudflare.com"
     },
     {
-      "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
-      "url": "https://send-finishing-nodes-remained.trycloudflare.com"
-    },
-    {
-      "name": "Active Workstation (10.0.0.91)",
-      "url": "http://10.0.0.91:8765"
-    },
-    {
-      "name": "Home PC (LAN)",
+      "name": "Active Workstation (192.168.86.47)",
       "url": "http://192.168.86.47:8765"
     },
     {
+      "name": "Work PC (LAN)",
+      "url": "http://10.0.0.91:8765"
+    },
+    {
       "name": "Tailscale Node",
-      "url": "http://100.65.134.117:8765"
+      "url": "http://100.101.123.80:8765"
     }
   ]
 }
