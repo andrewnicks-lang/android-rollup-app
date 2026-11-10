@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#090d16">
+<title>Adaptive Strength Trainer — RollupOS Mini-App</title>
+<link rel="stylesheet" href="./css/workout.css">
+<script src="../../bridge/rollup-bridge.js?v=1.5"></script>
+<script src="./data/catalog_bundle.js"></script>
+<script src="./js/workout_engine_portable.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <header class="hero-header">
+    <div>
+      <div class="kicker">Age 46 Longevity • Zero-Strip 4-Block System</div>
+      <h1 class="app-title">🏋️ Adaptive Strength</h1>
+      <div class="subtitle-row" id="athlete-status-line">Modulo A → B → C → D • Hard 30m Door-to-Door Cap</div>
+    </div>
+    <span class="badge badge-emerald" id="next-up-pill">Next: A</span>
+  </header>
+
+  <!-- Sticky Door-to-Door 30m Clock & Rest Timer -->
+  <section class="timer-dock" aria-label="Workout and rest timers">
+    <div class="timer-top">
+      <div>
+        <div class="clock-readout" id="session-clock-display">30:00</div>
+        <div class="clock-sub" id="block-pacing-label">Ready • 0–4m Prep → 4–16m Compound → 16–27m Superset → 27–30m Decompress</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button type="button" class="btn btn-sm" id="btn-clock-toggle">▶ Start</button>
+        <button type="button" class="btn btn-sm btn-sec" id="btn-clock-reset" aria-label="Reset workout clock">↺</button>
+      </div>
+    </div>
+    <div class="progress-track" aria-hidden="true">
+      <div class="progress-fill" id="session-clock-bar"></div>
+    </div>
+    <div class="rest-strip">
+      <div>
+        <span style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;">Rest Timer: </span>
+        <span class="rest-countdown" id="rest-timer-display">Idle</span>
+      </div>
+      <div class="rest-pills">
+        <button type="button" class="btn btn-sm btn-sec" data-rest-sec="90">90s</button>
+        <button type="button" class="btn btn-sm btn-sec" data-rest-sec="60">60s</button>
+        <button type="button" class="btn btn-sm btn-sec" data-rest-sec="45">45s</button>
+        <button type="button" class="btn btn-sm btn-sec" id="btn-rest-plus15" hidden>+15s</button>
+        <button type="button" class="btn btn-sm btn-sec" id="btn-rest-clear" hidden>✕</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accessible Tablist (Modern Web Guidance `tabs`) -->
+  <div class="tablist" role="tablist" focusgroup="tablist nomemory" aria-label="Adaptive Strength workspace views" id="main-tablist">
+    <button type="button" role="tab" id="tab-lift" aria-selected="true" focusgroupstart data-panel="panel-lift">🏋️ Lift</button>
+    <button type="button" role="tab" id="tab-weather" aria-selected="false" data-panel="panel-weather">🌤️ Run Radar</button>
+    <button type="button" role="tab" id="tab-history" aria-selected="false" data-panel="panel-history">📈 History &amp; PRs</button>
+    <button type="button" role="tab" id="tab-sync" aria-selected="false" data-panel="panel-sync">🔄 PC Sync</button>
+  </div>
+
+  <!-- TAB 1: LIFT WORKSPACE -->
+  <div role="tabpanel" id="panel-lift" aria-labelledby="tab-lift">
+    <div class="panel-inner">
+      <div class="card" id="ramp-up-banner" hidden></div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;">Session Mode</span>
+          <span class="badge badge-cyan" id="layoff-badge">0d since last lift</span>
+        </div>
+        <div class="pill-row" id="mode-selector-row" role="group" aria-label="Workout session mode">
+          <button type="button" class="pill-btn active" data-mode="STANDARD">Standard (30m)</button>
+          <button type="button" class="pill-btn" data-mode="EXPRESS_MODE">Express MED (15m)</button>
+          <button type="button" class="pill-btn" data-mode="TRAVEL_MODE">Travel (20m)</button>
+          <button type="button" class="pill-btn" data-mode="PRE_EVENT_COMPRESSION">2-Day Pre-Event</button>
+        </div>
+
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;" id="rotation-selector-heading">Modulo Rotation (A → B → C → D)</span>
+          <button type="button" class="btn btn-sm btn-sec" id="btn-jump-scheduled" hidden>↩ Scheduled</button>
+        </div>
+        <div class="pill-row" id="session-selector-row" role="group" aria-label="Select workout session">
+          <button type="button" class="pill-btn active" data-session="A">Session A • Push/Pull</button>
+          <button type="button" class="pill-btn" data-session="B">Session B • Squat/Core</button>
+          <button type="button" class="pill-btn" data-session="C">Session C • OHP/Posture</button>
+          <button type="button" class="pill-btn" data-session="D">Session D • Hinge/Carry</button>
+        </div>
+      </div>
+
+      <div id="workout-blocks-container"></div>
+
+      <!-- Complete Session Card -->
+      <div class="card card-accent">
+        <div class="block-kicker">
+          <span>Log &amp; Advance Rotation</span>
+          <span id="sets-completed-counter">0 / 9 sets checked</span>
+        </div>
+        <h2 class="block-title" id="complete-card-heading">Complete Session A</h2>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;margin-top:8px;">
+          <div>
+            <label for="input-session-rpe" style="display:block;font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:4px;">Achieved RPE</label>
+            <select id="input-session-rpe" class="select-input">
+              <option value="6.0">RPE 6.0 (Easy)</option>
+              <option value="6.5">RPE 6.5 (Ramp-Up Cap)</option>
+              <option value="7.0">RPE 7.0 (Smooth)</option>
+              <option value="7.5" selected>RPE 7.5 (Target)</option>
+              <option value="8.0">RPE 8.0 (2 RIR)</option>
+              <option value="8.5">RPE 8.5 (Hard)</option>
+            </select>
+          </div>
+          <div>
+            <label for="input-session-notes" style="display:block;font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:4px;">Session Notes (Optional)</label>
+            <input id="input-session-notes" type="text" class="text-input" placeholder="Joint feel, pin height, next load bump...">
+          </div>
+        </div>
+        <button type="button" class="btn" style="width:100%;margin-top:12px;" id="btn-complete-session">
+          ✅ Complete Session &amp; Advance Rotation
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: MIDDAY RUN WEATHER RADAR -->
+  <div role="tabpanel" id="panel-weather" aria-labelledby="tab-weather" hidden="until-found">
+    <div class="panel-inner">
+      <div class="card">
+        <label class="switch-row" for="run-toggle-switch">
+          <div>
+            <div style="font-size:14.5px;font-weight:800;">🏃 Outdoor Midday Run Window (`RUN_TOGGLE`)</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Mon / Wed / Fri • 20–30 min Zone 2 • Off during winter cold</div>
+          </div>
+          <input id="run-toggle-switch" type="checkbox" switch>
+        </label>
+      </div>
+
+      <div class="card" id="weather-radar-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div>
+            <div class="kicker" id="weather-loc-label">Lee's Summit / Kansas City, MO (38.9108, -94.3822)</div>
+            <h2 class="block-title" style="margin-top:2px;">Midday Weather Gate</h2>
+          </div>
+          <button type="button" class="btn btn-sm btn-cyan" id="btn-refresh-weather">🔄 Check Live</button>
+        </div>
+        <div id="weather-decision-body" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 6px 0;font-size:13.5px;">Deterministic Rejection Guardrails</h3>
+        <div style="font-size:12.5px;color:#cbd5e1;display:grid;gap:4px;">
+          <div>• <strong>Temperature:</strong> Rejects below <code>45.0°F</code></div>
+          <div>• <strong>Wind Speed:</strong> Rejects above <code>20.0 mph</code></div>
+          <div>• <strong>Precipitation &amp; Ice:</strong> Rejects <code>&gt; 0.00 in</code> or WMO Drizzle/Rain/Snow/Storm codes</div>
+          <div>• <strong>Fallback Action:</strong> Swaps automatically to 20–30 min indoor mobility, Zone 2 bike/row, or recovery</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: HISTORY, SAVED LOADS & PORTABLE BACKUP -->
+  <div role="tabpanel" id="panel-history" aria-labelledby="tab-history" hidden="until-found">
+    <div class="panel-inner">
+      <div class="card">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+          <div style="background:#0b1120;padding:10px;border-radius:10px;border:1px solid #1f2937;">
+            <div style="font-size:18px;font-weight:900;color:#10b981;" id="kpi-total-sessions">0</div>
+            <div style="font-size:10.5px;color:#94a3b8;font-weight:700;">Logged Lifts</div>
+          </div>
+          <div style="background:#0b1120;padding:10px;border-radius:10px;border:1px solid #1f2937;">
+            <div style="font-size:18px;font-weight:900;color:#38bdf8;" id="kpi-next-session">A</div>
+            <div style="font-size:10.5px;color:#94a3b8;font-weight:700;">Next Split</div>
+          </div>
+          <div style="background:#0b1120;padding:10px;border-radius:10px;border:1px solid #1f2937;">
+            <div style="font-size:18px;font-weight:900;color:#f59e0b;" id="kpi-tracked-lifts">0</div>
+            <div style="font-size:10.5px;color:#94a3b8;font-weight:700;">Saved Loads</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+          <button type="button" class="btn btn-sm btn-sec" style="flex:1;" id="btn-export-json">📤 Export JSON</button>
+          <button type="button" class="btn btn-sm btn-sec" style="flex:1;" id="btn-export-csv">📊 Export CSV</button>
+          <button type="button" class="btn btn-sm btn-sec" style="flex:1;" id="btn-import-json">📥 Import JSON</button>
+          <input type="file" id="file-import-json" accept=".json,application/json" hidden>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="block-title">🏋️ Latest Working Loads (Auto-Prefill Memory)</h2>
+        <div id="saved-loads-list" style="font-size:12.5px;color:#94a3b8;"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="block-title">📜 Completed Workout History</h2>
+        <div id="history-log-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: 2-WAY HOME/WORK PC SYNC -->
+  <div role="tabpanel" id="panel-sync" aria-labelledby="tab-sync" hidden="until-found">
+    <div class="panel-inner">
+      <div class="card card-accent">
+        <div class="kicker">RollupNative LAN + HTTPS Tunnel Bridge</div>
+        <h2 class="block-title" style="margin-top:2px;">🔄 2-Way PC `workout_state.json` Sync</h2>
+        <p style="margin:4px 0 10px 0;font-size:12.5px;color:#94a3b8;">
+          Keep your phone's gym logbook and desktop Antigravity skill (<code>c:\_AI\adaptive-workout\workout_state.json</code>) in lockstep over Home/Office Wi-Fi.
+        </p>
+
+        <div style="margin-top:8px;">
+          <label for="input-sync-url" style="display:block;font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:4px;">Primary Workstation Sync URL (Port 8772)</label>
+          <input id="input-sync-url" type="url" class="text-input" placeholder="http://192.168.86.47:8772">
+        </div>
+        <div style="margin-top:8px;">
+          <label for="input-sync-url-alt" style="display:block;font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:4px;">Secondary / Work LAN or Tunnel URL</label>
+          <input id="input-sync-url-alt" type="url" class="text-input" placeholder="http://10.0.0.91:8772">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button type="button" class="btn btn-sm btn-sec" style="flex:1;" id="btn-save-sync-urls">💾 Save Endpoints</button>
+          <button type="button" class="btn btn-sm btn-cyan" style="flex:1;" id="btn-ping-pc">📡 Test Connection</button>
+        </div>
+
+        <div id="sync-status-box" style="margin-top:10px;padding:9px 11px;border-radius:9px;background:#0b1120;border:1px solid #1f2937;font-size:12px;color:#94a3b8;">
+          Offline-first mode active. Tap <strong>Test Connection</strong> or <strong>2-Way Smart Sync</strong> when on Wi-Fi.
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px;">
+          <button type="button" class="btn" id="btn-sync-merge">🔄 2-Way Smart Sync (Merge History &amp; Latest Split)</button>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn btn-sm btn-sec" style="flex:1;" id="btn-sync-push">⬆️ Push Phone → PC</button>
+            <button type="button" class="btn btn-sm btn-sec" style="flex:1;" id="btn-sync-pull">⬇️ Pull PC → Phone</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 6px 0;font-size:13.5px;">Desktop Sidecar Quick-Start</h3>
+        <div style="font-size:12px;color:#cbd5e1;">
+          Run <code>.\start_sync_server.ps1</code> in <code>c:\_AI\adaptive-workout</code> to keep the detached background sync listener active on port <code>8772</code>. Every sync automatically updates your global Gemini skill mirror as well.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Native Joint-Friendly Swap Modal Dialog (Modern Web Guidance `dialog` + `light-dismiss-a-dialog`) -->
+<dialog id="swap-dialog" closedby="any" aria-labelledby="swap-dialog-title">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+    <div>
+      <div class="kicker">Home Gym Joint-Longevity Catalog</div>
+      <h2 id="swap-dialog-title" style="margin:2px 0 0 0;font-size:17px;">Joint-Friendly Exercise Swap</h2>
+    </div>
+    <form method="dialog">
+      <button type="submit" value="cancel" class="btn btn-sm btn-sec" aria-label="Close swap dialog" autofocus>✕</button>
+    </form>
+  </div>
+  <div id="swap-dialog-risks" style="font-size:12px;color:#fde68a;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);padding:7px 10px;border-radius:9px;"></div>
+  <div id="swap-dialog-options" style="overflow-y:auto;max-height:48vh;"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:8px;border-top:1px solid #1f2937;flex-wrap:wrap;">
+    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#cbd5e1;cursor:pointer;">
+      <input type="checkbox" id="swap-persist-default"> Save as my default for this lift
+    </label>
+    <button type="button" class="btn btn-sm btn-sec" id="btn-swap-restore-original">↩ Restore Original</button>
+  </div>
+</dialog>
+
+<div id="toast-container" aria-live="polite"></div>
+
+<script src="./js/app.js"></script>
+</body>
+</html>

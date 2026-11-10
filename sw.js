@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-6ee2a392';
+const CACHE_NAME = 'rollup-hub-4ec909c4';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -39,7 +39,13 @@ const CORE_ASSETS = [
   './apps/lightning-garage/data/catalog_bundle.js',
   './apps/lightning-garage/js/garage_engine.js',
   './apps/lightning-garage/js/app.js',
-  './manuals/lightning-garage_User_Manual.html'
+  './manuals/lightning-garage_User_Manual.html',
+  './apps/adaptive-workout/index.html',
+  './apps/adaptive-workout/css/workout.css',
+  './apps/adaptive-workout/data/catalog_bundle.js',
+  './apps/adaptive-workout/js/workout_engine_portable.js',
+  './apps/adaptive-workout/js/app.js',
+  './manuals/adaptive-workout_User_Manual.html'
 ];
 
 self.addEventListener('install', (event) => {

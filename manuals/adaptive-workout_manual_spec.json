@@ -1,0 +1,217 @@
+{
+  "app_id": "adaptive-workout",
+  "title": "Adaptive Strength",
+  "subtitle": "Age 46 Longevity \u2022 30m 4-Block System, Rest Timer, Load Memory & KC Run Radar",
+  "description": "Offline-First Joint-Longevity Strength & Conditioning Cartridge: Hard 30-Minute Door-to-Door Clock + Background-Safe Rest Timer, Modulo A\u2192B\u2192C\u2192D Rotation, Automatic >7-Day Post-Break Ramp-Up (2 Sets @ RPE 6.5), Per-Exercise Weight & Reps Prefill, Zero-Barbell-Strip Swap Drawer, Special Modes (Express 15m, Travel 20m, 2-Day Pre-Event), Open-Meteo KC Midday Run Radar, and 2-Way PC LAN Sync.",
+  "icon": "\ud83c\udfcb\ufe0f",
+  "accent": "#10b981",
+  "category": "Health & Longevity",
+  "version": "1.0.1",
+  "build_hash": "d7e8440b93",
+  "visibility": "restricted",
+  "updated_at": "2026-11-10T11:51:05.071473",
+  "generated_at": "2026-11-10 11:51",
+  "tagline": "Age 46 Longevity \u2022 30m 4-Block System, Rest Timer, Load Memory & KC Run Radar",
+  "quickstart": [
+    {
+      "step": "Sign In & Launch from RollupOS Hub",
+      "detail": "Sign in with an authorized Google account (`visibility: restricted`) and launch **Adaptive Strength** from the RollupOS Hub dashboard."
+    },
+    {
+      "step": "Review Per-User Settings (`\u2699\ufe0f`)",
+      "detail": "Tap the `\u2699\ufe0f` button in the 29px Top System Strip to configure your personal preferences and review isolated profile storage."
+    },
+    {
+      "step": "Use Core Interactive Controls",
+      "detail": "Interact with the primary workspace actions (\u25b6 Start, \u21ba, 90s, 60s, 45s)\u2014all state saves automatically to your isolated user bucket."
+    },
+    {
+      "step": "Automatic OTA Updates",
+      "detail": "Whenever a newer version is published, the Top System Strip automatically displays an `\u2b06\ufe0f Update` pill for 1-tap reload."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83d\udcf1 Adaptive Strength Main Workspace",
+      "purpose": "Offline-First Joint-Longevity Strength & Conditioning Cartridge: Hard 30-Minute Door-to-Door Clock + Background-Safe Rest Timer, Modulo A\u2192B\u2192C\u2192D Rotation, Automatic >7-Day Post-Break Ramp-Up (2 Sets @ RPE 6.5), Per-Exercise Weight & Reps Prefill, Zero-Barbell-Strip Swap Drawer, Special Modes (Express 15m, Travel 20m, 2-Day Pre-Event), Open-Meteo KC Midday Run Radar, and 2-Way PC LAN Sync."
+    },
+    {
+      "screen": "\u2699\ufe0f Cartridge Settings & Manual",
+      "purpose": "Configure per-user preferences, manage isolated storage, and open this User Manual PDF."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "Workspace Overview",
+      "body": "Offline-First Joint-Longevity Strength & Conditioning Cartridge: Hard 30-Minute Door-to-Door Clock + Background-Safe Rest Timer, Modulo A\u2192B\u2192C\u2192D Rotation, Automatic >7-Day Post-Break Ramp-Up (2 Sets @ RPE 6.5), Per-Exercise Weight & Reps Prefill, Zero-Barbell-Strip Swap Drawer, Special Modes (Express 15m, Travel 20m, 2-Day Pre-Event), Open-Meteo KC Midday Run Radar, and 2-Way PC LAN Sync."
+    },
+    {
+      "title": "Multi-User Storage & Hardware Bridge",
+      "body": "Powered by `RollupBridge` (`Isolated Per-User Storage (RollupBridge), WebAudio / Voice Recording Pipeline, Screen WakeLock Keep-Awake, Android Share Sheet & CSV/JSON Export`)."
+    }
+  ],
+  "pro_tips": [
+    "Tap `\u2190 Rollup Hub` in the top-left system strip anytime to switch between authorized mini-apps without signing out."
+  ],
+  "user_config_schema": [
+    {
+      "key": "primary_sync_url",
+      "label": "Primary PC Sync URL (Home LAN or HTTPS Tunnel)",
+      "type": "text",
+      "default": "http://192.168.86.47:8772",
+      "defaultForAdmin": "http://192.168.86.47:8772"
+    },
+    {
+      "key": "secondary_sync_url",
+      "label": "Secondary PC Sync URL (Work LAN / Tailscale)",
+      "type": "text",
+      "default": "http://10.0.0.91:8772",
+      "defaultForAdmin": "http://10.0.0.91:8772"
+    },
+    {
+      "key": "weather_lat",
+      "label": "Midday Run Weather Latitude (Default: Lee's Summit, MO)",
+      "type": "number",
+      "default": 38.9108,
+      "defaultForAdmin": 38.9108
+    },
+    {
+      "key": "weather_lon",
+      "label": "Midday Run Weather Longitude (Default: Lee's Summit, MO)",
+      "type": "number",
+      "default": -94.3822,
+      "defaultForAdmin": -94.3822
+    }
+  ],
+  "offline_assets": [
+    "apps/adaptive-workout/index.html",
+    "apps/adaptive-workout/css/workout.css",
+    "apps/adaptive-workout/data/catalog_bundle.js",
+    "apps/adaptive-workout/js/workout_engine_portable.js",
+    "apps/adaptive-workout/js/app.js"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "adaptive-workout",
+    "file_inventory": [
+      "css/workout.css",
+      "data/catalog_bundle.js",
+      "index.html",
+      "js/app.js",
+      "js/workout_engine_portable.js"
+    ],
+    "tabs": [],
+    "headings": [
+      "\ud83c\udfcb\ufe0f Adaptive Strength",
+      "Complete Session A",
+      "Midday Weather Gate",
+      "Deterministic Rejection Guardrails",
+      "\ud83c\udfcb\ufe0f Latest Working Loads (Auto-Prefill Memory)",
+      "\ud83d\udcdc Completed Workout History",
+      "\ud83d\udd04 2-Way PC `workout_state.json` Sync",
+      "Desktop Sidecar Quick-Start",
+      "Joint-Friendly Exercise Swap"
+    ],
+    "buttons": [
+      {
+        "label": "\u25b6 Start",
+        "action": ""
+      },
+      {
+        "label": "\u21ba",
+        "action": ""
+      },
+      {
+        "label": "90s",
+        "action": ""
+      },
+      {
+        "label": "60s",
+        "action": ""
+      },
+      {
+        "label": "45s",
+        "action": ""
+      },
+      {
+        "label": "+15s",
+        "action": ""
+      },
+      {
+        "label": "\ud83c\udfcb\ufe0f Lift",
+        "action": ""
+      },
+      {
+        "label": "\ud83c\udf24\ufe0f Run Radar",
+        "action": ""
+      },
+      {
+        "label": "\ud83d\udcc8 History & PRs",
+        "action": ""
+      },
+      {
+        "label": "\ud83d\udd04 PC Sync",
+        "action": ""
+      },
+      {
+        "label": "Standard (30m)",
+        "action": ""
+      },
+      {
+        "label": "Express MED (15m)",
+        "action": ""
+      },
+      {
+        "label": "Travel (20m)",
+        "action": ""
+      },
+      {
+        "label": "2-Day Pre-Event",
+        "action": ""
+      },
+      {
+        "label": "\u21a9 Scheduled",
+        "action": ""
+      },
+      {
+        "label": "Session A \u2022 Push/Pull",
+        "action": ""
+      },
+      {
+        "label": "Session B \u2022 Squat/Core",
+        "action": ""
+      },
+      {
+        "label": "Session C \u2022 OHP/Posture",
+        "action": ""
+      }
+    ],
+    "modals": [],
+    "inputs": [
+      "Joint feel, pin height, next load bump...",
+      "http://192.168.86.47:8772",
+      "http://10.0.0.91:8772"
+    ],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)",
+      "WebAudio / Voice Recording Pipeline",
+      "Screen WakeLock Keep-Awake",
+      "Android Share Sheet & CSV/JSON Export"
+    ],
+    "recent_commits": [
+      {
+        "sha": "7d95af042",
+        "date": "2026-11-10",
+        "subject": "Auto-sync pre-merge (NICKSANDREW/TaskComplete - 2026-11-10 11:37)"
+      },
+      {
+        "sha": "848d85cbc",
+        "date": "2026-11-10",
+        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-11-10 11:29)"
+      }
+    ]
+  }
+}

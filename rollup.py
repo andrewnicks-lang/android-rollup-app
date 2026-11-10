@@ -572,7 +572,9 @@ def cmd_publish(repo_name: str = "android-rollup-app") -> None:
         subprocess.run(["git", "add", "-A"], cwd=str(stage_dir), check=True)
         status = subprocess.run(["git", "status", "--porcelain"], cwd=str(stage_dir), capture_output=True, text=True)
         if status.stdout.strip():
-            msg = f"RollupOS v1.1.0 + CSC Site Discovery v2.0.0 ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})"
+            latest_reg = load_registry()
+            hub_ver = latest_reg.get("hub", {}).get("version", "1.0.10")
+            msg = f"RollupOS Hub v{hub_ver} OTA Sync ({datetime.datetime.now().strftime('%Y-%m-%d %H:%M')})"
             subprocess.run(["git", "commit", "-m", msg], cwd=str(stage_dir), check=True)
             subprocess.run(["git", "push", "origin", "main"], cwd=str(stage_dir), check=True)
             print(f"[RollupOS] Published cleanly to {remote_url}!")
