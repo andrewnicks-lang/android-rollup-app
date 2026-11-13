@@ -6,11 +6,11 @@
   "icon": "\ud83e\udd85",
   "accent": "#ff6b00",
   "category": "Gaming & Tactical Tools",
-  "version": "4.2.1",
-  "build_hash": "69c2924d6d",
+  "version": "6.0.0",
+  "build_hash": "27063d768f",
   "visibility": "restricted",
-  "updated_at": "2026-10-27T08:16:16.313188",
-  "generated_at": "2026-10-27 08:16",
+  "updated_at": "2026-11-12T20:05:51.067810",
+  "generated_at": "2026-11-12 20:05",
   "tagline": "100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver & Expertise 413/500 Tracker",
   "quickstart": [
     {
@@ -89,7 +89,20 @@
     "apps/shd-div2-intel/shd_storage_adapter.js",
     "apps/shd-div2-intel/app.js"
   ],
-  "newly_added_buttons": [],
+  "newly_added_buttons": [
+    "\ud83c\udfaf Build Matrix 20",
+    "\ud83d\udee0\ufe0f Loadout Workbench 1",
+    "\u231a SHD 2793",
+    "\u23f8\ufe0f Pause (F8)",
+    "\u2605 Starred Only (F7)",
+    "\ud83d\udcf8 Force Save (F9)",
+    "\ud83d\udd0a Audio: ON",
+    "\ud83d\udda5\ufe0f Game Window Only",
+    "\ud83d\udd04 Stash Re-Sync Sweep",
+    "+ Save to Armory",
+    "\u270f\ufe0f Edit",
+    "\ud83d\uddd1\ufe0f Delete"
+  ],
   "ai_release_note": null,
   "inspected": {
     "app_id": "shd-div2-intel",
@@ -100,28 +113,30 @@
       "shd_storage_adapter.js",
       "styles.css"
     ],
-    "tabs": [],
+    "tabs": [
+      "live-scanner-hud"
+    ],
     "headings": [
       "\ud83c\udfc6 Endgame Meta Archetypes",
-      "\ud83d\udce1 Countdown Farm Radar",
+      "\ud83d\udce1 Targeted Loot & Source Radar",
       "\ud83d\uddd1\ufe0f Safe Deconstruct Advisor",
       "\ud83d\udcbe Saved Loadouts Locker",
-      "\ud83d\udc51 Admin Showcase Builds",
+      "\ud83c\udfc6 Meta & Showcase Presets",
       "\ud83d\udcca Live 7-Bucket Telemetry",
       "\ud83c\udf92 Agent Armory & Stash Explorer (0 Items)",
       "\ud83d\udcca Proficiency Categories (413 / 500)",
       "\ud83d\udd0d Individual Item Proficiency & Printer Filament Calculator",
       "Configure Slot: MASK",
-      "\ud83d\udd0d Click-to-Verify & Edit Gear Piece",
+      "\ud83d\udd0d Click-to-Verify & Edit Armory Item",
       "\ud83d\udcbe Data Persistence, Snapshots & Android Hub Sync"
     ],
     "buttons": [
       {
-        "label": "\ud83c\udfaf Build Matrix 13",
+        "label": "\ud83c\udfaf Build Matrix 20",
         "action": "switchMainView('matrix')"
       },
       {
-        "label": "\ud83d\udee0\ufe0f Loadout Workbench 4",
+        "label": "\ud83d\udee0\ufe0f Loadout Workbench 1",
         "action": "switchMainView('workbench')"
       },
       {
@@ -133,6 +148,10 @@
         "action": "switchMainView('expertise')"
       },
       {
+        "label": "\u231a SHD 2793",
+        "action": "openShdLevelDialog()"
+      },
+      {
         "label": "\ud83d\udcbe Backup / Sync",
         "action": "openBackupModal()"
       },
@@ -141,52 +160,48 @@
         "action": "loadGoldenStash()"
       },
       {
+        "label": "\u23f8\ufe0f Pause (F8)",
+        "action": "toggleLiveScanner()"
+      },
+      {
+        "label": "\u2605 Starred Only (F7)",
+        "action": "toggleScannerSaveMode()"
+      },
+      {
+        "label": "\ud83d\udcf8 Force Save (F9)",
+        "action": "snapLiveScreenCard()"
+      },
+      {
+        "label": "\ud83d\udd0a Audio: ON",
+        "action": "toggleScannerAudio()"
+      },
+      {
+        "label": "\ud83d\udda5\ufe0f Game Window Only",
+        "action": "toggleScannerAnyScreen()"
+      },
+      {
+        "label": "\ud83d\udd04 Stash Re-Sync Sweep",
+        "action": "toggleResyncSweep()"
+      },
+      {
+        "label": "+ Save to Armory",
+        "action": "commitHoveredEphemeralItem()"
+      },
+      {
+        "label": "\u270f\ufe0f Edit",
+        "action": "editActiveInspectorItem()"
+      },
+      {
+        "label": "\ud83d\uddd1\ufe0f Delete",
+        "action": "deleteActiveInspectorItem()"
+      },
+      {
         "label": "\ud83d\udcf8 Scan Screenshots",
         "action": "document.getElementById('img-upload-input').click()"
       },
       {
         "label": "\ud83c\udfa5 Scan Stash Video",
         "action": "document.getElementById('vid-upload-input').click()"
-      },
-      {
-        "label": "+ Add",
-        "action": "submitShorthand()"
-      },
-      {
-        "label": "+ Custom",
-        "action": "openAddCustomBuildModal()"
-      },
-      {
-        "label": "All (13)",
-        "action": "filterMatrixRole('ALL', this)"
-      },
-      {
-        "label": "\ud83d\udd34 DPS",
-        "action": "filterMatrixRole('RED_DPS', this)"
-      },
-      {
-        "label": "\ud83d\udd35/\ud83d\udd34 Bruiser",
-        "action": "filterMatrixRole('TECH_TANK', this)"
-      },
-      {
-        "label": "\ud83d\udfe1 Skill/CC",
-        "action": "filterMatrixRole('SKILL', this)"
-      },
-      {
-        "label": "\ud83d\udee1\ufe0f Tank/Heal",
-        "action": "filterMatrixRole('TANK_HEAL', this)"
-      },
-      {
-        "label": "+ New",
-        "action": "createNewBlankLoadout()"
-      },
-      {
-        "label": "\u26a1 Auto-Assemble From Armory",
-        "action": "autoAssembleWorkbenchFromArmory()"
-      },
-      {
-        "label": "\ud83d\udcbe Save to Locker",
-        "action": "saveCurrentWorkbenchLoadout()"
       }
     ],
     "modals": [
@@ -196,14 +211,18 @@
       "backup-modal"
     ],
     "inputs": [
-      "Quick Add Item: e.g. 'Backbone Backpack 15% WD 6% CHC 12% CHD' or 'Turmoil Kneepads'",
+      "\ud83d\udd0d Filter build, weapon, set...",
       "Loadout Name...",
       "Describe combat rotation, stack management, and target priority...",
-      "Search brand, talent, stat...",
+      "Search brand, weapon, talent, loadout...",
       "Search weapon, named item, exotic...",
       "e.g. Backbone, The Sacrifice, Lengmo Mask...",
       "e.g. Perfect Glass Cannon, Obliterate, Perfect Unstoppable Force...",
-      "Leave blank if none"
+      "Leave blank if none",
+      "e.g. Ongoing Directive Catalyst LMG",
+      "e.g. Carnage (Perfect Sadist LMG), Pestilence...",
+      "Tier Badge",
+      "e.g. Ubisoft TU24 Patch Notes / iKia / Dod-Regnbue Breakdown"
     ],
     "storage_keys": [],
     "vault_secrets": [],
@@ -212,29 +231,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "0b82f55",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:07)"
+        "sha": "53daf0c",
+        "date": "2026-10-28",
+        "subject": "Auto-reconcile local work on DESKTOP-UHI3BO3 before pulling origin/main"
       },
       {
-        "sha": "93bb7a4",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 02:04)"
+        "sha": "fe98244",
+        "date": "2026-10-26",
+        "subject": "RollupOS v1.1.0 + CSC Site Discovery v2.0.0 (2026-10-26 15:13)"
       },
       {
-        "sha": "e1ed248",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:40)"
+        "sha": "9ac185f",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
       },
       {
-        "sha": "807c17c",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:37)"
+        "sha": "22d612c",
+        "date": "2026-10-24",
+        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
       },
       {
-        "sha": "bb66f8f",
-        "date": "2026-10-27",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-10-27 01:36)"
+        "sha": "75878e4",
+        "date": "2026-10-24",
+        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
       }
     ]
   }

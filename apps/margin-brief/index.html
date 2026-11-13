@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b14" />
+  <title>MarginBrief — Weekend Radar &amp; Offline Trip Dossier</title>
+  <script src="../../bridge/rollup-bridge.js?v=1.3"></script>
+  <link rel="stylesheet" href="./css/margin.css" />
+</head>
+<body>
+<div class="shell" id="margin-root" hidden>
+  <header class="hdr">
+    <div>
+      <h1>🧭 MarginBrief</h1>
+      <div class="sub" id="sync-status-line">Offline-First Radar &bull; Airplane-Mode Ready</div>
+    </div>
+    <button type="button" class="btn" id="open-intake-btn">+ Add / Paste</button>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="MarginBrief Views">
+    <button type="button" role="tab" class="tab-btn" id="tab-btn-radar" aria-selected="true" aria-controls="panel-radar">
+      🛡️ 6-Wk Margin Radar
+    </button>
+    <button type="button" role="tab" class="tab-btn" id="tab-btn-dossier" aria-selected="false" aria-controls="panel-dossier">
+      ✈️ Offline Trip Brief
+    </button>
+  </nav>
+
+  <!-- TAB 1: 6-WEEK WEEKEND MARGIN RADAR -->
+  <section id="panel-radar" role="tabpanel" aria-labelledby="tab-btn-radar">
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-lbl">Open</div>
+        <div class="kpi-val" id="kpi-green" style="color:#4ade80;">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-lbl">Watch</div>
+        <div class="kpi-val" id="kpi-yellow" style="color:#fbbf24;">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-lbl">Red</div>
+        <div class="kpi-val" id="kpi-red" style="color:#f87171;">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-lbl">Next Anchor</div>
+        <div class="kpi-val" id="kpi-anchor" style="font-size:12px;color:#7dd3fc;margin-top:5px;">—</div>
+      </div>
+    </div>
+
+    <div id="weekend-cards-container"></div>
+  </section>
+
+  <!-- TAB 2: 1-PAGE OFFLINE TRIP DOSSIER -->
+  <section id="panel-dossier" role="tabpanel" aria-labelledby="tab-btn-dossier" hidden>
+    <div class="trip-pills" id="trip-switcher"></div>
+
+    <div id="active-trip-view"></div>
+  </section>
+</div>
+
+<!-- MODAL 1: Quick-Paste Itinerary or Weekend Plan (Native <dialog closedby="any">) -->
+<dialog id="intake-modal" closedby="any" aria-labelledby="intake-modal-title">
+  <div class="dlg-hdr">
+    <h2 id="intake-modal-title">Add Weekend Plan or Paste Trip</h2>
+    <button type="button" class="btn btn-ghost" id="close-intake-btn" aria-label="Close add plan dialog">✕</button>
+  </div>
+  <p style="margin:0;font-size:12px;color:#94a3b8;">
+    Paste flight/hotel confirmation text (works 100% offline on-device) or add a quick weekend block.
+  </p>
+  <form id="intake-form" method="dialog">
+    <div class="field-grid">
+      <div class="field-full">
+        <label class="lbl" for="in-title">Trip or Event Title</label>
+        <input type="text" id="in-title" placeholder="e.g., KC -> Austin Trip or Saturday Morning Youth Game" autofocus required />
+      </div>
+      <div>
+        <label class="lbl" for="in-start-date">Start Date</label>
+        <input type="date" id="in-start-date" required />
+      </div>
+      <div>
+        <label class="lbl" for="in-end-date">End Date</label>
+        <input type="date" id="in-end-date" required />
+      </div>
+      <div>
+        <label class="lbl" for="in-return-time">Return / End Time</label>
+        <input type="time" id="in-return-time" />
+      </div>
+      <div>
+        <label class="lbl" for="in-kind">Entry Type</label>
+        <select id="in-kind">
+          <option value="trip">✈️ Away Trip Dossier</option>
+          <option value="home_event">📅 Local Weekend Plan</option>
+        </select>
+      </div>
+      <div class="field-full">
+        <label class="lbl" for="in-raw-text">Confirmation Details / Codes / Address (Optional Paste)</label>
+        <textarea id="in-raw-text" rows="4" placeholder="Paste airline confirmation #, gate, hotel address, or door code..."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+      <button type="button" class="btn btn-ghost" id="cancel-intake-btn">Cancel</button>
+      <button type="submit" value="save" class="btn">Save &amp; Re-Score Radar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- MODAL 2: 1-Tap Clean Family Share (Zero Internal Margin / Work Notes) -->
+<dialog id="share-modal" closedby="any" aria-labelledby="share-modal-title">
+  <div class="dlg-hdr">
+    <h2 id="share-modal-title">Clean Family Itinerary Share</h2>
+    <button type="button" class="btn btn-ghost" id="close-share-btn" aria-label="Close family share dialog">✕</button>
+  </div>
+  <p style="margin:0;font-size:11.5px;color:#94a3b8;">
+    Zero internal margin scores or work holds included — ready to text or print.
+  </p>
+  <textarea id="share-plain-preview" rows="8" readonly aria-label="Clean family itinerary text"></textarea>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span class="copy">
+      <button type="button" class="copy-button" command="--copy" commandfor="share-plain-preview">
+        <span class="icon" aria-hidden="true"></span> Copy Clean Text
+      </button>
+      <span class="tip" role="status"></span>
+    </span>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn btn-ghost" id="btn-print-share">🖨️ Print / PDF</button>
+      <button type="button" class="btn" id="btn-native-share" autofocus>📤 Share</button>
+    </div>
+  </div>
+</dialog>
+
+<script type="module" src="./js/margin.js"></script>
+</body>
+</html>

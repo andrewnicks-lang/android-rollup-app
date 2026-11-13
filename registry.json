@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.11",
-    "updated_at": "2026-11-10T11:51:05.071473",
+    "updated_at": "2026-11-12T20:05:50.938100",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -25,7 +25,9 @@
             "bridge-lab",
             "shd-div2-intel",
             "csc-site-discovery",
-            "lightning-garage"
+            "lightning-garage",
+            "adaptive-workout",
+            "margin-brief"
           ],
           "default_app_configs": {
             "fantasy-manager": {
@@ -39,7 +41,7 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "https://rider-onion-monitoring-menus.trycloudflare.com",
+              "primary_workstation_url": "https://productivity-component-alternate-awareness.trycloudflare.com",
               "tailscale_workstation_url": "http://192.168.86.47:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
@@ -48,6 +50,9 @@
               "engineer_name": "Andrew Nicks \u2014 Control Service Company (CSC)"
             },
             "sapphire-companion": {
+              "sapphire_cloud_url": "http://127.0.0.1:8085"
+            },
+            "margin-brief": {
               "sapphire_cloud_url": "http://127.0.0.1:8085"
             },
             "lightning-garage": {
@@ -108,9 +113,9 @@
       ]
     },
     "apk_version": "1.3.0",
-    "build_hash": "322a902198",
+    "build_hash": "6ec1e83732",
     "stamped_version": "1.0.11",
-    "ota_etag": "4ec909c491"
+    "ota_etag": "586fe06093"
   },
   "apps": [
     {
@@ -121,7 +126,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.4.1",
+      "version": "1.4.2",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -133,8 +138,8 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "https://rider-onion-monitoring-menus.trycloudflare.com",
-          "defaultForAdmin": "https://rider-onion-monitoring-menus.trycloudflare.com"
+          "default": "https://productivity-component-alternate-awareness.trycloudflare.com",
+          "defaultForAdmin": "https://productivity-component-alternate-awareness.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
@@ -151,13 +156,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "daff38f53c",
-      "stamped_version": "1.4.1",
-      "updated_at": "2026-11-08T16:43:25.853124",
+      "build_hash": "8f817a86b5",
+      "stamped_version": "1.4.2",
+      "updated_at": "2026-11-12T20:05:51.067810",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "daff38f53c",
-      "manual_updated_at": "2026-11-08T16:43:28.010267"
+      "manual_source_hash": "8f817a86b5",
+      "manual_updated_at": "2026-11-12T20:05:52.921147"
     },
     {
       "id": "fantasy-manager",
@@ -311,7 +316,7 @@
       "icon": "\ud83e\udd85",
       "accent": "#ff6b00",
       "category": "Gaming & Tactical Tools",
-      "version": "4.2.1",
+      "version": "6.0.0",
       "entry": "apps/shd-div2-intel/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -337,13 +342,13 @@
           "defaultForAdmin": "true"
         }
       ],
-      "build_hash": "69c2924d6d",
-      "stamped_version": "4.2.1",
-      "updated_at": "2026-10-27T08:16:16.313188",
+      "build_hash": "27063d768f",
+      "stamped_version": "6.0.0",
+      "updated_at": "2026-11-12T20:05:51.067810",
       "manual_pdf": "manuals/shd-div2-intel_User_Manual.pdf",
       "manual_html": "manuals/shd-div2-intel_User_Manual.html",
-      "manual_source_hash": "69c2924d6d",
-      "manual_updated_at": "2026-10-27T08:16:19.783100"
+      "manual_source_hash": "27063d768f",
+      "manual_updated_at": "2026-11-12T20:05:53.913501"
     },
     {
       "id": "sapphire-companion",
@@ -433,7 +438,7 @@
       "icon": "\ud83c\udfcb\ufe0f",
       "accent": "#10b981",
       "category": "Health & Longevity",
-      "version": "1.0.1",
+      "version": "1.0.0",
       "entry": "apps/adaptive-workout/index.html",
       "visibility": "restricted",
       "offline_assets": [
@@ -473,13 +478,47 @@
           "defaultForAdmin": -94.3822
         }
       ],
-      "build_hash": "d7e8440b93",
-      "stamped_version": "1.0.1",
-      "updated_at": "2026-11-10T11:51:05.071473",
+      "build_hash": "24c80f6f4e",
+      "stamped_version": "1.0.0",
+      "updated_at": "2026-11-11T09:07:36.027438",
       "manual_pdf": "manuals/adaptive-workout_User_Manual.pdf",
       "manual_html": "manuals/adaptive-workout_User_Manual.html",
-      "manual_source_hash": "d7e8440b93",
-      "manual_updated_at": "2026-11-10T11:51:11.161125"
+      "manual_source_hash": "24c80f6f4e",
+      "manual_updated_at": "2026-11-12T20:05:54.863677"
+    },
+    {
+      "id": "margin-brief",
+      "title": "MarginBrief",
+      "subtitle": "6-Week Weekend Margin Radar & 1-Page Offline Trip Dossier",
+      "description": "Airplane-Mode Ready TripIt & Reclaim Killer: 50/50 Dual-Tab Split combining a deterministic 6-Week Weekend Margin Radar (Back-to-Back Streak Guard, >7:00 PM Sunday Return Shield, One Clean Day Rule) with a 1-Page Offline Trip Dossier (Tap-to-Copy Confirmation Strip, MCI/Vehicle Parking Pin, Reusable Carry-On/Lightning/Home-Lockup Checklists, and 1-Tap Clean Family Share).",
+      "icon": "\ud83e\udded",
+      "accent": "#38bdf8",
+      "category": "Personal Margin & Travel",
+      "version": "1.0.0",
+      "entry": "apps/margin-brief/index.html",
+      "visibility": "admin_only",
+      "offline_assets": [
+        "apps/margin-brief/index.html",
+        "apps/margin-brief/css/margin.css",
+        "apps/margin-brief/js/margin.js",
+        "apps/margin-brief/data/margin_snapshot.json"
+      ],
+      "userConfigSchema": [
+        {
+          "key": "sapphire_cloud_url",
+          "label": "Sapphire Core URL (Optional for Staged Buffer Holds)",
+          "type": "text",
+          "default": "http://127.0.0.1:8085",
+          "defaultForAdmin": "http://127.0.0.1:8085"
+        }
+      ],
+      "build_hash": "6ba266e8c5",
+      "stamped_version": "1.0.0",
+      "updated_at": "2026-11-11T09:07:36.027438",
+      "manual_pdf": "manuals/margin-brief_User_Manual.pdf",
+      "manual_html": "manuals/margin-brief_User_Manual.html",
+      "manual_source_hash": "6ba266e8c5",
+      "manual_updated_at": "2026-11-11T09:07:38.023089"
     }
   ]
 }

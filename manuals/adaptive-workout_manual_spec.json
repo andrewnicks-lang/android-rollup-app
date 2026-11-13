@@ -6,11 +6,11 @@
   "icon": "\ud83c\udfcb\ufe0f",
   "accent": "#10b981",
   "category": "Health & Longevity",
-  "version": "1.0.1",
-  "build_hash": "d7e8440b93",
+  "version": "1.0.0",
+  "build_hash": "24c80f6f4e",
   "visibility": "restricted",
-  "updated_at": "2026-11-10T11:51:05.071473",
-  "generated_at": "2026-11-10 11:51",
+  "updated_at": "2026-11-11T09:07:36.027438",
+  "generated_at": "2026-11-12 20:05",
   "tagline": "Age 46 Longevity \u2022 30m 4-Block System, Rest Timer, Load Memory & KC Run Radar",
   "quickstart": [
     {
@@ -201,17 +201,6 @@
       "Screen WakeLock Keep-Awake",
       "Android Share Sheet & CSV/JSON Export"
     ],
-    "recent_commits": [
-      {
-        "sha": "7d95af042",
-        "date": "2026-11-10",
-        "subject": "Auto-sync pre-merge (NICKSANDREW/TaskComplete - 2026-11-10 11:37)"
-      },
-      {
-        "sha": "848d85cbc",
-        "date": "2026-11-10",
-        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-11-10 11:29)"
-      }
-    ]
+    "recent_commits": []
   }
 }

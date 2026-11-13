@@ -1,0 +1,142 @@
+{
+  "app_id": "margin-brief",
+  "title": "MarginBrief",
+  "subtitle": "6-Week Weekend Margin Radar & 1-Page Offline Trip Dossier",
+  "description": "Airplane-Mode Ready TripIt & Reclaim Killer: 50/50 Dual-Tab Split combining a deterministic 6-Week Weekend Margin Radar (Back-to-Back Streak Guard, >7:00 PM Sunday Return Shield, One Clean Day Rule) with a 1-Page Offline Trip Dossier (Tap-to-Copy Confirmation Strip, MCI/Vehicle Parking Pin, Reusable Carry-On/Lightning/Home-Lockup Checklists, and 1-Tap Clean Family Share).",
+  "icon": "\ud83e\udded",
+  "accent": "#38bdf8",
+  "category": "Personal Margin & Travel",
+  "version": "1.0.0",
+  "build_hash": "6ba266e8c5",
+  "visibility": "admin_only",
+  "updated_at": "2026-11-11T09:07:36.027438",
+  "generated_at": "2026-11-11 09:07",
+  "tagline": "6-Week Weekend Margin Radar & 1-Page Offline Trip Dossier",
+  "quickstart": [
+    {
+      "step": "Sign In & Launch from RollupOS Hub",
+      "detail": "Sign in with an authorized Google account (`visibility: admin_only`) and launch **MarginBrief** from the RollupOS Hub dashboard."
+    },
+    {
+      "step": "Review Per-User Settings (`\u2699\ufe0f`)",
+      "detail": "Tap the `\u2699\ufe0f` button in the 29px Top System Strip to configure your personal preferences and review isolated profile storage."
+    },
+    {
+      "step": "Use Core Interactive Controls",
+      "detail": "Interact with the primary workspace actions (+ Add / Paste, \ud83d\udee1\ufe0f 6-Wk Margin Radar, \u2708\ufe0f Offline Trip Brief, Cancel, Save & Re-Score Radar)\u2014all state saves automatically to your isolated user bucket."
+    },
+    {
+      "step": "Automatic OTA Updates",
+      "detail": "Whenever a newer version is published, the Top System Strip automatically displays an `\u2b06\ufe0f Update` pill for 1-tap reload."
+    }
+  ],
+  "navigation_map": [
+    {
+      "screen": "\ud83e\udded panel-radar",
+      "purpose": "Primary 'panel-radar' view discovered in MarginBrief."
+    },
+    {
+      "screen": "\ud83e\udded panel-dossier",
+      "purpose": "Primary 'panel-dossier' view discovered in MarginBrief."
+    }
+  ],
+  "deep_dive_features": [
+    {
+      "title": "Workspace Overview",
+      "body": "Airplane-Mode Ready TripIt & Reclaim Killer: 50/50 Dual-Tab Split combining a deterministic 6-Week Weekend Margin Radar (Back-to-Back Streak Guard, >7:00 PM Sunday Return Shield, One Clean Day Rule) with a 1-Page Offline Trip Dossier (Tap-to-Copy Confirmation Strip, MCI/Vehicle Parking Pin, Reusable Carry-On/Lightning/Home-Lockup Checklists, and 1-Tap Clean Family Share)."
+    },
+    {
+      "title": "Multi-User Storage & Hardware Bridge",
+      "body": "Powered by `RollupBridge` (`Isolated Per-User Storage (RollupBridge), Android Share Sheet & CSV/JSON Export`)."
+    }
+  ],
+  "pro_tips": [
+    "Tap `\u2190 Rollup Hub` in the top-left system strip anytime to switch between authorized mini-apps without signing out."
+  ],
+  "user_config_schema": [
+    {
+      "key": "sapphire_cloud_url",
+      "label": "Sapphire Core URL (Optional for Staged Buffer Holds)",
+      "type": "text",
+      "default": "http://127.0.0.1:8085",
+      "defaultForAdmin": "http://127.0.0.1:8085"
+    }
+  ],
+  "offline_assets": [
+    "apps/margin-brief/index.html",
+    "apps/margin-brief/css/margin.css",
+    "apps/margin-brief/js/margin.js",
+    "apps/margin-brief/data/margin_snapshot.json"
+  ],
+  "newly_added_buttons": [],
+  "ai_release_note": null,
+  "inspected": {
+    "app_id": "margin-brief",
+    "file_inventory": [
+      "css/margin.css",
+      "data/margin_snapshot.json",
+      "index.html",
+      "js/margin.js"
+    ],
+    "tabs": [
+      "panel-radar",
+      "panel-dossier"
+    ],
+    "headings": [
+      "\ud83e\udded MarginBrief",
+      "Add Weekend Plan or Paste Trip",
+      "Clean Family Itinerary Share"
+    ],
+    "buttons": [
+      {
+        "label": "+ Add / Paste",
+        "action": ""
+      },
+      {
+        "label": "\ud83d\udee1\ufe0f 6-Wk Margin Radar",
+        "action": ""
+      },
+      {
+        "label": "\u2708\ufe0f Offline Trip Brief",
+        "action": ""
+      },
+      {
+        "label": "Cancel",
+        "action": ""
+      },
+      {
+        "label": "Save & Re-Score Radar",
+        "action": ""
+      },
+      {
+        "label": "Copy Clean Text",
+        "action": ""
+      },
+      {
+        "label": "\ud83d\udda8\ufe0f Print / PDF",
+        "action": ""
+      },
+      {
+        "label": "\ud83d\udce4 Share",
+        "action": ""
+      }
+    ],
+    "modals": [
+      "intake-modal",
+      "intake-modal-title",
+      "share-modal",
+      "share-modal-title"
+    ],
+    "inputs": [
+      "e.g., KC -> Austin Trip or Saturday Morning Youth Game",
+      "Paste airline confirmation #, gate, hotel address, or door code..."
+    ],
+    "storage_keys": [],
+    "vault_secrets": [],
+    "capabilities": [
+      "Isolated Per-User Storage (RollupBridge)",
+      "Android Share Sheet & CSV/JSON Export"
+    ],
+    "recent_commits": []
+  }
+}

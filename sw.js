@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rollup-hub-4ec909c4';
+const CACHE_NAME = 'rollup-hub-586fe060';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -45,7 +45,12 @@ const CORE_ASSETS = [
   './apps/adaptive-workout/data/catalog_bundle.js',
   './apps/adaptive-workout/js/workout_engine_portable.js',
   './apps/adaptive-workout/js/app.js',
-  './manuals/adaptive-workout_User_Manual.html'
+  './manuals/adaptive-workout_User_Manual.html',
+  './apps/margin-brief/index.html',
+  './apps/margin-brief/css/margin.css',
+  './apps/margin-brief/js/margin.js',
+  './apps/margin-brief/data/margin_snapshot.json',
+  './manuals/margin-brief_User_Manual.html'
 ];
 
 self.addEventListener('install', (event) => {

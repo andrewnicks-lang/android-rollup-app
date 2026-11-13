@@ -18,8 +18,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://rider-onion-monitoring-menus.trycloudflare.com",
-      "defaultForAdmin": "https://rider-onion-monitoring-menus.trycloudflare.com"
+      "default": "https://productivity-component-alternate-awareness.trycloudflare.com",
+      "defaultForAdmin": "https://productivity-component-alternate-awareness.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",

@@ -22,10 +22,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-[hidden]:not([hidden="until-found"]) {
-  display: none !important;
-}
-
 body {
   margin: 0;
   padding: 0 0 96px 0;
@@ -37,12 +33,9 @@ body {
 }
 
 .app-shell {
-  width: 100%;
-  max-width: min(520px, 100vw);
-  min-width: 0;
-  margin-inline: auto;
+  max-width: 520px;
+  margin: 0 auto;
   padding: 12px 14px;
-  overflow-x: clip;
 }
 
 .hero-header {
@@ -51,10 +44,6 @@ body {
   align-items: flex-start;
   gap: 10px;
   margin-bottom: 10px;
-}
-
-.hero-header > div {
-  min-width: 0;
 }
 
 .kicker {
@@ -97,11 +86,6 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-}
-
-.timer-top > div:first-child {
-  min-width: 0;
-  flex: 1;
 }
 
 .clock-readout {
@@ -426,8 +410,8 @@ body {
 
 .set-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr) 62px;
-  gap: 6px;
+  grid-template-columns: 46px 1fr 1fr 66px;
+  gap: 7px;
   align-items: center;
   padding: 7px 8px;
   border-radius: 10px;
@@ -450,7 +434,6 @@ body {
 .stepper-box {
   display: flex;
   align-items: center;
-  min-width: 0;
   background: #0f172a;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -458,8 +441,7 @@ body {
 }
 
 .step-btn {
-  flex: 0 0 26px;
-  width: 26px;
+  width: 28px;
   height: 36px;
   background: #1e293b;
   border: none;
@@ -471,8 +453,7 @@ body {
 }
 
 .step-input {
-  flex: 1 1 0;
-  width: 0;
+  width: 100%;
   min-width: 0;
   height: 36px;
   background: transparent;

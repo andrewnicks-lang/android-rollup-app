@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.1",
-  "build_hash": "daff38f53c",
+  "version": "1.4.2",
+  "build_hash": "8f817a86b5",
   "visibility": "admin_only",
-  "updated_at": "2026-11-08T16:43:25.853124",
-  "generated_at": "2026-11-08 16:43",
+  "updated_at": "2026-11-12T20:05:51.067810",
+  "generated_at": "2026-11-12 20:05",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,8 +71,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://rider-onion-monitoring-menus.trycloudflare.com",
-      "defaultForAdmin": "https://rider-onion-monitoring-menus.trycloudflare.com"
+      "default": "https://productivity-component-alternate-awareness.trycloudflare.com",
+      "defaultForAdmin": "https://productivity-component-alternate-awareness.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",

@@ -1,0 +1,246 @@
+{
+  "schema_version": "MARGIN-BRIEF-2026-v1.0",
+  "generated_at": "2026-11-11T09:07:14",
+  "reference_date": "2026-11-11",
+  "horizon_weeks": 6,
+  "summary_counts": {
+    "GREEN": 5,
+    "YELLOW": 0,
+    "RED": 1
+  },
+  "next_open_anchor_weekend": "Nov 21\u201322",
+  "weekends": [
+    {
+      "weekend_index": 1,
+      "saturday_date": "2026-11-14",
+      "sunday_date": "2026-11-15",
+      "label": "Nov 14\u201315",
+      "status": "RED",
+      "saturday_busy": true,
+      "sunday_busy": true,
+      "clean_recovery_day": null,
+      "is_away_weekend": true,
+      "sunday_return_time": "21:45",
+      "sunday_return_after_1900": true,
+      "rule_flags": [
+        "NO_CLEAN_DAY",
+        "LATE_SUNDAY_RETURN"
+      ],
+      "rule_explanations": [
+        "Full away/travel weekend \u2014 zero unscheduled home recovery day.",
+        "Late Sunday Return (9:45 PM > 7:00 PM) \u2014 protect Monday Nov 16 morning from early meetings."
+      ],
+      "obligations": [
+        {
+          "event_id": "obl-facb96c3e8d6",
+          "title": "New Orleans Weekend Getaway",
+          "start_date": "2026-11-14",
+          "start_time": "08:15",
+          "end_date": "2026-11-15",
+          "end_time": "21:45",
+          "all_day": false,
+          "source": "dropzone",
+          "is_away_travel": true,
+          "is_internal_work": false
+        }
+      ],
+      "recommended_hold": {
+        "summary": "[Personal Margin] Post-Trip Monday Morning Recovery Buffer",
+        "start_iso": "2026-11-16T08:00:00",
+        "end_iso": "2026-11-16T10:00:00",
+        "reason": "Triggered by Sunday 2026-11-15 return at 9:45 PM (> 7:00 PM)."
+      }
+    },
+    {
+      "weekend_index": 2,
+      "saturday_date": "2026-11-21",
+      "sunday_date": "2026-11-22",
+      "label": "Nov 21\u201322",
+      "status": "GREEN",
+      "saturday_busy": false,
+      "sunday_busy": false,
+      "clean_recovery_day": "Both",
+      "is_away_weekend": false,
+      "sunday_return_time": "",
+      "sunday_return_after_1900": false,
+      "rule_flags": [],
+      "rule_explanations": [],
+      "obligations": [],
+      "recommended_hold": null
+    },
+    {
+      "weekend_index": 3,
+      "saturday_date": "2026-11-28",
+      "sunday_date": "2026-11-29",
+      "label": "Nov 28\u201329",
+      "status": "GREEN",
+      "saturday_busy": false,
+      "sunday_busy": false,
+      "clean_recovery_day": "Both",
+      "is_away_weekend": false,
+      "sunday_return_time": "",
+      "sunday_return_after_1900": false,
+      "rule_flags": [],
+      "rule_explanations": [],
+      "obligations": [],
+      "recommended_hold": null
+    },
+    {
+      "weekend_index": 4,
+      "saturday_date": "2026-12-05",
+      "sunday_date": "2026-12-06",
+      "label": "Dec 5\u20136",
+      "status": "GREEN",
+      "saturday_busy": false,
+      "sunday_busy": false,
+      "clean_recovery_day": "Both",
+      "is_away_weekend": false,
+      "sunday_return_time": "",
+      "sunday_return_after_1900": false,
+      "rule_flags": [],
+      "rule_explanations": [],
+      "obligations": [],
+      "recommended_hold": null
+    },
+    {
+      "weekend_index": 5,
+      "saturday_date": "2026-12-12",
+      "sunday_date": "2026-12-13",
+      "label": "Dec 12\u201313",
+      "status": "GREEN",
+      "saturday_busy": false,
+      "sunday_busy": false,
+      "clean_recovery_day": "Both",
+      "is_away_weekend": false,
+      "sunday_return_time": "",
+      "sunday_return_after_1900": false,
+      "rule_flags": [],
+      "rule_explanations": [],
+      "obligations": [],
+      "recommended_hold": null
+    },
+    {
+      "weekend_index": 6,
+      "saturday_date": "2026-12-19",
+      "sunday_date": "2026-12-20",
+      "label": "Dec 19\u201320",
+      "status": "GREEN",
+      "saturday_busy": false,
+      "sunday_busy": false,
+      "clean_recovery_day": "Both",
+      "is_away_weekend": false,
+      "sunday_return_time": "",
+      "sunday_return_after_1900": false,
+      "rule_flags": [],
+      "rule_explanations": [],
+      "obligations": [],
+      "recommended_hold": null
+    }
+  ],
+  "trips": [
+    {
+      "trip_id": "trip-facb96c3e8d6",
+      "title": "New Orleans Weekend Getaway",
+      "destination": "MSY",
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-15",
+      "return_arrival_time": "21:45",
+      "segments": [
+        {
+          "segment_id": "seg-fl-facb96c3e8d6",
+          "kind": "flight",
+          "title": "WN 1492 (MCI \u2192 MSY) \u2014 New Orleans Weekend Getaway",
+          "confirmation_code": "K9M4P2",
+          "start_date": "2026-11-14",
+          "start_time": "08:15",
+          "end_date": "2026-11-15",
+          "end_time": "21:45",
+          "location": "MSY",
+          "terminal_gate_or_door": "B14",
+          "notes": "Southwest Airlines Flight WN 1492 (MCI -> MSY)\nConfirmation #: K9M4P2 | Gate: B14\nDeparting 2026-11-14 at 8:15 AM\nHotel Monteleone Check-In 2026-11-14 3:00 PM | Address: 214 Royal St, New Orleans, LA | Confirmation: HM88"
+        },
+        {
+          "segment_id": "seg-ret-facb96c3e8d6",
+          "kind": "flight",
+          "title": "WN 2208 (MSY \u2192 MCI)",
+          "confirmation_code": "HM88421",
+          "start_date": "2026-11-15",
+          "start_time": "21:45",
+          "end_date": "2026-11-15",
+          "end_time": "21:45",
+          "location": "MSY \u2192 MCI",
+          "terminal_gate_or_door": "",
+          "notes": ""
+        },
+        {
+          "segment_id": "seg-ht-facb96c3e8d6",
+          "kind": "hotel",
+          "title": "Lodging / Stay",
+          "confirmation_code": "HM88421",
+          "start_date": "2026-11-14",
+          "start_time": "08:15",
+          "end_date": "2026-11-15",
+          "end_time": "11:00",
+          "location": "214 Royal St, New Orleans, LA | Confirmation: HM88421",
+          "terminal_gate_or_door": "B14",
+          "notes": ""
+        }
+      ],
+      "parking": {
+        "facility_or_garage": "MCI Terminal Garage",
+        "level_row_spot": "Level 3 \u2022 Row E \u2022 Spot 312",
+        "vehicle_or_rental_note": "F-150 Lightning Lariat (Left @ 78% SoC)",
+        "charger_or_return_note": "",
+        "updated_at": ""
+      },
+      "active_checklist": "carry_on",
+      "custom_checklist_items": [],
+      "source_provenance": "starter_seed",
+      "artifact_sha256": "facb96c3e8d6"
+    }
+  ],
+  "checklist_templates": {
+    "carry_on": {
+      "id": "carry_on",
+      "label": "Carry-On Weekend",
+      "items": [
+        "Wallet, ID / Driver's License & backup card",
+        "Pixel 10 Pro + USB-C fast brick & braided cable",
+        "Battery bank (charged) & earbuds",
+        "2-3 days clothes + gym/walking shoes",
+        "Doppkitt / meds / contacts / glasses",
+        "Download offline boarding pass & MarginBrief sync"
+      ]
+    },
+    "road_trip": {
+      "id": "road_trip",
+      "label": "Lightning Road Trip",
+      "items": [
+        "Pre-condition & charge F-150 Lightning to target %",
+        "NACS / Supercharger adapter + mobile power cord in frunk",
+        "Verify tire pressures & washer fluid",
+        "Sunglasses, Yeti water bottles & road snacks",
+        "Check route fast-chargers (ABRP / PlugShare backup)",
+        "Garage door closed & tonneau/frunk locked"
+      ]
+    },
+    "home_lockup": {
+      "id": "home_lockup",
+      "label": "Pre-Leave Home Lockup",
+      "items": [
+        "Set thermostat to Away / Eco mode",
+        "Empty kitchen trash & run/clear dishwasher",
+        "Lock all exterior doors, patio sliders & garage entry",
+        "Unplug countertop heat appliances; check stove off",
+        "Water check / outdoor spigot freeze check (<25F)",
+        "Porch light / interior timer active"
+      ]
+    }
+  },
+  "sources_status": {
+    "dropzone_new_files": 0,
+    "outlook_calendar": "connected (0 weekend/travel items)",
+    "google_calendar": "token_not_configured (optional)",
+    "stored_trips": 1
+  }
+}

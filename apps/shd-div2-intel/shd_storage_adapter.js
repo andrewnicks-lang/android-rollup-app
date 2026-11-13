@@ -1,7 +1,7 @@
 /**
- * SHD Storage Adapter & Isomorphic Client-Side Solver (v5.0 — Phase 0-3 Unified)
+ * SHD Storage Adapter & Isomorphic Client-Side Solver (v6.0 — Live Scanner & Multi-Category Unified)
  * Bridges the SHD Tactical Platform across:
- *   1. Desktop FastAPI Mode (`http://127.0.0.1:8765/api/...`)
+ *   1. Desktop FastAPI + WebSocket Mode (`http://127.0.0.1:8420/api/...` & `ws://127.0.0.1:8420/ws/live-scan`)
  *   2. RollupOS Android App Hub Cartridge Mode (`window.RollupBridge` + isolated per-user localStorage)
  *   3. Standalone Offline File / Static Mode (`localStorage` fallback)
  *
@@ -59,7 +59,8 @@
     "lavoisier": "Electrique",
     "snowmachine": "Electrique",
     "the courier": "Habsburg Guard",
-    "cherished": "Habsburg Guard"
+    "cherished": "Habsburg Guard",
+    "chill out": "Gila Guard"
   };
 
   const GEAR_SET_NAMES_LOWER = new Set([
@@ -84,7 +85,10 @@
     "aegis",
     "breaking point",
     "virtuoso",
-    "legatus"
+    "legatus",
+    "impetus",
+    "refactor",
+    "measured assembly"
   ]);
 
   const EXOTIC_ARMOR_NAMES_LOWER = new Set([
@@ -105,7 +109,8 @@
     "bloody knuckles",
     "acosta's go-bag",
     "sawyer's kneepads",
-    "ninjabike messenger kneepads"
+    "ninjabike messenger kneepads",
+    "the catalyst"
   ]);
 
   function getSeedData() {
@@ -114,6 +119,7 @@
       return {
         canonical_db: window.SHD_CARTRIDGE_SEED.canonical,
         meta_builds: window.SHD_CARTRIDGE_SEED.meta_builds,
+        meta_freshness: window.SHD_CARTRIDGE_SEED.meta_freshness,
         golden_items: window.SHD_CARTRIDGE_SEED.golden_demo_items,
         saved_loadouts: window.SHD_CARTRIDGE_SEED.admin_showcase_loadouts,
         expertise_categories: (window.SHD_CARTRIDGE_SEED.admin_default_state?.expertise?.categories) || [],
@@ -187,6 +193,21 @@
     if (GEAR_SET_NAMES_LOWER.has(resolved)) return true;
     const db = canonicalDb || getSeedData()?.canonical_db || {};
     return iterCanonicalEntriesJS(db.gear_sets).some(([gs]) => gs.toLowerCase() === resolved);
+  }
+
+  function formatTargetPieceNameJS(targetBrandRaw, slot, canonicalDb) {
+    const cleanRaw = String(targetBrandRaw || 'Unknown').trim();
+    const low = cleanRaw.toLowerCase();
+    const slotCap = String(slot || 'PIECE').charAt(0).toUpperCase() + String(slot || 'PIECE').slice(1).toLowerCase();
+    if (NAMED_ITEM_PARENT_BRAND[low] || isExoticItemJS(cleanRaw, canonicalDb)) {
+      return cleanRaw;
+    }
+    const db = canonicalDb || getSeedData()?.canonical_db || {};
+    for (const [nName] of iterCanonicalEntriesJS(db.named_items)) {
+      if (nName.toLowerCase() === low) return cleanRaw;
+    }
+    if (low.includes(slotCap.toLowerCase())) return cleanRaw;
+    return `${cleanRaw} ${slotCap}`;
   }
 
   function isExoticItemJS(itemOrBrand, canonicalDb) {
@@ -264,10 +285,25 @@
     return `${STORAGE_PREFIX}${_activeProfile.userId}`;
   }
 
+  function inferItemCategoryJS(item) {
+    if (!item) return 'ARMOR';
+    const explicit = String(item.item_category || '').toUpperCase();
+    if (['ARMOR', 'WEAPON', 'GEAR_MOD', 'SKILL_MOD'].includes(explicit)) return explicit;
+    const s = String(item.slot || 'MASK').toUpperCase();
+    if (['WEAPON', 'PRIMARY', 'SECONDARY', 'SIDEARM', 'AR', 'SMG', 'LMG', 'RIFLE', 'MMR', 'SHOTGUN', 'PISTOL'].includes(s)) return 'WEAPON';
+    if (s === 'GEAR_MOD' || s === 'MOD') return 'GEAR_MOD';
+    if (s === 'SKILL_MOD') return 'SKILL_MOD';
+    return 'ARMOR';
+  }
+
   function buildInitialProfileStore(userId) {
     const seed = getSeedData() || {};
     const isAdminOrDemo = userId === 'admin' || userId === 'demo';
-    const items = isAdminOrDemo ? JSON.parse(JSON.stringify(seed.golden_items || [])) : [];
+    const items = userId === 'demo'
+      ? JSON.parse(JSON.stringify(seed.golden_items || []))
+      : userId === 'admin'
+      ? JSON.parse(JSON.stringify(seed.admin_owned_items || []))
+      : [];
     const savedLoadouts = isAdminOrDemo ? JSON.parse(JSON.stringify(seed.saved_loadouts || [])) : [];
 
     let expCats = JSON.parse(JSON.stringify(seed.expertise_categories || []));
@@ -564,11 +600,13 @@
       tinkerType = 'OPTIMIZE';
     }
 
+    const unverifiedPipPenalty = (item.roll_source === 'PIP_DEDUCED' && !item.user_verified) ? 2.5 : 0.0;
     return [bestScore, bestNotes, {
       brand_tier: brandTier,
       is_virgin: isVirgin,
       tinker_type: tinkerType,
       is_prototype: Boolean(item.is_prototype) || powerRatio > 1.01,
+      raw_sort_score: Math.round((bestScore - unverifiedPipPenalty) * 10) / 10,
     }];
   }
 
@@ -619,20 +657,26 @@
       }
     }
     if (!wSpec) {
-      wSpec = {
-        class: 'AR',
-        weapon_class: 'AR',
-        base_dmg: 112400,
-        base_damage: 112400,
-        rpm: 850,
-        mag_size: 50,
-        reload_sec: 2.0,
-        headshot_mult: 1.55,
-        native_dttooc: 10.0,
-        native_dta: 0.0,
-        native_chc: 10.0,
-        native_chd: 10.0,
-      };
+      if (pRawLow.includes('backfire')) {
+        wSpec = { class: 'SMG', weapon_class: 'SMG', base_dmg: 102400, base_damage: 102400, rpm: 850, mag_size: 55, reload_sec: 1.9, headshot_mult: 1.50, native_dttooc: 10.0, native_dta: 0.0, native_chc: 21.0, native_chd: 15.0, talent: 'Payment in Kind' };
+      } else if (pRawLow.includes('regulus')) {
+        wSpec = { class: 'PISTOL', weapon_class: 'PISTOL', base_dmg: 368000, base_damage: 368000, rpm: 150, mag_size: 6, reload_sec: 1.9, headshot_mult: 2.00, native_dttooc: 10.0, native_dta: 0.0, native_chc: 0.0, native_chd: 0.0, talent: 'Regicide' };
+      } else {
+        wSpec = {
+          class: 'AR',
+          weapon_class: 'AR',
+          base_dmg: 112400,
+          base_damage: 112400,
+          rpm: 850,
+          mag_size: 50,
+          reload_sec: 2.0,
+          headshot_mult: 1.55,
+          native_dttooc: 10.0,
+          native_dta: 0.0,
+          native_chc: 10.0,
+          native_chd: 10.0,
+        };
+      }
     }
 
     let gearChc = 0.0, gearChd = 0.0, gearDta = 0.0, gearDttooc = 0.0, gearHsd = 0.0, gearWh = 0.0, gearRegenFlat = 0.0;
@@ -692,19 +736,20 @@
     if ([...equippedNamesLower].some(n => n.includes('picaro'))) wdPct += 10.0;
     if (wName.toLowerCase().includes('capacitor')) wdPct += effYellowTiers * 7.5;
     if ([...equippedNamesLower].some(n => n.includes('memento'))) wdPct += 30.0;
+    if ((effBrands['The Catalyst'] || 0) >= 1 || [...equippedNamesLower].some(n => n.includes('catalyst'))) wdPct += 24.0;
 
     let chc = 10.0 + Number(wSpec.native_chc || 0) + gearChc + modChc;
     let chd = 45.0 + Number(wSpec.native_chd || 0) + gearChd + modChd;
     let hsd = ((Number(wSpec.headshot_mult || 1.55) - 1.0) * 100.0) + 20.0 + gearHsd + modHsd;
 
     if ((effBrands['Česká Výroba s.r.o.'] || 0) >= 1) chc += 8.0;
-    if ((effBrands['Grupo Sombra S.A.'] || 0) >= 1) chd += 15.0;
+    if ((effBrands['Grupo Sombra S.A.'] || 0) >= 1) chd += 13.0;
     if ((effBrands['Grupo Sombra S.A.'] || 0) >= 3) hsd += 15.0;
     if ((effBrands['Providence Defense'] || 0) >= 1) hsd += 15.0;
-    if ((effBrands['Providence Defense'] || 0) >= 2) chc += 10.0;
-    if ((effBrands['Providence Defense'] || 0) >= 3) chd += 15.0;
-    if ((effBrands['Sokolov Concern'] || 0) >= 2) chd += 15.0;
-    if ((effBrands['Sokolov Concern'] || 0) >= 3) chc += 10.0;
+    if ((effBrands['Providence Defense'] || 0) >= 2) chc += 8.0;
+    if ((effBrands['Providence Defense'] || 0) >= 3) chd += 13.0;
+    if ((effBrands['Sokolov Concern'] || 0) >= 2) chd += 13.0;
+    if ((effBrands['Sokolov Concern'] || 0) >= 3) chc += 8.0;
     if ((effBrands["Coyote's Mask"] || 0) >= 1 || [...equippedNamesLower].some(n => n.includes('coyote'))) {
       chc += 10.0;
       chd += 10.0;
@@ -718,6 +763,7 @@
     if ((effBrands['Habsburg Guard'] || 0) >= 1) hsd += 15.0;
     if ([...equippedNamesLower].some(n => n.includes('punch drunk'))) hsd += 20.0;
 
+    const rawUncappedChc = Math.round(chc * 10) / 10;
     chc = Math.min(60.0, Math.max(0.0, chc));
 
     let dta = Number(wSpec.native_dta || 0) + gearDta;
@@ -744,29 +790,49 @@
 
     if (bpTalent.includes('unstoppable force')) twdPct += bpTalent.includes('perfect') ? 35.0 : 25.0;
     else if (bpTalent.includes('vigilance')) twdPct += 25.0;
+    else if (bpTalent.includes('wicked')) twdPct += bpTalent.includes('perfect') ? 18.0 : 18.0;
     else if (bpTalent.includes('companion') || bpTalent.includes('composure')) twdPct += 15.0;
     else if (bpTalent.includes('opportunistic')) ampMult *= bpTalent.includes('perfect') ? 1.15 : 1.1;
 
     if ((effBrands["Striker's Battlegear"] || 0) >= 3) rofMult *= 1.15;
     if ((effBrands["Striker's Battlegear"] || 0) >= 4) {
       const hasStrikerBp = resolveParentBrandJS((slotBreakdown.BACKPACK || {}).brand || '', canonicalDb) === "Striker's Battlegear" || bpTalent.includes('risk management');
-      ampMult *= hasStrikerBp ? 1.9 : 1.65;
+      const hasStrikerChest = resolveParentBrandJS((slotBreakdown.CHEST || {}).brand || '', canonicalDb) === "Striker's Battlegear" || chestTalent.includes('press the advantage');
+      const perStack = hasStrikerBp ? 0.009 : 0.0065;
+      const effStacks = hasStrikerChest ? 180 : 100;
+      ampMult *= 1.0 + perStack * effStacks;
     }
+    if (wName.toLowerCase().includes('ouroboros')) rofMult *= 1.1;
     if ((effBrands['Heartbreaker'] || 0) >= 4) ampMult *= 1.52;
     if ((effBrands["Hunter's Fury"] || 0) >= 4) ampMult *= 1.45;
     if ((effBrands['Umbra Initiative'] || 0) >= 4) rofMult *= 1.3;
     if ((effBrands['Future Initiative'] || 0) >= 4) twdPct += chestTalent.includes('tactical superiority') ? 25.0 : 15.0;
+    if ((effBrands['Ongoing Directive'] || 0) >= 4) {
+      const hasOdChest = resolveParentBrandJS((slotBreakdown.CHEST || {}).brand || '', canonicalDb) === 'Ongoing Directive' || chestTalent.includes('parabellum');
+      ampMult *= hasOdChest ? 1.5 : 1.2;
+    }
 
     if (wTalentLow.includes('flatline') || wName.toLowerCase().includes('kingbreaker')) ampMult *= (wTalentLow.includes('perfect') || wName.toLowerCase().includes('kingbreaker')) ? 1.2 : 1.15;
     else if (wTalentLow.includes('optimist')) wdPct += 15.0;
     else if (wTalentLow.includes('strained')) chd += 35.0;
     else if (wTalentLow.includes('killer') || wName.toLowerCase().includes('dark winter')) chd += (wTalentLow.includes('perfect') || wName.toLowerCase().includes('dark winter')) ? 50.0 : 40.0;
     else if (wTalentLow.includes('in sync') || wName.toLowerCase().includes('harmony')) wdPct += (wTalentLow.includes('perfect') || wName.toLowerCase().includes('harmony')) ? 40.0 : 30.0;
-    else if (wTalentLow.includes('sadist') || wTalentLow.includes('eyeless') || wTalentLow.includes('ignited')) ampMult *= 1.2;
+    else if (wTalentLow.includes('sadist') || wName.toLowerCase().includes('carnage')) ampMult *= (wTalentLow.includes('perfect') || wName.toLowerCase().includes('carnage')) ? 1.35 : 1.3;
+    else if (wTalentLow.includes('eyeless') || wTalentLow.includes('ignited')) ampMult *= 1.2;
     else if (wTalentLow.includes('sledgehammer')) dta += 40.0;
+    else if (wTalentLow.includes('payment in kind') || wName.toLowerCase().includes('backfire')) chd += 180.0;
+    else if (wTalentLow.includes('regicide') || wName.toLowerCase().includes('regulus')) {
+      headhunterBonusMult = Math.max(headhunterBonusMult, [...equippedNamesLower].some(n => n.includes('dodge city')) ? 3.15 : 2.4);
+    }
     else if (wTalentLow.includes('determined') && wClass === 'MMR') headhunterBonusMult = Math.max(headhunterBonusMult, 2.5);
 
-    const hsHitRate = (wClass === 'MMR' && (wTalentLow.includes('determined') || headhunterBonusMult > 1.0)) ? 1.0 : (wClass === 'MMR' ? 0.85 : 0.25);
+    if ([...equippedNamesLower].some(n => n.includes('dodge city')) && wClass === 'PISTOL') {
+      headhunterBonusMult = Math.max(headhunterBonusMult, 2.65);
+    }
+
+    const hsHitRate = (wClass === 'MMR' && (wTalentLow.includes('determined') || headhunterBonusMult > 1.0))
+      ? 1.0
+      : ((wClass === 'PISTOL' && headhunterBonusMult > 1.0) ? 0.9 : (wClass === 'MMR' ? 0.85 : 0.25));
     const critAndHsMult = 1.0 + ((chc / 100.0) * (chd / 100.0)) + (hsHitRate * (hsd / 100.0));
     const baseDmg = Number(wSpec.base_dmg || 110000);
     const perBullet =
@@ -785,7 +851,12 @@
 
     let mag = Number(wSpec.mag_size || 50);
     if ((effBrands['Brazos de Arcabuz'] || 0) >= 3) mag = Math.round(mag * 1.5);
-    const whBonus = gearWh + ((effBrands["Striker's Battlegear"] || 0) >= 2 ? 15.0 : 0.0) + ((effBrands['Hotshot'] || 0) >= 1 ? 30.0 : 0.0);
+    if ((effBrands['True Patriot'] || 0) >= 2) mag = Math.round(mag * 1.3);
+    const whBonus = gearWh
+      + ((effBrands["Striker's Battlegear"] || 0) >= 2 ? 15.0 : 0.0)
+      + ((effBrands['Hotshot'] || 0) >= 1 ? 30.0 : 0.0)
+      + ((effBrands['Ongoing Directive'] || 0) >= 3 ? 30.0 : 0.0)
+      + (((effBrands['The Catalyst'] || 0) >= 1 || [...equippedNamesLower].some(n => n.includes('catalyst'))) ? 30.0 : 0.0);
     const reloadSec = Math.max(0.6, Number(wSpec.reload_sec || 2.0) / (1.0 + whBonus / 100.0));
     const fireDuration = rps > 0 ? mag / rps : 1.0;
     let sustainedDps = (perBullet * mag) / (fireDuration + reloadSec);
@@ -807,6 +878,7 @@
     if (roleUp === 'SKILL_DPS' || roleUp === 'CROWD_CONTROL') {
       let baseSkill = 420000.0 * (effYellowTiers / 6.0);
       if ((effBrands['Empress International'] || 0) >= 3) baseSkill *= 1.35;
+      if ((effBrands['Refactor'] || 0) >= 3) baseSkill *= 1.25;
       if ((effBrands['Waveform'] || 0) >= 1 || [...equippedNamesLower].some(n => n.includes('waveform'))) baseSkill *= 1.2;
       if (wName.toLowerCase().includes('capacitor')) baseSkill *= 1.45;
       if ((effBrands['Eclipse Protocol'] || 0) >= 4) baseSkill = 680000.0 * (effYellowTiers / 6.0);
@@ -818,13 +890,15 @@
     let armorPctBonus = 10.0;
     if ((effBrands['Gila Guard'] || 0) >= 1) armorPctBonus += 5.0;
     if ((effBrands['Uzina Getica'] || 0) >= 1) armorPctBonus += 5.0;
+    if ((effBrands['Badger Tuff'] || 0) >= 2) armorPctBonus += 5.0;
+    if ((effBrands['Golan Gear Ltd'] || 0) >= 3) armorPctBonus += 10.0;
     if ((effBrands['Foundry Bulwark'] || 0) >= 2) armorPctBonus += 10.0;
     if ((effBrands['Heartbreaker'] || 0) >= 4) armorPctBonus += 50.0;
     const totalArmor = baseArmor * (1.0 + armorPctBonus / 100.0);
 
     let regenPct = 0.0;
     if ((effBrands['Belstone Armory'] || 0) >= 1) regenPct += 1.0;
-    if ((effBrands['Gila Guard'] || 0) >= 3) regenPct += 1.0;
+    if ((effBrands['Gila Guard'] || 0) >= 3) regenPct += 2.0;
     if ((effBrands['Foundry Bulwark'] || 0) >= 3) regenPct += 1.0;
     if ((effBrands['Golan Gear Ltd'] || 0) >= 2) regenPct += 1.5;
     if ([...equippedNamesLower].some(n => n.includes('memento'))) regenPct += 3.0;
@@ -871,6 +945,7 @@
       reload_sec: Math.round(reloadSec * 100) / 100,
       total_wd_pct: Math.round(wdPct * 10) / 10,
       chc_pct: Math.round(chc * 10) / 10,
+      raw_uncapped_chc_pct: rawUncappedChc,
       chd_pct: Math.round(chd * 10) / 10,
       hsd_pct: Math.round(hsd * 10) / 10,
       dta_pct: Math.round(dta * 10) / 10,
@@ -880,12 +955,14 @@
       total_armor: Math.round(totalArmor),
       armor_regen_per_sec: totalRegenPerSec,
       effective_yellow_tiers: effYellowTiers,
+      effective_brands: effBrands,
+      has_ninjabike: hasNinjaBike,
       ttk_heroic_named_sec: ttkNamedSec,
       ttk_matrix: ttkMatrix,
     };
   }
 
-  function evaluateAllBuildsJS(ownedItems, customBuildsList = []) {
+  function evaluateAllBuildsJS(ownedItems, customBuildsList = [], savedLoadouts = []) {
     const seed = getSeedData() || {};
     const canonicalDb = seed.canonical_db || {};
     const baseBuilds = seed.meta_builds || [];
@@ -893,11 +970,16 @@
 
     const allSlots = ['MASK', 'BACKPACK', 'CHEST', 'GLOVES', 'HOLSTER', 'KNEEPADS'];
     const itemsBySlot = { MASK: [], BACKPACK: [], CHEST: [], GLOVES: [], HOLSTER: [], KNEEPADS: [] };
+    const armorItems = [];
 
     for (const it of ownedItems || []) {
+      it.item_category = inferItemCategoryJS(it);
       it.archetype_tags = classifyItemArchetypeJS(it, canonicalDb);
-      const s = (it.slot || '').toUpperCase();
-      if (itemsBySlot[s]) itemsBySlot[s].push(it);
+      if (it.item_category === 'ARMOR') {
+        armorItems.push(it);
+        const s = (it.slot || '').toUpperCase();
+        if (itemsBySlot[s]) itemsBySlot[s].push(it);
+      }
     }
 
     const evaluatedBuilds = [];
@@ -930,7 +1012,7 @@
           scoredList.push({
             status: 'OWNED',
             match_pct: Math.min(100.0, sc),
-            raw_sort_score: sc,
+            raw_sort_score: details.raw_sort_score != null ? details.raw_sort_score : sc,
             overcap_bonus_pct: Math.max(0.0, Math.round((sc - 100.0) * 10) / 10),
             item_id: cand.item_id,
             display_name: `${cand.item_name || cand.brand_or_set} (${cand.rarity || 'HIGH_END'})`,
@@ -988,19 +1070,6 @@
 
           const pBrand = resolveParentBrandJS(validTop.brand, canonicalDb);
           bBrands[pBrand] = (bBrands[pBrand] || 0) + 1;
-
-          const cid = validTop.item_id;
-          if (!itemUsage[cid]) itemUsage[cid] = [];
-          itemUsage[cid].push({
-            build_id: buildId,
-            build_name: b.name,
-            tier_badge: b.tier_badge || 'META',
-            slot,
-            score: validTop.match_pct,
-            tinker: validTop.tinker_advice,
-            tinker_type: validTop.tinker_type,
-            is_starter: true,
-          });
         } else {
           const prefList = [...(sSpec.preferred || []), ...(sSpec.alt_brands || [])];
           let targetBrandRaw = prefList[0] || 'Unknown';
@@ -1015,6 +1084,9 @@
           const targetCore = sSpec.core || 'WEAPON_DAMAGE';
           const targetMinors = sSpec.minors || idealMinors || [];
           const maxMinorsForMissing = isGearSetBrandJS(targetParentBrand, canonicalDb) ? 1 : 2;
+          const cleanTargetName = formatTargetPieceNameJS(targetBrandRaw, slot, canonicalDb);
+          const isNamed = Boolean(NAMED_ITEM_PARENT_BRAND[cleanTargetName.toLowerCase()]) ||
+            (targetParentBrand.toLowerCase() !== String(targetBrandRaw).trim().toLowerCase() && !isExoticItemJS(targetBrandRaw, canonicalDb));
 
           if (targetBrandRaw.includes('Memento') || targetBrandRaw.includes('NinjaBike')) {
             bCores.RED += 1;
@@ -1029,10 +1101,11 @@
             status: 'MISSING',
             match_pct: 0.0,
             item_id: null,
-            display_name: `Missing: ${(sSpec.preferred || []).join(', ')}`,
+            target_item_name: cleanTargetName,
+            display_name: `Missing: ${cleanTargetName}`,
             brand: targetParentBrand,
             raw_brand: targetBrandRaw,
-            rarity: isExoticItemJS(targetBrandRaw, canonicalDb) ? 'EXOTIC' : (isGearSetBrandJS(targetParentBrand, canonicalDb) ? 'GEAR_SET' : 'HIGH_END'),
+            rarity: isExoticItemJS(targetBrandRaw, canonicalDb) ? 'EXOTIC' : (isGearSetBrandJS(targetParentBrand, canonicalDb) ? 'GEAR_SET' : (isNamed ? 'NAMED_HIGH_END' : 'HIGH_END')),
             core_type: targetCore,
             core_val: CORE_MAX[targetCore] || 15.0,
             minor_attributes: targetMinors.slice(0, maxMinorsForMissing).map(m => ({ type: m, value: MINOR_MAX[m] || 10.0 })),
@@ -1064,11 +1137,36 @@
         ];
       }
 
+      const bStatus = String(b.status || 'ACTIVE').toUpperCase();
+      const shouldProtectItems = bStatus === 'ACTIVE' || (bStatus === 'LEGACY' && ownedSlotsCount >= 4);
+      if (shouldProtectItems) {
+        for (const [slot, sObj] of Object.entries(slotBreakdown)) {
+          if (sObj.status === 'OWNED' && sObj.item_id) {
+            const cid = sObj.item_id;
+            if (!itemUsage[cid]) itemUsage[cid] = [];
+            itemUsage[cid].push({
+              build_id: buildId,
+              build_name: b.name,
+              tier_badge: bStatus === 'LEGACY' ? 'LEGACY' : (b.tier_badge || 'META'),
+              build_status: bStatus,
+              slot,
+              score: sObj.match_pct,
+              tinker: sObj.tinker_advice,
+              tinker_type: sObj.tinker_type,
+              is_starter: true,
+            });
+          }
+        }
+      }
+
       const completionPct = Math.round((totalScore / 6.0) * 10) / 10;
       evaluatedBuilds.push({
         build_id: buildId,
         name: b.name,
         role: b.role,
+        status: bStatus,
+        verified_patch: b.verified_patch || 'TU24 / Y8',
+        updated_at: b.updated_at || '',
         tier_badge: b.tier_badge || 'META',
         summary: b.summary,
         primary_weapons: b.primary_weapons || [],
@@ -1091,52 +1189,92 @@
       });
     }
 
-    evaluatedBuilds.sort((a, b) => b.owned_slots_count - a.owned_slots_count || b.completion_pct - a.completion_pct);
+    evaluatedBuilds.sort((a, b) => {
+      const aLeg = a.status === 'LEGACY' ? 1 : 0;
+      const bLeg = b.status === 'LEGACY' ? 1 : 0;
+      if (aLeg !== bLeg) return aLeg - bLeg;
+      return b.owned_slots_count - a.owned_slots_count || b.completion_pct - a.completion_pct;
+    });
 
-    // Multi-Archetype Deconstruct Advisor
+    // Multi-Archetype Deconstruct Advisor (Armor only, protecting Saved & In-Game Loadouts)
+    const protectedLoadoutIds = new Set();
+    for (const ld of savedLoadouts || []) {
+      const ldName = ld.name || 'Saved Loadout';
+      for (const [sKey, sv] of Object.entries(ld.slots || ld.slot_items || {})) {
+        if (sv && sv.item_id) {
+          protectedLoadoutIds.add(sv.item_id);
+          if (!itemUsage[sv.item_id]) itemUsage[sv.item_id] = [];
+          if (!itemUsage[sv.item_id].some(u => u.build_name === ldName)) {
+            itemUsage[sv.item_id].push({
+              build_id: ld.loadout_id || 'saved_loadout',
+              build_name: ldName,
+              tier_badge: 'SAVED LOADOUT',
+              build_status: 'SAVED',
+              slot: sKey,
+              score: 100.0,
+              tinker: 'Protected in Saved Workbench Loadout',
+              tinker_type: 'READY_AS_IS',
+              is_starter: true,
+            });
+          }
+        }
+      }
+    }
+
     const deconstructCandidates = [];
-    const bySlotBrandArch = {};
-    for (const it of ownedItems || []) {
+    const byFiveTuple = {};
+    for (const it of armorItems) {
       const s = (it.slot || 'UNKNOWN').toUpperCase();
       const bName = resolveParentBrandJS(it.brand_or_set || it.item_name || 'Unknown', canonicalDb);
-      const arch = (it.archetype_tags || classifyItemArchetypeJS(it, canonicalDb)).role_archetype || 'HYBRID_TACTICAL';
-      const key = `${s}|${bName}|${arch}`;
-      if (!bySlotBrandArch[key]) bySlotBrandArch[key] = [];
-      bySlotBrandArch[key].push(it);
+      const arch = (it.archetype_tags || classifyItemArchetypeJS(it, canonicalDb)).role_archetype || 'HYBRID';
+      const cType = String((it.core_attribute || {}).type || 'WEAPON_DAMAGE').toUpperCase();
+      const tName = String((it.talent || {}).name || 'NONE').toLowerCase();
+      const key = `${s}|${bName}|${arch}|${cType}|${tName}`;
+      if (!byFiveTuple[key]) byFiveTuple[key] = [];
+      byFiveTuple[key].push(it);
     }
-    for (const it of ownedItems || []) {
+    for (const it of armorItems) {
       const iid = it.item_id;
       const usages = itemUsage[iid] || [];
       const rarity = String(it.rarity || 'HIGH_END').toUpperCase();
-      if (it.is_favorite || rarity === 'EXOTIC' || rarity === 'NAMED_HIGH_END' || usages.length > 0) continue;
+      const igLoadouts = Array.isArray(it.in_game_loadouts) ? it.in_game_loadouts : [];
+      if (it.is_favorite || rarity === 'EXOTIC' || rarity === 'NAMED_HIGH_END' || usages.length > 0 || protectedLoadoutIds.has(iid) || igLoadouts.length > 0) continue;
       const s = (it.slot || 'UNKNOWN').toUpperCase();
       const bName = resolveParentBrandJS(it.brand_or_set || it.item_name || 'Unknown', canonicalDb);
       const archObj = it.archetype_tags || classifyItemArchetypeJS(it, canonicalDb);
-      const arch = archObj.role_archetype || 'HYBRID_TACTICAL';
-      const sameGroup = bySlotBrandArch[`${s}|${bName}|${arch}`] || [];
+      const arch = archObj.role_archetype || 'HYBRID';
+      const cType = String((it.core_attribute || {}).type || 'WEAPON_DAMAGE').toUpperCase();
+      const tName = String((it.talent || {}).name || 'NONE').toLowerCase();
+      const sameGroup = byFiveTuple[`${s}|${bName}|${arch}|${cType}|${tName}`] || [];
       const powerRatio = computeItemPowerRatioJS(it);
+      const powerPct = Math.round(powerRatio * 1000) / 10;
+      const dispName = it.item_name || bName;
       if (sameGroup.length > 1) {
         const bestRatio = Math.max(...sameGroup.map(g => computeItemPowerRatioJS(g)));
         if (powerRatio + 0.08 < bestRatio) {
           deconstructCandidates.push({
             item_id: iid,
             slot: s,
-            item_name: it.item_name || bName,
+            item_name: dispName,
+            display_name: dispName,
             brand_or_set: bName,
             rarity,
+            power_pct: powerPct,
             role_archetype: archObj.role_label || arch,
-            reason: `Strictly dominated duplicate ${bName} ${s} in ${archObj.role_label || arch} archetype (${Math.round(powerRatio * 100)}% vs ${Math.round(bestRatio * 100)}% roll power) and unused in any of the 13 Meta Builds.`,
+            reason: `Strictly dominated duplicate ${bName} ${s} in ${archObj.role_label || arch} archetype (${Math.round(powerRatio * 100)}% vs ${Math.round(bestRatio * 100)}% roll power) and unused in any Meta Build.`,
           });
         }
       } else if (powerRatio < 0.72) {
         deconstructCandidates.push({
           item_id: iid,
           slot: s,
-          item_name: it.item_name || bName,
+          item_name: dispName,
+          display_name: dispName,
           brand_or_set: bName,
           rarity,
+          power_pct: powerPct,
           role_archetype: archObj.role_label || arch,
-          reason: `Unused in all 13 Meta Builds and low attribute roll power (${Math.round(powerRatio * 100)}%). Safe to deconstruct for Printer Filament / Receiver Components.`,
+          reason: `Unused in all Meta Builds and low attribute roll power (${Math.round(powerRatio * 100)}%). Safe to deconstruct for Printer Filament / Receiver Components.`,
         });
       }
     }
@@ -1310,14 +1448,43 @@
     };
   }
 
+  function buildLocalMetaFreshness(seed, evaluatedBuilds) {
+    const base = seed.meta_freshness || {};
+    const verAt = base.last_verified_at || new Date().toISOString();
+    const staleThreshold = Number(base.stale_after_days || 30);
+    let daysSince = 0;
+    try {
+      daysSince = Math.max(0, Math.floor((Date.now() - new Date(verAt).getTime()) / 86400000));
+    } catch (_) {
+      daysSince = 0;
+    }
+    const activeCount = (evaluatedBuilds || []).filter(b => (b.status || 'ACTIVE') === 'ACTIVE').length;
+    const legacyCount = (evaluatedBuilds || []).filter(b => b.status === 'LEGACY').length;
+    return {
+      meta_version: base.meta_version || 'TU24 / Year 8 Meta',
+      patch_label: base.patch_label || 'Year 8 / Battle for Brooklyn & Crossroads Balance',
+      last_verified_at: verAt,
+      days_since_verified: daysSince,
+      stale_after_days: staleThreshold,
+      is_stale: daysSince > staleThreshold,
+      active_count: activeCount,
+      legacy_count: legacyCount,
+      pending_proposals_count: 0,
+      pending_proposals: [],
+      sources: base.sources || [],
+      changelog: base.changelog || [],
+    };
+  }
+
   function buildLocalPlatformState() {
     detectRuntimeProfile();
     const store = loadLocalStore();
     const seed = getSeedData() || {};
-    const solverOut = evaluateAllBuildsJS(store.items, store.custom_builds || []);
+    const solverOut = evaluateAllBuildsJS(store.items, store.custom_builds || [], store.saved_loadouts || []);
 
     return {
       profile: _activeProfile,
+      agent_profile: { profile_id: _activeProfile.userId, callsign: 'Agent Admin', shd_level: Number(store.shd_level || 2793) },
       inventory: store.items,
       inventory_count: store.items.length,
       evaluated_builds: solverOut.evaluated_builds,
@@ -1327,6 +1494,7 @@
       admin_showcase_loadouts: seed.saved_loadouts || [],
       expertise: buildExpertisePayload(store),
       canonical: seed.canonical_db || {},
+      meta_freshness: buildLocalMetaFreshness(seed, solverOut.evaluated_builds),
     };
   }
 
@@ -1334,10 +1502,15 @@
     detectRuntimeProfile();
     _activeProfile.mode = 'PC_FASTAPI';
     const seed = getSeedData() || {};
+    const shdLvl = Number((serverData.agent_profile && serverData.agent_profile.shd_level) || 2793);
+    if (_activeProfile.userId === 'admin') {
+      _activeProfile.displayName = `Agent Admin (SHD ${shdLvl})`;
+    }
     return {
       ...serverData,
       profile: _activeProfile,
       admin_showcase_loadouts: serverData.admin_showcase_loadouts || seed.saved_loadouts || [],
+      meta_freshness: serverData.meta_freshness || buildLocalMetaFreshness(seed, serverData.evaluated_builds || []),
     };
   }
 
@@ -1347,23 +1520,35 @@
     setActiveProfile: profileId => setActiveProfile(profileId),
 
     getMode: () => {
-      if (_pcServerAvailable === true) return 'FASTAPI_PC';
+      const isLocalHttp =
+        typeof window !== 'undefined' &&
+        window.location &&
+        /^https?:$/i.test(window.location.protocol) &&
+        (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
+      if (_pcServerAvailable === true || (isLocalHttp && !window.RollupBridge)) return 'FASTAPI_PC';
       if (window.RollupBridge) return 'ANDROID_HUB_CARTRIDGE';
       return 'PORTABLE_LOCAL';
     },
 
     async getState() {
       detectRuntimeProfile();
-      if (_activeProfile.userId === 'admin' && _pcServerAvailable !== false) {
+      const isLocalHttp =
+        typeof window !== 'undefined' &&
+        window.location &&
+        /^https?:$/i.test(window.location.protocol) &&
+        (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
+      if (_activeProfile.userId === 'admin' && (_pcServerAvailable !== false || isLocalHttp)) {
         try {
-          const res = await fetch('/api/state', { signal: AbortSignal.timeout(1800) });
+          const res = await fetch('/api/state', { signal: AbortSignal.timeout(8000) });
           if (res.ok) {
             _pcServerAvailable = true;
             const data = await res.json();
             return enrichServerState(data);
           }
         } catch (_) {
-          _pcServerAvailable = false;
+          if (!isLocalHttp) {
+            _pcServerAvailable = false;
+          }
         }
       }
       return buildLocalPlatformState();
@@ -1701,13 +1886,198 @@
       };
     },
 
+    async updateShdLevel(shdLevel) {
+      const cleanLvl = Math.max(1, Math.min(999999, Math.round(Number(shdLevel) || 2793)));
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/profile/shd-level', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shd_level: cleanLvl }),
+        });
+        const d = await res.json();
+        return enrichServerState(d.state || d);
+      }
+      const store = loadLocalStore();
+      store.shd_level = cleanLvl;
+      saveLocalStore(store);
+      return buildLocalPlatformState();
+    },
+
+    async getScannerStatus() {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/status');
+        return await res.json();
+      }
+      return { enabled: false, state: 'OFFLINE_PORTABLE', resync: { active: false, seen_count: 0, stale_candidates: [] } };
+    },
+
+    async toggleScanner(payload = null) {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload ? JSON.stringify(payload) : '{}',
+        });
+        return await res.json();
+      }
+      return { enabled: false, state: 'OFFLINE_PORTABLE' };
+    },
+
+    async snapLiveCard(location = 'BACKPACK') {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/snap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location }),
+        });
+        const d = await res.json();
+        return { captured_item: d.captured_item, state: enrichServerState(d.state || d) };
+      }
+      return { captured_item: null, state: buildLocalPlatformState() };
+    },
+
+    async commitEphemeralItem() {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/commit-ephemeral', { method: 'POST' });
+        if (!res.ok) throw new Error('No ephemeral item to commit');
+        const d = await res.json();
+        return { saved_item: d.saved_item, state: enrichServerState(d.state || d) };
+      }
+      return { saved_item: null, state: buildLocalPlatformState() };
+    },
+
+    async startResyncSweep(slotFilter = null, locationFilter = null) {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/resync/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slot_filter: slotFilter, location_filter: locationFilter }),
+        });
+        return await res.json();
+      }
+      return null;
+    },
+
+    async finishResyncSweep() {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/resync/finish', { method: 'POST' });
+        return await res.json();
+      }
+      return { stale_items: [], seen_count: 0 };
+    },
+
+    async pruneResyncItems(itemIds) {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/resync/prune', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_ids: itemIds }),
+        });
+        const d = await res.json();
+        return { prune_result: d.prune_result, state: enrichServerState(d.state || d) };
+      }
+      return { prune_result: { removed_count: 0 }, state: buildLocalPlatformState() };
+    },
+
+    async stageMetaProposal(payload) {
+      if (_pcServerAvailable && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/meta/stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || 'Failed staging Meta Proposal');
+        return { proposal: d.staged_proposal, state: enrichServerState(d.state || d) };
+      }
+      if (payload && payload.build) {
+        const state = await Adapter.addCustomBuild(payload.build);
+        return { proposal: null, state };
+      }
+      return { proposal: null, state: buildLocalPlatformState() };
+    },
+
+    async parseMetaBuildText(payload) {
+      if (_pcServerAvailable && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/meta/parse-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || 'Failed parsing Meta Build text');
+        return {
+          proposal: d.staged_proposal,
+          apply_result: d.meta_apply_result || null,
+          state: enrichServerState(d.state || d),
+        };
+      }
+      throw new Error('Quick Text Meta Staging requires PC FastAPI mode.');
+    },
+
+    async approveMetaProposal(proposalId, payload = {}) {
+      if (_pcServerAvailable && _activeProfile.userId === 'admin') {
+        const res = await fetch(`/api/meta/proposals/${encodeURIComponent(proposalId)}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {}),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || 'Failed approving Meta Proposal');
+        return { apply_result: d.meta_apply_result, state: enrichServerState(d.state || d) };
+      }
+      return { apply_result: null, state: buildLocalPlatformState() };
+    },
+
+    async rejectMetaProposal(proposalId) {
+      if (_pcServerAvailable && _activeProfile.userId === 'admin') {
+        const res = await fetch(`/api/meta/proposals/${encodeURIComponent(proposalId)}/reject`, {
+          method: 'POST',
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || 'Failed rejecting Meta Proposal');
+        return { state: enrichServerState(d.state || d) };
+      }
+      return { state: buildLocalPlatformState() };
+    },
+
+    async markMetaVerifiedNow(payload = {}) {
+      if (_pcServerAvailable && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/meta/verify-now', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {}),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || 'Failed updating verification timestamp');
+        return { state: enrichServerState(d.state || d) };
+      }
+      return { state: buildLocalPlatformState() };
+    },
+
+    async setMetaBuildLifecycle(buildId, status) {
+      if (_pcServerAvailable && _activeProfile.userId === 'admin') {
+        const res = await fetch(`/api/meta/builds/${encodeURIComponent(buildId)}/lifecycle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.detail || 'Failed updating build lifecycle');
+        return { state: enrichServerState(d.state || d) };
+      }
+      return { state: buildLocalPlatformState() };
+    },
+
     evaluateAllBuildsJS,
     snapShorthandToItemJS,
     resolveParentBrandJS,
+    formatTargetPieceNameJS,
     classifyItemArchetypeJS,
     computeLoadoutBallisticsJS,
     iterCanonicalEntriesJS,
     normalizeWeaponEntryJS,
+    inferItemCategoryJS,
   };
 
   window.SHDStorageAdapter = Adapter;

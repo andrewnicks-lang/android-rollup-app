@@ -688,7 +688,7 @@
       rampBanner.hidden = false;
       rampBanner.className = 'card card-amber';
       rampBanner.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span class="badge badge-amber">🛡️ Post-Break Ramp-Up Active</span>
           <span style="font-size:11.5px;color:#fde68a;font-weight:700;">${daysElapsed}d layoff • ${rem} ramp session(s)</span>
         </div>

@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>SHD TACTICAL COMMAND // BUILD & ARMORY SOLVER v5.0</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHD TACTICAL COMMAND // BUILD &amp; ARMORY SOLVER v6.6</title>
+  <link rel="stylesheet" href="styles.css?v=6.6" />
 </head>
 <body>
   <!-- TOP TACTICAL HEADER -->
@@ -12,34 +12,37 @@
     <div class="brand-block">
       <div class="shd-ring" title="SHD ISAC Node Active"></div>
       <div>
-        <div class="shd-title">SHD TACTICAL COMMAND <span class="version-pill">v5.0 ULTIMATE</span></div>
-        <div class="shd-subtitle">Division 2 Inventory Vision OCR • 6-Slot Combinatorial Solver • Tactical Dossier &amp; Expertise 413/500</div>
+        <div class="shd-title">SHD TACTICAL COMMAND <span class="version-pill">v6.0 LIVE SCANNER</span></div>
+        <div class="shd-subtitle">EAC-Safe Live Screen Watcher • ★ Favorite Gate &amp; Ephemeral Triage • 6-Slot Solver &amp; Expertise 413/500</div>
       </div>
     </div>
 
     <!-- MAIN NAVIGATION TABS (Desktop) -->
     <nav class="main-nav" id="desktop-nav">
-      <button class="main-nav-btn active" data-view="matrix" onclick="switchMainView('matrix')">
-        <span class="nav-icon">🎯</span> Build Matrix <span class="nav-badge" id="nav-count-builds">13</span>
+      <button class="main-nav-btn active" data-view="matrix" onclick="switchMainView('matrix')" title="Build Matrix (Ctrl+1)">
+        <span class="nav-icon">🎯</span> Build Matrix <span class="nav-badge" id="nav-count-builds">20</span>
       </button>
-      <button class="main-nav-btn" data-view="workbench" onclick="switchMainView('workbench')">
-        <span class="nav-icon">🛠️</span> Loadout Workbench <span class="nav-badge" id="nav-count-loadouts">4</span>
+      <button class="main-nav-btn" data-view="workbench" onclick="switchMainView('workbench')" title="Loadout Workbench (Ctrl+2)">
+        <span class="nav-icon">🛠️</span> Loadout Workbench <span class="nav-badge" id="nav-count-loadouts">1</span>
       </button>
-      <button class="main-nav-btn" data-view="armory" onclick="switchMainView('armory')">
+      <button class="main-nav-btn" data-view="armory" onclick="switchMainView('armory')" title="Armory &amp; Stash (Ctrl+3)">
         <span class="nav-icon">🎒</span> Armory &amp; Stash <span class="nav-badge" id="nav-count-armory">0</span>
       </button>
-      <button class="main-nav-btn" data-view="expertise" onclick="switchMainView('expertise')">
+      <button class="main-nav-btn" data-view="expertise" onclick="switchMainView('expertise')" title="Expertise 413/500 (Ctrl+4)">
         <span class="nav-icon">⭐</span> Expertise <span class="nav-badge accent" id="nav-count-expertise">413/500</span>
       </button>
     </nav>
 
     <div class="header-actions">
+      <button type="button" class="btn btn-outline btn-sm" id="btn-shd-watch" onclick="openShdLevelDialog()" title="Keener's SHD Watch Level (Auto-updates from top-right Inventory HUD or click to set manually)">
+        ⌚ SHD <span id="hdr-shd-level">2793</span>
+      </button>
       <!-- Profile / Multi-User Switcher -->
       <div class="profile-switcher-wrap" title="Switch Profile (Admin vs Demo vs Tester)">
         <span class="profile-badge-dot" id="active-user-badge">🟢</span>
-        <select id="profile-selector" class="shd-select compact" onchange="handleProfileSwitch(this.value)">
-          <option value="admin">👑 Admin (SHD 2793)</option>
-          <option value="demo">🎮 Demo (47 Golden Stash)</option>
+        <select id="profile-selector" class="shd-select compact" aria-label="Active Agent Profile" onchange="handleProfileSwitch(this.value)">
+          <option value="admin" id="opt-profile-admin">👑 Admin (SHD 2793)</option>
+          <option value="demo">🎮 Demo (50 Golden Stash)</option>
           <option value="tester1">🧪 Tester 1 (Clean Slate)</option>
           <option value="tester2">🧪 Tester 2 (Clean Slate)</option>
         </select>
@@ -47,68 +50,173 @@
       <button class="btn btn-outline btn-sm" onclick="openBackupModal()" title="Snapshots, Import/Export &amp; Android Hub Sync">
         💾 Backup / Sync
       </button>
-      <button class="btn btn-gold btn-sm" onclick="loadGoldenStash()" title="Load 47-Item Endgame Benchmark Stash">
+      <button class="btn btn-gold btn-sm" onclick="loadGoldenStash()" title="Load Endgame Benchmark Demo Stash">
         ⚡ Demo Stash
       </button>
     </div>
   </header>
 
-  <!-- QUICK INGESTION BAR (Collapsible or Compact) -->
-  <section class="quick-ingest-bar">
-    <div class="quick-ingest-left">
-      <button class="btn btn-primary btn-sm" onclick="document.getElementById('img-upload-input').click()">
-        📸 Scan Screenshots
+  <!-- SECOND-MONITOR LIVE SCANNER COMPANION HUD -->
+  <section class="live-scanner-hud" id="live-scanner-hud">
+    <div class="scanner-left-controls">
+      <span class="scanner-status-pill state-WAITING_FOR_GAME" id="scanner-state-pill" title="Passive Win32 + WinRT OCR Watcher (Zero Game Hooks)">
+        📡 WAITING FOR DIVISION 2
+      </span>
+      <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-toggle" aria-pressed="true" onclick="toggleLiveScanner()" title="Pause or Resume Always-On Inventory Watcher (Global Hotkey: F8)">
+        ⏸️ Pause (F8)
       </button>
-      <input type="file" id="img-upload-input" accept="image/*" multiple hidden onchange="handleImageUpload(this.files)" />
-
-      <button class="btn btn-outline btn-sm" onclick="document.getElementById('vid-upload-input').click()">
-        🎥 Scan Stash Video
+      <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-save-mode" aria-pressed="false" onclick="toggleScannerSaveMode()" title="Toggle between ★ Starred Only (zero junk clutter) vs Record All Hovered items while scrolling (Global Hotkey: F7)">
+        ★ Starred Only (F7)
       </button>
-      <input type="file" id="vid-upload-input" accept="video/mp4,video/webm,video/quicktime" hidden onchange="handleVideoUpload(this.files[0])" />
+      <button type="button" class="btn btn-accent btn-xs" id="btn-scanner-snap" onclick="snapLiveScreenCard()" title="Force-Save Currently Hovered Item Card to Armory (Global Hotkey: F9)">
+        📸 Force Save (F9)
+      </button>
+      <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-audio" aria-pressed="true" onclick="toggleScannerAudio()" title="Toggle Smart Audio Cues (Soft tick on Save, Rising chime on Unstarred Build Upgrade)">
+        🔊 Audio: ON
+      </button>
+      <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-anyscreen" aria-pressed="false" onclick="toggleScannerAnyScreen()" title="Allow scanning screenshots/videos open on any monitor even when Division 2 is not running">
+        🖥️ Game Window Only
+      </button>
+      <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-resync" aria-pressed="false" onclick="toggleResyncSweep()" title="Start a full Stash/Slot Re-Sync Sweep to flag deleted/deconstructed items for 1-click cleanup">
+        🔄 Stash Re-Sync Sweep
+      </button>
+      <span class="badge" id="scanner-session-counts" title="Session ★ Auto-Saves &amp; Zero-DB Ephemeral Previews">★ 0 Saved • 0 Previews</span>
     </div>
 
-    <div class="quick-shorthand-group">
-      <input
-        type="text"
-        id="shorthand-input"
-        placeholder="Quick Add Item: e.g. 'Backbone Backpack 15% WD 6% CHC 12% CHD' or 'Turmoil Kneepads'"
-        onkeydown="if(event.key==='Enter') submitShorthand()"
-      />
-      <select id="shorthand-slot-select" class="shd-select compact">
-        <option value="">Auto Slot</option>
-        <option value="MASK">Mask</option>
-        <option value="BACKPACK">Backpack</option>
-        <option value="CHEST">Chest</option>
-        <option value="GLOVES">Gloves</option>
-        <option value="HOLSTER">Holster</option>
-        <option value="KNEEPADS">Kneepads</option>
-      </select>
-      <button class="btn btn-accent btn-sm" onclick="submitShorthand()">+ Add</button>
-    </div>
+    <div class="scanner-intake-deck" id="scanner-intake-deck">
+      <div class="live-intake-inspector" id="live-intake-inspector">
+        <div class="ephemeral-triage-strip" id="ephemeral-triage-strip">
+          <div class="inspector-header-main">
+            <span class="ephemeral-verdict-tag" id="ephemeral-verdict-badge" style="background:rgba(255,107,0,0.2); color:var(--shd-orange);">★ FAVORITE GATE</span>
+            <span id="ephemeral-verdict-text" class="inspector-title-text">
+              Hover gear in-game: <b>★ Starred</b> items auto-save exact OCR stats (0 disk screenshots) • <b>Unstarred</b> items preview Keep/Crush triage
+            </span>
+          </div>
+          <div class="inspector-actions">
+            <button type="button" class="btn btn-primary btn-xs hidden" id="btn-commit-ephemeral" onclick="commitHoveredEphemeralItem()">
+              + Save to Armory
+            </button>
+            <button type="button" class="btn btn-outline btn-xs hidden" id="btn-inspector-edit" onclick="editActiveInspectorItem()">
+              ✏️ Edit
+            </button>
+            <button type="button" class="btn btn-danger btn-xs hidden" id="btn-inspector-delete" onclick="deleteActiveInspectorItem()">
+              🗑️ Delete
+            </button>
+          </div>
+        </div>
+        <div class="inspector-scroll-banner hidden" id="inspector-scroll-banner">
+          ⏬ LONG ITEM CARD DETECTED — <b>Scroll Down in-game</b> on this same item to capture remaining Attributes &amp; Talent before saving!
+        </div>
+        <div class="inspector-stat-chips" id="inspector-stat-chips">
+          <span class="inspector-empty-hint">Waiting for active Inventory / Stash card hover...</span>
+        </div>
+      </div>
 
-    <div class="ingest-status" id="ingest-status">Ready • EAC-Safe Zero Game Hooks</div>
+      <aside class="live-session-feed" id="live-session-feed" aria-label="Session ★ Intake Feed">
+        <div class="session-feed-hdr">
+          <span>📥 Session ★ Intake Feed</span>
+          <span class="badge" id="session-feed-count">0</span>
+        </div>
+        <div class="session-intake-list" id="session-intake-list">
+          <div class="inspector-empty-hint">Starred (`★`) items captured this session appear here with verified rolls.</div>
+        </div>
+      </aside>
+    </div>
   </section>
+
+  <!-- SECONDARY BATCH UPLOAD & MANUAL SHORTHAND DISCLOSURE -->
+  <details class="quick-ingest-details" id="quick-ingest-details">
+    <summary>
+      <span>📥 Batch Upload Screenshots / Stash Video / Manual Shorthand</span>
+      <span class="ingest-status" id="ingest-status">Ready • EAC-Safe Zero Game Hooks</span>
+    </summary>
+    <div class="quick-ingest-bar">
+      <div class="quick-ingest-left">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('img-upload-input').click()">
+          📸 Scan Screenshots
+        </button>
+        <input type="file" id="img-upload-input" accept="image/*" multiple hidden onchange="handleImageUpload(this.files)" />
+
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('vid-upload-input').click()">
+          🎥 Scan Stash Video
+        </button>
+        <input type="file" id="vid-upload-input" accept="video/mp4,video/webm,video/quicktime" hidden onchange="handleVideoUpload(this.files[0])" />
+      </div>
+
+      <div class="quick-shorthand-group">
+        <input
+          type="text"
+          id="shorthand-input"
+          placeholder="Quick Add: e.g. 'Backbone Backpack 15% WD 6% CHC 12% CHD', 'Pestilence LMG 10% DTTOOC', or 'Gear Mod 13% PFE'"
+          onkeydown="if(event.key==='Enter') submitShorthand()"
+        />
+        <select id="shorthand-slot-select" class="shd-select compact">
+          <option value="">Auto Category / Slot</option>
+          <option value="MASK">Mask</option>
+          <option value="BACKPACK">Backpack</option>
+          <option value="CHEST">Chest</option>
+          <option value="GLOVES">Gloves</option>
+          <option value="HOLSTER">Holster</option>
+          <option value="KNEEPADS">Kneepads</option>
+          <option value="PRIMARY">Primary Weapon</option>
+          <option value="SECONDARY">Secondary Weapon</option>
+          <option value="SIDEARM">Sidearm</option>
+          <option value="GEAR_MOD">Gear System Mod</option>
+          <option value="SKILL_MOD">Skill Mod</option>
+        </select>
+        <button class="btn btn-accent btn-sm" onclick="submitShorthand()">+ Add</button>
+      </div>
+    </div>
+  </details>
 
   <!-- ==================================================================== -->
   <!-- VIEW 1: BUILD MATRIX & TACTICAL KNOWLEDGE DOSSIER                    -->
   <!-- ==================================================================== -->
   <main class="workspace-view active" id="view-matrix">
     <div class="matrix-grid">
-      <!-- LEFT PANEL: 13+ Meta Builds Readiness List -->
+      <!-- LEFT PANEL: 16+ Meta Builds Readiness List -->
       <aside class="panel builds-sidebar">
         <div class="panel-header">
           <h2>🏆 Endgame Meta Archetypes</h2>
           <div style="display:flex; gap:6px; align-items:center;">
             <span class="badge" id="builds-ready-badge">0 Ready</span>
-            <button class="btn btn-outline btn-xs" onclick="openAddCustomBuildModal()" title="Create New Meta Build Template">+ Custom</button>
+            <button class="btn btn-outline btn-xs" onclick="openMetaStudioDialog('proposals')" title="Open Meta Freshness Studio, Staged Diff Reviewer &amp; Custom Build Ingest">🔄 Meta Studio</button>
           </div>
         </div>
+        <div class="meta-freshness-strip" id="meta-freshness-strip" onclick="openMetaStudioDialog('proposals')" title="Click to review Title Update freshness, staged proposals, or ingest a new build">
+          <span class="mf-dot fresh" id="mf-status-dot"></span>
+          <span class="mf-version" id="mf-version-label">TU24 / Year 8 Meta</span>
+          <span class="mf-age" id="mf-age-label">Verified Today</span>
+          <span class="badge badge-accent hidden" id="mf-pending-badge">0 Staged</span>
+        </div>
         <div class="role-filter-bar" id="matrix-role-filter">
-          <button class="filter-pill active" onclick="filterMatrixRole('ALL', this)">All (13)</button>
+          <button class="filter-pill active" id="pill-role-all" onclick="filterMatrixRole('ALL', this)">All (20)</button>
           <button class="filter-pill" onclick="filterMatrixRole('RED_DPS', this)">🔴 DPS</button>
           <button class="filter-pill" onclick="filterMatrixRole('TECH_TANK', this)">🔵/🔴 Bruiser</button>
           <button class="filter-pill" onclick="filterMatrixRole('SKILL', this)">🟡 Skill/CC</button>
           <button class="filter-pill" onclick="filterMatrixRole('TANK_HEAL', this)">🛡️ Tank/Heal</button>
+          <button class="filter-pill" id="pill-role-legacy" onclick="filterMatrixRole('LEGACY', this)" title="Retired or nerfed builds kept in non-destructive archive to protect owned gear">📦 Legacy (0)</button>
+        </div>
+        <div class="matrix-search-sort-bar">
+          <input
+            type="search"
+            id="matrix-build-search"
+            class="shd-input compact"
+            placeholder="🔍 Filter build, weapon, set..."
+            aria-label="Filter Meta Builds by name, weapon, or gear set"
+            oninput="handleMatrixSearchSort()"
+          />
+          <select
+            id="matrix-build-sort"
+            class="shd-select compact"
+            aria-label="Sort Meta Builds"
+            onchange="handleMatrixSearchSort()"
+          >
+            <option value="readiness">Sort: Armory Match</option>
+            <option value="sustained_dps">Sort: Sustained DPS</option>
+            <option value="burst_dps">Sort: Burst DPS</option>
+            <option value="armor">Sort: Total Armor</option>
+          </select>
         </div>
         <div class="builds-list" id="builds-list"></div>
       </aside>
@@ -123,8 +231,8 @@
       <!-- RIGHT PANEL: Countdown Farm Radar & Deconstruct Advisor -->
       <aside class="panel radar-sidebar">
         <div class="panel-header">
-          <h2>📡 Countdown Farm Radar</h2>
-          <span class="badge">Targeted Loot</span>
+          <h2>📡 Targeted Loot &amp; Source Radar</h2>
+          <span class="badge">Drop Pools</span>
         </div>
         <div id="farm-radar-list" class="radar-list"></div>
 
@@ -151,8 +259,8 @@
         <div class="loadouts-list" id="saved-loadouts-list"></div>
 
         <div class="panel-header" style="margin-top: 12px; border-top: 1px solid var(--border);">
-          <h2>👑 Admin Showcase Builds</h2>
-          <span class="badge badge-gold">Cloneable</span>
+          <h2>🏆 Meta &amp; Showcase Presets</h2>
+          <span class="badge badge-gold" id="showcase-count-badge">20 Cloneable</span>
         </div>
         <div class="loadouts-list" id="showcase-loadouts-list"></div>
       </aside>
@@ -181,12 +289,17 @@
                 <option value="Gear Shift">Gear Shift (Secondary LMG)</option>
                 <option value="Scorpio">Scorpio (Exotic Shotgun)</option>
                 <option value="Ouroboros">Ouroboros (Exotic SMG)</option>
+                <option value="Backfire">Backfire (Exotic SMG)</option>
+                <option value="Regulus">Regulus (Exotic Revolver)</option>
                 <option value="Dark Winter">Dark Winter (Named Vector SMG)</option>
                 <option value="Capacitor">Capacitor (Exotic Skill AR)</option>
                 <option value="Kingbreaker">Kingbreaker (Perfect Flatline AR)</option>
                 <option value="SR-1 (Determined)">SR-1 / White Death (Determined MMR)</option>
                 <option value="Classic M1A">Classic M1A / Baker's Dozen (Rifle)</option>
                 <option value="Bullet King">Bullet King (Exotic LMG)</option>
+                <option value="Carnage (Perfect Sadist LMG)">Carnage (Perfect Sadist LMG)</option>
+                <option value="Bluescreen (Exotic LMG)">Bluescreen (Exotic LMG)</option>
+                <option value="Harmony (Perfectly In Sync Rifle)">Harmony (Perfectly In Sync Rifle)</option>
                 <option value="Chameleon">Chameleon (Exotic AR)</option>
                 <option value="ACS-12 / Rock n' Roll">ACS-12 / Lefty / Rock n' Roll</option>
               </select>
@@ -202,7 +315,8 @@
                 <option value="Optimist">Optimist (+15% Avg Weapon DMG)</option>
                 <option value="Perfectly In Sync">Perfectly In Sync (+40% WD &amp; Skill DMG)</option>
                 <option value="In Sync">In Sync (+30% WD &amp; Skill DMG)</option>
-                <option value="Sadist">Sadist / Eyeless / Ignited (x1.20 Status Amp)</option>
+                <option value="Perfect Sadist">Perfect Sadist (x1.35 Bleed Amp)</option>
+                <option value="Sadist">Sadist / Eyeless / Ignited (x1.30/1.20 Status Amp)</option>
                 <option value="Determined">Determined (Guaranteed 1-Shot Headshot Chain)</option>
                 <option value="Perfect Sledgehammer">Perfect Sledgehammer (+40% DTA on Grenade)</option>
               </select>
@@ -225,6 +339,9 @@
               ⚡ Auto-Assemble From Armory
             </button>
             <button class="btn btn-primary btn-sm" onclick="saveCurrentWorkbenchLoadout()">💾 Save to Locker</button>
+            <button class="btn btn-accent btn-sm" onclick="stageCurrentWorkbenchToMetaStudio()" title="Stage this 6-slot Workbench build into Meta Studio for Two-Gate 7-Bucket DPS benchmarking &amp; promotion">
+              🚀 Stage to Meta Studio
+            </button>
             <button class="btn btn-outline btn-sm" onclick="exportWorkbenchShareCard()">📋 Copy Build JSON</button>
           </div>
         </div>
@@ -289,7 +406,7 @@
       <div class="panel-header armory-header-bar">
         <div>
           <h2>🎒 Agent Armory &amp; Stash Explorer (<span id="stash-count">0</span> Items)</h2>
-          <p class="muted-sub">Categorize by Role Archetype, Core, Brand/Set, or Tinkering State • Click 🛠️ Equip to send directly to Workbench</p>
+          <p class="muted-sub">6 Armor Slots + Weapons + Gear &amp; Skill Mods • In-Game Loadout Protection Active • Click 🛠️ Equip to send to Workbench</p>
         </div>
 
         <div class="armory-controls">
@@ -301,16 +418,19 @@
             <button class="slot-tab" onclick="filterArmorySlot('GLOVES', this)">GLOVES</button>
             <button class="slot-tab" onclick="filterArmorySlot('HOLSTER', this)">HOLSTER</button>
             <button class="slot-tab" onclick="filterArmorySlot('KNEEPADS', this)">KNEEPADS</button>
+            <button class="slot-tab" onclick="filterArmorySlot('WEAPONS', this)">🔫 WEAPONS</button>
+            <button class="slot-tab" onclick="filterArmorySlot('GEAR_MOD', this)">🔌 GEAR MODS</button>
+            <button class="slot-tab" onclick="filterArmorySlot('SKILL_MOD', this)">⚙️ SKILL MODS</button>
             <button class="slot-tab fav-tab" onclick="filterArmorySlot('FAV', this)">★ FAV</button>
             <button class="slot-tab trash-tab" onclick="filterArmorySlot('TRASH', this)">🗑️ TRASH</button>
           </div>
 
-          <input type="text" id="stash-search" class="shd-input compact" placeholder="Search brand, talent, stat..." oninput="renderArmoryGrid()" />
+          <input type="text" id="stash-search" class="shd-input compact" placeholder="Search brand, weapon, talent, loadout..." oninput="renderArmoryGrid()" />
           <button class="btn btn-danger btn-xs" onclick="clearStashConfirm()">Clear All</button>
         </div>
       </div>
 
-      <!-- NEW SLEEK MULTI-DIMENSIONAL GEAR CATEGORIZATION BAR -->
+      <!-- MULTI-DIMENSIONAL GEAR CATEGORIZATION BAR -->
       <div class="armory-categorization-bar">
         <div class="cat-pill-group" id="armory-archetype-pills">
           <span class="cat-group-label">Role Archetype:</span>
@@ -341,7 +461,7 @@
             <option value="PROTOTYPE">🟣 Prototype Overcap</option>
             <option value="PIP_DEDUCED">⚡ Pip Deduced (Needs Review)</option>
             <option value="OCR_DIRECT">✔ OCR Direct / Verified</option>
-            <option value="IN_LOADOUT">🛡️ Used in Meta Build</option>
+            <option value="IN_LOADOUT">🛡️ Used in Meta / In-Game Loadout</option>
           </select>
 
           <label>Group By:</label>
@@ -349,7 +469,7 @@
             <option value="NONE">Standard Tactical Grid</option>
             <option value="ARCHETYPE">Group by Role Archetype</option>
             <option value="BRAND">Group by Brand / Gear Set</option>
-            <option value="SLOT">Group by Gear Slot</option>
+            <option value="SLOT">Group by Gear Slot / Category</option>
           </select>
         </div>
       </div>
@@ -512,7 +632,7 @@
   <div class="modal-backdrop hidden" id="verify-modal" onclick="if(event.target===this) closeVerifyModal()">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 id="verify-modal-title">🔍 Click-to-Verify &amp; Edit Gear Piece</h3>
+        <h3 id="verify-modal-title">🔍 Click-to-Verify &amp; Edit Armory Item</h3>
         <button class="btn-close" onclick="closeVerifyModal()">✕</button>
       </div>
       <div class="modal-body">
@@ -520,7 +640,7 @@
         <input type="hidden" id="edit-item-id" />
         <div class="form-row-2">
           <div class="form-group">
-            <label>Slot:</label>
+            <label>Slot / Category:</label>
             <select id="edit-slot" class="shd-select">
               <option value="MASK">MASK</option>
               <option value="BACKPACK">BACKPACK</option>
@@ -528,6 +648,11 @@
               <option value="GLOVES">GLOVES</option>
               <option value="HOLSTER">HOLSTER</option>
               <option value="KNEEPADS">KNEEPADS</option>
+              <option value="PRIMARY">PRIMARY WEAPON</option>
+              <option value="SECONDARY">SECONDARY WEAPON</option>
+              <option value="SIDEARM">SIDEARM WEAPON</option>
+              <option value="GEAR_MOD">GEAR SYSTEM MOD</option>
+              <option value="SKILL_MOD">SKILL MOD</option>
             </select>
           </div>
           <div class="form-group">
@@ -542,7 +667,7 @@
         </div>
         <div class="form-row-2">
           <div class="form-group">
-            <label>Brand or Gear Set:</label>
+            <label>Brand, Gear Set, or Weapon Class:</label>
             <input type="text" id="edit-brand" class="shd-input" />
           </div>
           <div class="form-group">
@@ -557,6 +682,15 @@
               <option value="WEAPON_DAMAGE">WEAPON_DAMAGE (+%)</option>
               <option value="ARMOR">ARMOR (+HP)</option>
               <option value="SKILL_TIER">SKILL_TIER (+1)</option>
+              <option value="LMG_DAMAGE">LMG_DAMAGE (+%)</option>
+              <option value="AR_DAMAGE">AR_DAMAGE (+%)</option>
+              <option value="SMG_DAMAGE">SMG_DAMAGE (+%)</option>
+              <option value="RIFLE_DAMAGE">RIFLE_DAMAGE (+%)</option>
+              <option value="MMR_DAMAGE">MMR_DAMAGE (+%)</option>
+              <option value="SHOTGUN_DAMAGE">SHOTGUN_DAMAGE (+%)</option>
+              <option value="PISTOL_DAMAGE">PISTOL_DAMAGE (+%)</option>
+              <option value="MOD_ATTRIBUTE">MOD_ATTRIBUTE</option>
+              <option value="SKILL_MOD_BONUS">SKILL_MOD_BONUS</option>
             </select>
           </div>
           <div class="form-group">
@@ -578,7 +712,7 @@
         </div>
         <div class="form-row-2">
           <div class="form-group">
-            <label>Talent (Chest/Backpack):</label>
+            <label>Talent (Chest / Backpack / Weapon):</label>
             <input type="text" id="edit-talent" class="shd-input" placeholder="Leave blank if none" />
           </div>
           <div class="form-group">
@@ -617,7 +751,7 @@
       </div>
       <div class="modal-body">
         <p class="muted-sub" style="margin-bottom:12px;">
-          Your Armory, Saved Loadouts, and Expertise 413/500 progress are persisted in SQLite (`data/shd_armory.db`) on PC and isolated per-user `localStorage` on Android Hub.
+          Your Armory, Saved Loadouts, and Expertise 413/500 progress are persisted in SQLite (`data/div2_inventory.sqlite`) on PC and isolated per-user `localStorage` on Android Hub.
         </p>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
           <button class="btn btn-primary btn-sm" onclick="downloadJsonBackup()">⬇️ Download JSON Backup</button>
@@ -631,10 +765,214 @@
     </div>
   </div>
 
+  <!-- ==================================================================== -->
+  <!-- NATIVE DIALOG: STASH RE-SYNC SWEEP STALE ITEM PRUNER                 -->
+  <!-- ==================================================================== -->
+  <dialog id="resync-dialog" class="shd-native-dialog" aria-labelledby="resync-dialog-title" closedby="any">
+    <div class="modal-header" style="margin-bottom:4px;">
+      <h2 id="resync-dialog-title">🔄 Stash Re-Sync Sweep Complete</h2>
+      <button type="button" class="btn-close" onclick="closeResyncDialog()" aria-label="Close">✕</button>
+    </div>
+    <p class="muted-sub" id="resync-dialog-summary">
+      Review previously saved Armory items that were not observed during this sweep (likely deconstructed, donated, or sold in-game).
+    </p>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; cursor:pointer;">
+        <input type="checkbox" id="resync-select-all" checked onchange="toggleAllResyncCheckboxes(this.checked)" />
+        Select / Deselect All Stale Items
+      </label>
+      <span class="badge badge-warn" id="resync-stale-count-badge">0 Stale</span>
+    </div>
+    <div id="resync-stale-list" style="max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+      <button type="button" class="btn btn-outline btn-sm" autofocus onclick="closeResyncDialog()">Keep All (Cancel)</button>
+      <button type="button" class="btn btn-danger btn-sm" id="btn-confirm-prune-resync" onclick="confirmPruneResyncItems()">
+        🗑️ Prune Selected From Armory
+      </button>
+    </div>
+  </dialog>
+
+  <!-- ==================================================================== -->
+  <!-- NATIVE DIALOG: META FRESHNESS STUDIO & TWO-GATE DIFF REVIEWER        -->
+  <!-- ==================================================================== -->
+  <dialog id="meta-studio-dialog" class="shd-native-dialog wide-native-dialog" aria-labelledby="meta-studio-title" closedby="any">
+    <div class="modal-header" style="margin-bottom:4px;">
+      <div>
+        <h2 id="meta-studio-title">🔄 Meta Freshness Studio &amp; Two-Gate Diff Reviewer</h2>
+        <div class="muted-sub">Deterministic 6-Slot Legality + 7-Bucket Ballistics Gate • Non-Destructive Legacy Archive • Auto Hub Sync</div>
+      </div>
+      <button type="button" class="btn-close" onclick="closeMetaStudioDialog()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="ms-kpi-banner" id="ms-freshness-banner"></div>
+
+    <div class="dossier-tabs" id="ms-studio-tabs">
+      <button type="button" class="dossier-tab-btn active" data-ms-tab="proposals" onclick="switchMetaStudioTab('proposals')">
+        📋 Staged Proposals &amp; Changelog
+      </button>
+      <button type="button" class="dossier-tab-btn" data-ms-tab="leaderboard" onclick="switchMetaStudioTab('leaderboard')">
+        📊 20-Build Leaderboard
+      </button>
+      <button type="button" class="dossier-tab-btn" data-ms-tab="ingest" onclick="switchMetaStudioTab('ingest')">
+        ⚡ Quick Build / Patch Ingest
+      </button>
+      <button type="button" class="dossier-tab-btn" data-ms-tab="automation" onclick="switchMetaStudioTab('automation')">
+        🤖 Automated Sweep &amp; CLI
+      </button>
+    </div>
+
+    <!-- TAB 1: STAGED PROPOSALS & CHANGELOG -->
+    <div class="ms-tab-pane active" id="ms-pane-proposals">
+      <div id="ms-proposals-list" class="ms-scroll-area"></div>
+    </div>
+
+    <!-- TAB 2: 20-BUILD SOLVER LEADERBOARD (RESPONSIVE + SORTABLE) -->
+    <div class="ms-tab-pane hidden" id="ms-pane-leaderboard">
+      <div id="ms-leaderboard-sort-status" class="visually-hidden" role="status"></div>
+      <div tabindex="0" role="region" aria-labelledby="ms-leaderboard-caption" class="table-wrapper" id="ms-leaderboard-wrapper">
+        <table id="ms-leaderboard-table" class="shd-leaderboard-table">
+          <caption id="ms-leaderboard-caption" class="shd-table-caption">
+            Solver-Benchmarked Endgame Meta Roster (SHD 1000+ • Optimal 60% CHC Mod Balance • Click Column Headers to Sort)
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" data-type="text">
+                <button type="button">Archetype <span class="sort-icon" aria-hidden="true"></span></button>
+              </th>
+              <th scope="col" data-type="text">
+                <button type="button">Role <span class="sort-icon" aria-hidden="true"></span></button>
+              </th>
+              <th scope="col" data-type="number" aria-sort="descending">
+                <button type="button">Sustained DPS <span class="sort-icon" aria-hidden="true"></span></button>
+              </th>
+              <th scope="col" data-type="number">
+                <button type="button">Burst DPS <span class="sort-icon" aria-hidden="true"></span></button>
+              </th>
+              <th scope="col" data-type="number">
+                <button type="button">Heroic TTK <span class="sort-icon" aria-hidden="true"></span></button>
+              </th>
+              <th scope="col" data-type="number">
+                <button type="button">Armor <span class="sort-icon" aria-hidden="true"></span></button>
+              </th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody id="ms-leaderboard-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: QUICK BUILD / PATCH INGEST -->
+    <div class="ms-tab-pane hidden" id="ms-pane-ingest">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="ms-ingest-name">Build Title:</label>
+          <input type="text" id="ms-ingest-name" class="shd-input" placeholder="e.g. Ongoing Directive Catalyst LMG" />
+        </div>
+        <div class="form-group">
+          <label for="ms-ingest-role">Tactical Role:</label>
+          <select id="ms-ingest-role" class="shd-select">
+            <option value="RED_DPS">RED_DPS (Sustained / Crit Weapon DPS)</option>
+            <option value="ONE_SHOT_MMR">ONE_SHOT_MMR (Headhunter / Sniper)</option>
+            <option value="HYBRID_BRUISER">HYBRID_BRUISER (Red/Blue Run-and-Gun)</option>
+            <option value="TECH_TANK">TECH_TANK (Shield / PFE Bruiser)</option>
+            <option value="SKILL_DPS">SKILL_DPS (Ballistic / Hybrid Skill)</option>
+            <option value="CROWD_CONTROL">CROWD_CONTROL (Status / Foam / Burn)</option>
+            <option value="SUPPORT_HEALER">SUPPORT_HEALER (Squad Heal / Buff)</option>
+            <option value="ARMOR_TANK">ARMOR_TANK (Raid / Vanguard Tank)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="ms-ingest-weapon">Primary Weapon:</label>
+          <input type="text" id="ms-ingest-weapon" class="shd-input" value="St. Elmo's Engine" placeholder="e.g. Carnage (Perfect Sadist LMG), Pestilence..." />
+        </div>
+        <div class="form-group">
+          <label for="ms-ingest-spec">Specialization &amp; Tier Badge:</label>
+          <div style="display:flex; gap:6px;">
+            <select id="ms-ingest-spec" class="shd-select" style="flex:1;">
+              <option value="Gunner">Gunner</option>
+              <option value="Technician">Technician</option>
+              <option value="Survivalist">Survivalist</option>
+              <option value="Firewall">Firewall</option>
+              <option value="Sharpshooter">Sharpshooter</option>
+              <option value="Demolitionist">Demolitionist</option>
+            </select>
+            <input type="text" id="ms-ingest-badge" class="shd-input" style="flex:1;" value="S-TIER META" placeholder="Tier Badge" />
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="ms-ingest-source">Source / Patch Citation:</label>
+        <input type="text" id="ms-ingest-source" class="shd-input" placeholder="e.g. Ubisoft TU24 Patch Notes / iKia / Dod-Regnbue Breakdown" />
+      </div>
+      <div class="form-group">
+        <label for="ms-ingest-text">Paste 6-Slot Build Notes, Shorthand Lines, or Full Build JSON:</label>
+        <textarea id="ms-ingest-text" class="shd-input" rows="5" placeholder="Mask: The Catalyst&#10;Chest: Ongoing Directive Parabellum Rounds&#10;Backpack: Česka Wicked&#10;Gloves: Ongoing Directive&#10;Holster: Ongoing Directive&#10;Kneepads: Ongoing Directive"></textarea>
+      </div>
+      <div id="ms-ingest-feedback" class="ingest-status" style="min-height:18px;"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="submitQuickMetaText(false)">🔍 Stage &amp; Benchmark (Review First)</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="submitQuickMetaText(true)">🚀 Stage, Approve &amp; Sync Hub Now</button>
+      </div>
+    </div>
+
+    <!-- TAB 3: AUTOMATED SWEEP & CLI -->
+    <div class="ms-tab-pane hidden" id="ms-pane-automation">
+      <div class="ms-scroll-area" style="font-size:12px; line-height:1.55; color:var(--text-main);">
+        <div class="tel-section">
+          <h4>🛡️ Two-Gate Meta Verification Architecture (Zero API Keys in Server)</h4>
+          <p style="margin:4px 0 8px 0; color:var(--text-muted);">
+            <b>Gate 1 (Authority &amp; Canonical Integrity):</b> New Title Update gear sets, Exotics, Named Items, and rebalance patches are bundled atomically with <code>canonical_gear_db.json</code> grounded in Ubisoft TU patch notes and math-verified community spreadsheets (iKia, Dod-Regnbue, Community Gear Sheet).<br/>
+            <b>Gate 2 (Deterministic Solver Benchmark):</b> Every candidate build runs through <code>engine/build_solver.py</code> to verify 1-Exotic armor legality, Gear Set 1-minor rules, 60% CHC cap mod balancing, and 7-Bucket Burst/Sustained DPS before staging.
+          </p>
+          <p style="margin:0; color:var(--text-muted);">
+            <b>Non-Destructive Legacy Protection:</b> Retiring a nerfed build moves it to <code>📦 Legacy</code> rather than deleting it—any Legacy build where you own <code>&ge;4/6</code> pieces (plus all Saved Loadouts) remains protected from <code>SAFE_CRUSH</code> / Safe Deconstruct flags.
+          </p>
+        </div>
+        <div class="tel-section">
+          <h4>⌨️ Agent Skill &amp; Scheduled Refresh Commands</h4>
+          <p style="margin:4px 0 6px 0; color:var(--text-muted);">Ask Antigravity to run a live seasonal meta sweep anytime (or automate via <code>/schedule</code>):</p>
+          <pre style="background:#070a10; border:1px solid var(--border); padding:8px 10px; border-radius:5px; overflow-x:auto; color:#93c5fd; margin:0;">python .agents/skills/shd-div2-armory-ops/scripts/shd_cli.py refresh-meta --status
+python .agents/skills/shd-div2-armory-ops/scripts/shd_cli.py refresh-meta --approve ALL</pre>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--border); padding-top:8px;">
+      <button type="button" class="btn btn-outline btn-sm" autofocus onclick="closeMetaStudioDialog()">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="shd-level-dialog" closedby="any" aria-labelledby="shd-dialog-title" style="max-width:380px; width:92%; background:#0b1019; color:var(--text-main); border:1px solid var(--shd-orange); border-radius:8px; padding:16px;">
+    <h2 id="shd-dialog-title" style="margin:0 0 8px 0; font-size:15px; color:var(--shd-orange);">⌚ Keener's SHD Watch Level</h2>
+    <p id="shd-level-hint" style="margin:0 0 10px 0; font-size:12px; color:var(--text-muted);">
+      Auto-syncs when your in-game Inventory opens, or enter your exact current SHD Watch rank below:
+    </p>
+    <form onsubmit="submitShdLevelDialog(event)" style="display:flex; flex-direction:column; gap:10px;">
+      <label for="shd-level-input" style="font-size:12px; font-weight:600;">Current SHD Watch Rank</label>
+      <input
+        type="number"
+        id="shd-level-input"
+        aria-describedby="shd-level-hint"
+        min="1"
+        max="999999"
+        step="1"
+        required
+        style="padding:8px 10px; background:#070a10; color:var(--text-main); border:1px solid var(--border); border-radius:5px; font-size:14px;"
+      />
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeShdLevelDialog()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save SHD Level</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- SCRIPTS: Seed Bundle -> Storage Adapter -> Main App Controller -->
   <script src="../../bridge/rollup-bridge.js"></script>
-  <script src="shd_solver_portable.js"></script>
-  <script src="shd_storage_adapter.js"></script>
-  <script src="app.js"></script>
+  <script src="shd_solver_portable.js?v=6.6"></script>
+  <script src="shd_storage_adapter.js?v=6.6"></script>
+  <script src="app.js?v=6.6"></script>
 </body>
 </html>
