@@ -43,6 +43,10 @@ let ACTIVE_DOSSIER_TAB = "why_it_works";
 let ACTIVE_ARMORY_SLOT = "ALL";
 let ACTIVE_ARMORY_ARCHETYPE = "ALL";
 let ACTIVE_WORKBENCH_LOADOUT = null;
+let WORKBENCH_BASELINE_SNAPSHOT = null;
+let ACTIVE_DOCTOR_GOAL = "AUTO";
+let ACTIVE_DOCTOR_TRACK = "owned";
+let LAST_DOCTOR_ANALYSIS = null;
 let ACTIVE_SLOT_PICKER_TARGET = "MASK";
 let ACTIVE_META_STUDIO_TAB = "proposals";
 let _LAST_LEADERBOARD_SIG = "";
@@ -504,6 +508,14 @@ function connectLiveScanWebSocket() {
         } else if (msg.type === "ITEM_SAVED") {
           await refreshPlatformState();
           renderSavedScannerBanner(msg.item || {}, msg.reason || "FAVORITE_STAR");
+        } else if (msg.type === "EQUIPPED_SLOT_CAPTURED") {
+          await refreshPlatformState();
+          const eqCap = (msg.status && msg.status.equipped_capture) || (APP_STATE.scanner_status && APP_STATE.scanner_status.equipped_capture) || {};
+          if (eqCap.captured_slots) {
+            loadEquippedCaptureIntoWorkbench(eqCap.captured_slots, false);
+          }
+          const it = msg.item || {};
+          setIngestStatus(`🩺 Captured Equipped [${msg.slot || it.slot}]: ${it.item_name || it.brand_or_set || "Gear"}`);
         } else if (msg.type === "SHD_LEVEL_UPDATED" && msg.agent_profile) {
           APP_STATE.agent_profile = msg.agent_profile;
           renderAgentShdBadge(msg.agent_profile);
@@ -594,6 +606,18 @@ function renderScannerHud(status) {
       resyncBtn.textContent = "🔄 Stash Re-Sync Sweep";
     }
   }
+
+  const eqCap = status.equipped_capture || {};
+  const eqBtn = document.getElementById("btn-scanner-equipped");
+  if (eqBtn) {
+    const eqOn = Boolean(eqCap.active);
+    eqBtn.setAttribute("aria-pressed", String(eqOn));
+    eqBtn.className = eqOn ? "btn btn-gold btn-xs" : "btn btn-outline btn-xs";
+    eqBtn.textContent = eqOn
+      ? `🩺 Scanning Equipped (${eqCap.armor_count || 0}/6)`
+      : "🩺 Scan Equipped (F6)";
+  }
+  renderEquippedCaptureStrip(eqCap);
 
   const cntBadge = document.getElementById("scanner-session-counts");
   if (cntBadge) {
@@ -854,6 +878,155 @@ async function toggleResyncSweep() {
     renderScannerHud(st);
     openResyncDialog(res);
   }
+}
+
+async function toggleEquippedBuildCapture() {
+  const cur = (APP_STATE.scanner_status && APP_STATE.scanner_status.equipped_capture) || {};
+  const nextActive = !Boolean(cur.active);
+  const st = await SHDStorageAdapter.toggleEquippedCapture(nextActive, false);
+  if (st) renderScannerHud(st);
+  if (nextActive) {
+    setIngestStatus("🩺 Scan Equipped Active (F6): Hover your 6 worn armor slots + equipped weapon in-game (starred or unstarred)!");
+  } else {
+    setIngestStatus("🩺 Scan Equipped paused.");
+  }
+}
+
+async function clearEquippedBuildCapture() {
+  const st = await SHDStorageAdapter.clearEquippedCapture();
+  if (st) renderScannerHud(st);
+  setIngestStatus("🧹 Cleared captured Equipped Build checklist.");
+}
+
+function renderEquippedCaptureStrip(eqCap) {
+  const strip = document.getElementById("equipped-capture-strip");
+  if (!strip) return;
+  const slotsMap = (eqCap && eqCap.captured_slots) || {};
+  const capturedKeys = Object.keys(slotsMap);
+  const isActive = Boolean(eqCap && eqCap.active);
+
+  if (!isActive && capturedKeys.length === 0) {
+    strip.classList.add("hidden");
+    strip.innerHTML = "";
+    return;
+  }
+
+  strip.classList.remove("hidden");
+  const armorCount = eqCap.armor_count != null ? eqCap.armor_count : ALL_SLOTS.filter(s => Boolean(slotsMap[s])).length;
+  const hasPrimary = Boolean(slotsMap.PRIMARY);
+
+  const pillsHtml = [...ALL_SLOTS, "PRIMARY"].map(slot => {
+    const item = slotsMap[slot];
+    const done = Boolean(item);
+    const label = slot === "PRIMARY" ? "WEAPON" : slot.slice(0, 4);
+    const nameHint = item ? _escInspector(item.item_name || item.brand_or_set || slot) : "Hover in-game";
+    return `<span class="eq-slot-pill ${done ? "done" : "pending"}" title="${nameHint}">
+      ${done ? "✓" : "○"} <b>${label}</b>${done ? ` · ${_escInspector((item.brand_or_set || item.item_name || "").slice(0, 14))}` : ""}
+    </span>`;
+  }).join("");
+
+  strip.innerHTML = `
+    <div class="eq-strip-header">
+      <div class="eq-strip-title">
+        <span>${isActive ? "🩺 SCAN EQUIPPED LIVE (F6)" : "🩺 EQUIPPED SNAPSHOT READY"}</span>
+        <span class="badge ${armorCount >= 6 ? "badge-success" : "badge-warn"}">${armorCount}/6 Armor${hasPrimary ? " + Weapon" : ""}</span>
+      </div>
+      <div class="eq-strip-actions">
+        ${armorCount > 0 ? `<button type="button" class="btn btn-primary btn-xs" onclick="loadEquippedCaptureIntoWorkbench()">🚀 Open in Build Doctor</button>` : ""}
+        <button type="button" class="btn btn-outline btn-xs" onclick="clearEquippedBuildCapture()">✕ Clear</button>
+      </div>
+    </div>
+    <div class="eq-slots-row">${pillsHtml}</div>
+  `;
+}
+
+function _buildLoadoutFromEquippedMap(capturedSlots) {
+  const map = capturedSlots || {};
+  const slotsObj = {};
+  const fallbackNames = {
+    MASK: "Equipped Mask",
+    BACKPACK: "Equipped Backpack",
+    CHEST: "Equipped Chest",
+    GLOVES: "Equipped Gloves",
+    HOLSTER: "Equipped Holster",
+    KNEEPADS: "Equipped Kneepads",
+  };
+
+  let primaryWeapon = "St. Elmo's Engine";
+  let secondaryWeapon = "";
+  let weaponTalent = "";
+  if (map.PRIMARY) {
+    primaryWeapon = map.PRIMARY.item_name || map.PRIMARY.brand_or_set || primaryWeapon;
+    weaponTalent = map.PRIMARY.talent || "";
+  }
+  if (map.SECONDARY) {
+    secondaryWeapon = map.SECONDARY.item_name || map.SECONDARY.brand_or_set || "";
+  }
+
+  for (const s of ALL_SLOTS) {
+    const it = map[s];
+    if (it) {
+      const parentBrand = resolveParentBrand(it.brand_or_set || it.item_name || "Česká Výroba s.r.o.");
+      const coreAttr = it.core_attribute || {};
+      const coreType = coreAttr.type || "WEAPON_DAMAGE";
+      const coreVal = coreAttr.value != null ? coreAttr.value : (coreType === "ARMOR" ? 170000 : coreType === "SKILL_TIER" ? 1 : 15.0);
+      const maxMinors = isGearSetBrand(parentBrand) ? 1 : 2;
+      slotsObj[s] = {
+        item_id: it.item_id || null,
+        brand: parentBrand,
+        item_name: it.item_name || parentBrand,
+        rarity: it.rarity || (isGearSetBrand(parentBrand) ? "GEAR_SET" : "HIGH_END"),
+        core_type: coreType,
+        core_val: coreVal,
+        minors: (it.minor_attributes || []).slice(0, maxMinors).map(m => ({ type: m.type, val: m.value })),
+        talent: it.talent || "",
+        recalibration_slot: it.recalibration_slot || null,
+      };
+    } else {
+      slotsObj[s] = {
+        brand: "Česká Výroba s.r.o.",
+        item_name: fallbackNames[s],
+        rarity: "HIGH_END",
+        core_type: "WEAPON_DAMAGE",
+        core_val: 15.0,
+        minors: [
+          { type: "CRITICAL_HIT_CHANCE", val: 6.0 },
+          { type: "CRITICAL_HIT_DAMAGE", val: 12.0 },
+        ],
+        talent: "",
+      };
+    }
+  }
+
+  const prev = ACTIVE_WORKBENCH_LOADOUT || {};
+  return {
+    loadout_id: `equipped_live_${Date.now()}`,
+    name: `Equipped In-Game Scan (${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})`,
+    archetype: "RED_DPS",
+    specialization: prev.specialization || "Gunner",
+    primary_weapon: primaryWeapon,
+    weapons: { primary: primaryWeapon, secondary: secondaryWeapon || "ACS-12" },
+    weapon_expertise: prev.weapon_expertise != null ? prev.weapon_expertise : 27,
+    weapon_talent: weaponTalent,
+    gear_mods: Array.isArray(prev.gear_mods) && prev.gear_mods.length === 3 ? prev.gear_mods.slice() : ["MOD_CHD", "MOD_CHD", "MOD_CHD"],
+    notes: "Live-captured directly from in-game Equipped Gear via Scan Equipped (F6).",
+    slots: slotsObj,
+  };
+}
+
+function loadEquippedCaptureIntoWorkbench(capturedSlots = null, switchTab = true) {
+  const eq = (APP_STATE.scanner_status && APP_STATE.scanner_status.equipped_capture) || {};
+  const map = capturedSlots || eq.captured_slots || {};
+  if (Object.keys(map).length === 0) {
+    setIngestStatus("⚠️ Hover at least 1 equipped piece in Scan Equipped (F6) mode first.");
+    return;
+  }
+  const built = _buildLoadoutFromEquippedMap(map);
+  ACTIVE_WORKBENCH_LOADOUT = built;
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(built));
+  if (switchTab) switchMainView("workbench");
+  renderWorkbenchView();
+  setIngestStatus(`🩺 Streamed Equipped Build (${Object.keys(map).filter(k => ALL_SLOTS.includes(k)).length}/6 Armor) into Workbench & ISAC Build Doctor!`);
 }
 
 function openResyncDialog(resyncResult) {
@@ -1404,6 +1577,11 @@ function renderWorkbenchView() {
     } else if ((APP_STATE.evaluated_builds || []).length > 0) {
       ACTIVE_WORKBENCH_LOADOUT = _convertMatrixBuildToWorkbenchObject(APP_STATE.evaluated_builds[0]);
     }
+    if (ACTIVE_WORKBENCH_LOADOUT && !WORKBENCH_BASELINE_SNAPSHOT) {
+      WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
+    }
+  } else if (!WORKBENCH_BASELINE_SNAPSHOT) {
+    WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
   }
 
   const savedEl = document.getElementById("saved-loadouts-list");
@@ -1467,6 +1645,7 @@ function selectSavedLoadout(loadoutId, isShowcase) {
   const found = (pool || []).find(x => x.loadout_id === loadoutId);
   if (found) {
     ACTIVE_WORKBENCH_LOADOUT = JSON.parse(JSON.stringify(found));
+    WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(found));
     renderWorkbenchView();
   }
 }
@@ -1478,6 +1657,7 @@ async function cloneShowcaseLoadout(loadoutId) {
   cloned.loadout_id = `cloned_${Date.now()}`;
   cloned.name = `${found.name} (Copy)`;
   ACTIVE_WORKBENCH_LOADOUT = cloned;
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(cloned));
   const newState = await SHDStorageAdapter.saveLoadout(cloned);
   applyState(newState);
 }
@@ -1502,6 +1682,7 @@ function createNewBlankLoadout() {
       KNEEPADS: { brand: "Striker's Battlegear", item_name: "Striker's Kneepads", rarity: "GEAR_SET", core_type: "WEAPON_DAMAGE", core_val: 15.0, minors: [{ type: "CRITICAL_HIT_DAMAGE", val: 12.0 }], talent: "" },
     },
   };
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
   renderWorkbenchView();
 }
 
@@ -1509,6 +1690,7 @@ function loadBuildIntoWorkbench(buildId) {
   const b = (APP_STATE.evaluated_builds || []).find(x => x.build_id === buildId);
   if (!b) return;
   ACTIVE_WORKBENCH_LOADOUT = _convertMatrixBuildToWorkbenchObject(b);
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
   switchMainView("workbench");
   renderWorkbenchView();
 }
@@ -1520,6 +1702,7 @@ async function assembleAndSaveBuildFromMatrix(buildId) {
   wbObj.loadout_id = `assembled_${b.build_id}`;
   wbObj.name = `${b.name} (${b.owned_slots_count}/6 Armory Assembled)`;
   ACTIVE_WORKBENCH_LOADOUT = wbObj;
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(wbObj));
   const newState = await SHDStorageAdapter.saveLoadout(wbObj);
   applyState(newState);
   switchMainView("workbench");
@@ -1529,7 +1712,9 @@ async function assembleAndSaveBuildFromMatrix(buildId) {
 function swapMatrixAltintoWorkbench(buildId, slot, altItemId) {
   const b = (APP_STATE.evaluated_builds || []).find(x => x.build_id === buildId);
   if (!b) return;
-  ACTIVE_WORKBENCH_LOADOUT = _convertMatrixBuildToWorkbenchObject(b);
+  const baseObj = _convertMatrixBuildToWorkbenchObject(b);
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(baseObj));
+  ACTIVE_WORKBENCH_LOADOUT = baseObj;
   ACTIVE_SLOT_PICKER_TARGET = slot;
   equipOwnedItemToWorkbench(altItemId);
   switchMainView("workbench");
@@ -1970,6 +2155,302 @@ function recalcWorkbench() {
     `;
   }
   renderWorkbenchDossier(l);
+  renderWorkbenchBaselineBar(bal);
+  renderWorkbenchBuildDoctor(l);
+}
+
+function pinCurrentWorkbenchAsBaseline() {
+  if (!ACTIVE_WORKBENCH_LOADOUT) return;
+  WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
+  recalcWorkbench();
+  setIngestStatus("📌 Pinned current Workbench configuration as Baseline for Before/After comparison.");
+}
+
+function revertWorkbenchToBaseline() {
+  if (!WORKBENCH_BASELINE_SNAPSHOT) return;
+  ACTIVE_WORKBENCH_LOADOUT = JSON.parse(JSON.stringify(WORKBENCH_BASELINE_SNAPSHOT));
+  populateWorkbenchFormFromActive();
+  setIngestStatus("↩️ Reverted Workbench back to Pinned Baseline configuration.");
+}
+
+function _computeLoadoutBaselineBallistics(snapshotLoadout) {
+  if (!snapshotLoadout) return null;
+  const sSlots = snapshotLoadout.slots || {};
+  const calc = SHDStorageAdapter.computeLoadoutBallisticsJS({
+    slotsMap: sSlots,
+    primaryWeapon: (snapshotLoadout.weapons || {}).primary || snapshotLoadout.primary_weapon || "St. Elmo's Engine",
+    weaponExpertise: snapshotLoadout.weapon_expertise != null ? snapshotLoadout.weapon_expertise : 27,
+    specialization: snapshotLoadout.specialization || "Gunner",
+    gearMods: snapshotLoadout.gear_mods || ["MOD_CHD", "MOD_CHD", "MOD_CHD"],
+    weaponTalent: snapshotLoadout.weapon_talent || "",
+  });
+  return calc && calc.ballistics ? calc.ballistics : null;
+}
+
+function _isSameSlotSetup(a, b) {
+  if (!a || !b) return true;
+  const aMods = JSON.stringify(a.gear_mods || []);
+  const bMods = JSON.stringify(b.gear_mods || []);
+  if (aMods !== bMods) return false;
+  for (const s of ALL_SLOTS) {
+    const sa = (a.slots || {})[s] || {};
+    const sb = (b.slots || {})[s] || {};
+    if ((sa.brand || "") !== (sb.brand || "") || (sa.item_name || "") !== (sb.item_name || "") || (sa.core_type || "") !== (sb.core_type || "") || (sa.talent || "") !== (sb.talent || "")) {
+      return false;
+    }
+    if (JSON.stringify(sa.minors || []) !== JSON.stringify(sb.minors || [])) return false;
+  }
+  return true;
+}
+
+function renderWorkbenchBaselineBar(currentBal) {
+  const barEl = document.getElementById("wb-baseline-bar");
+  if (!barEl) return;
+  if (!ACTIVE_WORKBENCH_LOADOUT || !WORKBENCH_BASELINE_SNAPSHOT) {
+    barEl.innerHTML = "";
+    barEl.classList.add("hidden");
+    return;
+  }
+  barEl.classList.remove("hidden");
+
+  const modified = !_isSameSlotSetup(ACTIVE_WORKBENCH_LOADOUT, WORKBENCH_BASELINE_SNAPSHOT);
+  if (!modified) {
+    barEl.innerHTML = `
+      <div class="wb-base-left">
+        <span class="badge badge-teal">📌 BASELINE PINNED</span>
+        <span class="wb-base-caption">Comparing changes against <b>${_escInspector(WORKBENCH_BASELINE_SNAPSHOT.name || "Baseline")}</b>. Edit slots, recalibrate, or click <b>Apply</b> on any ISAC Build Doctor recommendation below.</span>
+      </div>
+      <div class="wb-base-actions">
+        <button type="button" class="btn btn-outline btn-xs" onclick="pinCurrentWorkbenchAsBaseline()">📌 Re-Pin Current</button>
+      </div>
+    `;
+    return;
+  }
+
+  const baseBal = _computeLoadoutBaselineBallistics(WORKBENCH_BASELINE_SNAPSHOT) || {};
+  const curSust = Number((currentBal && currentBal.sustained_dps) || 0);
+  const baseSust = Number(baseBal.sustained_dps || 0);
+  const dSust = curSust - baseSust;
+  const dSustPct = baseSust > 0 ? (dSust / baseSust) * 100 : 0;
+
+  const curBurst = Number((currentBal && currentBal.burst_dps) || 0);
+  const baseBurst = Number(baseBal.burst_dps || 0);
+  const dBurst = curBurst - baseBurst;
+
+  const curArmor = Number((currentBal && currentBal.total_armor) || 0);
+  const baseArmor = Number(baseBal.total_armor || 0);
+  const dArmor = curArmor - baseArmor;
+
+  const curTtk = Number((((currentBal || {}).ttk_matrix || {}).HEROIC_NAMED || {}).ttk_sec || 0);
+  const baseTtk = Number(((baseBal.ttk_matrix || {}).HEROIC_NAMED || {}).ttk_sec || 0);
+  const dTtk = curTtk - baseTtk;
+
+  const dChc = Number((currentBal && currentBal.chc_pct) || 0) - Number(baseBal.chc_pct || 0);
+  const dChd = Number((currentBal && currentBal.chd_pct) || 0) - Number(baseBal.chd_pct || 0);
+
+  const fmtSignM = (v) => `${v >= 0 ? "+" : ""}${(v / 1e6).toFixed(2)}M`;
+  const chipCls = (v, invertGood = false) => {
+    if (Math.abs(v) < 0.01) return "neutral";
+    return (invertGood ? v < 0 : v > 0) ? "gain" : "loss";
+  };
+
+  barEl.innerHTML = `
+    <div class="wb-base-left">
+      <span class="badge badge-accent">⚡ MODIFIED VS. BASELINE</span>
+      <div class="wb-delta-chips">
+        <span class="wb-delta-chip ${chipCls(dSust)}">Sustained DPS: <b>${fmtSignM(dSust)}</b> (${dSustPct >= 0 ? "+" : ""}${dSustPct.toFixed(1)}%)</span>
+        <span class="wb-delta-chip ${chipCls(dBurst)}">Burst DPS: <b>${fmtSignM(dBurst)}</b></span>
+        <span class="wb-delta-chip ${chipCls(dTtk, true)}">Heroic TTK: <b>${dTtk >= 0 ? "+" : ""}${dTtk.toFixed(2)}s</b></span>
+        <span class="wb-delta-chip ${chipCls(dArmor)}">Armor: <b>${dArmor >= 0 ? "+" : ""}${Math.round(dArmor / 1000)}k</b></span>
+        <span class="wb-delta-chip ${chipCls(dChc)}">CHC: <b>${dChc >= 0 ? "+" : ""}${dChc.toFixed(1)}%</b></span>
+        <span class="wb-delta-chip ${chipCls(dChd)}">CHD: <b>${dChd >= 0 ? "+" : ""}${dChd.toFixed(1)}%</b></span>
+      </div>
+    </div>
+    <div class="wb-base-actions">
+      <button type="button" class="btn btn-outline btn-xs" onclick="revertWorkbenchToBaseline()">↩️ Revert to Baseline</button>
+      <button type="button" class="btn btn-primary btn-xs" onclick="pinCurrentWorkbenchAsBaseline()">📌 Pin New Baseline</button>
+    </div>
+  `;
+}
+
+function setBuildDoctorGoal(goal) {
+  ACTIVE_DOCTOR_GOAL = goal || "AUTO";
+  if (ACTIVE_WORKBENCH_LOADOUT) renderWorkbenchBuildDoctor(ACTIVE_WORKBENCH_LOADOUT);
+}
+
+function setBuildDoctorTrack(track) {
+  ACTIVE_DOCTOR_TRACK = track || "owned_armory_swaps";
+  if (ACTIVE_WORKBENCH_LOADOUT) renderWorkbenchBuildDoctor(ACTIVE_WORKBENCH_LOADOUT);
+}
+
+function applyBuildDoctorRecommendation(recId) {
+  if (!ACTIVE_WORKBENCH_LOADOUT || !LAST_DOCTOR_ANALYSIS) return;
+  const tracks = [
+    ...(LAST_DOCTOR_ANALYSIS.zero_swap_quick_wins || []),
+    ...(LAST_DOCTOR_ANALYSIS.owned_armory_swaps || []),
+    ...(LAST_DOCTOR_ANALYSIS.farm_target_upgrades || []),
+  ];
+  const rec = tracks.find(r => r.rec_id === recId);
+  if (!rec) return;
+
+  if (!WORKBENCH_BASELINE_SNAPSHOT) {
+    WORKBENCH_BASELINE_SNAPSHOT = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
+  }
+
+  const nextLoadout = JSON.parse(JSON.stringify(ACTIVE_WORKBENCH_LOADOUT));
+  nextLoadout.slots = nextLoadout.slots || {};
+  const repSlots = rec.replacement_slots || {};
+  for (const [slotName, slotPayload] of Object.entries(repSlots)) {
+    nextLoadout.slots[slotName] = JSON.parse(JSON.stringify(slotPayload));
+  }
+  if (Array.isArray(rec.recommended_gear_mods) && rec.recommended_gear_mods.length === 3) {
+    nextLoadout.gear_mods = rec.recommended_gear_mods.slice();
+  }
+  ACTIVE_WORKBENCH_LOADOUT = nextLoadout;
+  populateWorkbenchFormFromActive();
+  setIngestStatus(`🩺 Applied '${rec.headline}'! Compare deltas in the Baseline Bar or click Revert to Baseline.`);
+}
+
+function _formatDoctorDeltaBadges(delta) {
+  if (!delta) return "";
+  const badges = [];
+  const dSust = Number(delta.sustained_dps_delta || 0);
+  const dSustPct = Number(delta.sustained_dps_pct || 0);
+  if (Math.abs(dSust) >= 5000) {
+    badges.push(`<span class="bd-dchip ${dSust >= 0 ? "pos" : "neg"}">${dSust >= 0 ? "+" : ""}${(dSust / 1e6).toFixed(2)}M (${dSustPct >= 0 ? "+" : ""}${dSustPct.toFixed(1)}%) Sust DPS</span>`);
+  }
+  const dTtk = Number(delta.ttk_heroic_delta_sec || 0);
+  if (Math.abs(dTtk) >= 0.03) {
+    badges.push(`<span class="bd-dchip ${dTtk <= 0 ? "pos" : "neg"}">${dTtk > 0 ? "+" : ""}${dTtk.toFixed(2)}s Heroic TTK</span>`);
+  }
+  const dArmor = Number(delta.armor_delta || 0);
+  if (Math.abs(dArmor) >= 5000) {
+    badges.push(`<span class="bd-dchip ${dArmor >= 0 ? "pos" : "neg"}">${dArmor >= 0 ? "+" : ""}${Math.round(dArmor / 1000)}k Armor</span>`);
+  }
+  const chcBefore = Number(delta.chc_before || 0);
+  const chcAfter = Number(delta.chc_after || 0);
+  if (Math.abs(chcAfter - chcBefore) >= 0.5) {
+    badges.push(`<span class="bd-dchip info">CHC ${chcBefore.toFixed(1)}% → ${chcAfter.toFixed(1)}%</span>`);
+  }
+  const chdBefore = Number(delta.chd_before || 0);
+  const chdAfter = Number(delta.chd_after || 0);
+  if (Math.abs(chdAfter - chdBefore) >= 0.5) {
+    badges.push(`<span class="bd-dchip info">CHD ${chdBefore.toFixed(0)}% → ${chdAfter.toFixed(0)}%</span>`);
+  }
+  return badges.join("");
+}
+
+function renderWorkbenchBuildDoctor(loadout) {
+  const panel = document.getElementById("wb-build-doctor-panel");
+  if (!panel || !loadout) return;
+  if (typeof SHDStorageAdapter.analyzeActiveLoadoutJS !== "function") {
+    panel.innerHTML = "";
+    return;
+  }
+
+  const analysis = SHDStorageAdapter.analyzeActiveLoadoutJS(
+    loadout,
+    APP_STATE.inventory || [],
+    APP_STATE.canonical || {},
+    ACTIVE_DOCTOR_GOAL || "AUTO"
+  );
+  LAST_DOCTOR_ANALYSIS = analysis;
+  if (!analysis) {
+    panel.innerHTML = "";
+    return;
+  }
+
+  const intent = analysis.intent || {};
+  const warnings = intent.diagnostic_warnings || [];
+  const synergies = intent.active_synergies || [];
+
+  const goals = [
+    { id: "AUTO", label: "🎯 Auto (Match Role)" },
+    { id: "MAX_DPS", label: "🔥 Max DPS" },
+    { id: "BRUISER_SURVIVABILITY", label: "🛡️ Bruiser / Armor" },
+    { id: "SKILL_HYBRID", label: "⚡ Skill / Hybrid" },
+  ];
+  const goalPillsHtml = goals.map(g =>
+    `<button type="button" class="bd-goal-pill ${ACTIVE_DOCTOR_GOAL === g.id ? "active" : ""}" onclick="setBuildDoctorGoal('${g.id}')">${g.label}</button>`
+  ).join("");
+
+  const qwList = analysis.zero_swap_quick_wins || [];
+  const ownedList = analysis.owned_armory_swaps || [];
+  const farmList = analysis.farm_target_upgrades || [];
+
+  const tracksMeta = [
+    { key: "owned_armory_swaps", label: "📦 Owned in Armory Now", list: ownedList },
+    { key: "zero_swap_quick_wins", label: "🔧 Zero-Swap Quick Wins", list: qwList },
+    { key: "farm_target_upgrades", label: "🎯 BiS Farm Targets", list: farmList },
+  ];
+
+  // If user hasn't explicitly forced an empty tab while another tab has items, keep selection valid
+  const activeTrackObj = tracksMeta.find(t => t.key === ACTIVE_DOCTOR_TRACK) || tracksMeta[0];
+  const trackTabsHtml = tracksMeta.map(t =>
+    `<button type="button" class="bd-track-tab ${t.key === activeTrackObj.key ? "active" : ""}" onclick="setBuildDoctorTrack('${t.key}')">
+      ${t.label} <span class="badge">${t.list.length}</span>
+    </button>`
+  ).join("");
+
+  const warningsHtml = warnings.length > 0
+    ? `<div class="bd-warnings-grid">
+        ${warnings.map(w => `
+          <div class="bd-warning-card sev-${_escInspector(w.severity || "INFO")}">
+            <div class="bd-warn-title">${w.severity === "HIGH" ? "🚨" : "⚠️"} ${_escInspector(w.title || "")}</div>
+            <div class="bd-warn-detail">${_escInspector(w.detail || "")}</div>
+          </div>
+        `).join("")}
+      </div>`
+    : `<div class="bd-clean-pill">✅ Zero anti-synergies or wasted stats detected on this 6-piece setup.</div>`;
+
+  const cardsHtml = activeTrackObj.list.length === 0
+    ? `<div class="muted-sub" style="padding:12px;">No higher-scoring ${activeTrackObj.label} improvements found for the selected optimization goal — your equipped pieces are already strong here!</div>`
+    : activeTrackObj.list.map(rec => {
+        const dropBadge = rec.drop_pool
+          ? `<span class="badge badge-gold" title="Targeted Loot / Acquisition Source">📍 ${_escInspector(rec.drop_pool)}</span>`
+          : "";
+        const swapBadge = rec.swap_count === 0
+          ? `<span class="badge badge-teal">0-SWAP</span>`
+          : `<span class="badge badge-accent">${rec.swap_count}-PC SWAP</span>`;
+        return `
+          <div class="bd-rec-card">
+            <div class="bd-rec-hdr">
+              <div class="bd-rec-title-row">
+                ${swapBadge}
+                <span class="bd-rec-title">${_escInspector(rec.headline || "")}</span>
+                ${dropBadge}
+              </div>
+              <button type="button" class="btn btn-primary btn-xs" onclick="applyBuildDoctorRecommendation('${_escInspector(rec.rec_id)}')">⚡ Apply Preview</button>
+            </div>
+            <div class="bd-rec-why">${_escInspector(rec.why_it_helps || "")}</div>
+            ${rec.tinker_notes ? `<div class="bd-rec-tinker">🔧 <b>Tinker / Mod Note:</b> ${_escInspector(rec.tinker_notes)}</div>` : ""}
+            <div class="bd-rec-deltas">${_formatDoctorDeltaBadges(rec.delta_metrics)}</div>
+          </div>
+        `;
+      }).join("");
+
+  panel.innerHTML = `
+    <div class="bd-header-row">
+      <div>
+        <h3>🩺 ISAC Build Doctor &amp; 1–2 Piece Optimizer</h3>
+        <div class="muted-sub">Dynamically diagnoses your active loadout intent, flags anti-synergies, and recommends legal Mods, Recalibrations, Owned Armory swaps, and BiS Farm Targets.</div>
+      </div>
+      <div class="bd-goal-pills" title="Optimization Goal">${goalPillsHtml}</div>
+    </div>
+
+    <div class="bd-intent-banner">
+      <div class="bd-intent-main">
+        <span class="badge badge-accent">${_escInspector(intent.detected_role_label || "Generalist")}</span>
+        <span class="bd-intent-summary">${_escInspector(intent.intent_summary || "")}</span>
+      </div>
+      ${synergies.length > 0 ? `<div class="bd-synergy-chips">${synergies.map(s => `<span class="bd-syn-chip">✓ ${_escInspector(s)}</span>`).join("")}</div>` : ""}
+    </div>
+
+    ${warningsHtml}
+
+    <div class="bd-track-tabs">${trackTabsHtml}</div>
+    <div class="bd-recs-list">${cardsHtml}</div>
+  `;
 }
 
 async function stageCurrentWorkbenchToMetaStudio() {

@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-11-12T20:05:50.928785",
+  "updated_at": "2026-11-13T00:09:20.215602",
   "hostname": "DESKTOP-UHI3BO3",
-  "active_tunnel_url": "https://productivity-component-alternate-awareness.trycloudflare.com",
+  "active_tunnel_url": "https://prevent-springs-easy-supporting.trycloudflare.com",
   "primary_lan_url": "http://192.168.86.47:8765",
   "office_wifi_drop_lan_url": "http://192.168.86.47:8766",
   "work_lan_url": "http://10.0.0.91:8765",
@@ -9,7 +9,7 @@
   "nodes": [
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",
-      "url": "https://productivity-component-alternate-awareness.trycloudflare.com"
+      "url": "https://prevent-springs-easy-supporting.trycloudflare.com"
     },
     {
       "name": "NicksAndrew (HTTPS Tunnel)",

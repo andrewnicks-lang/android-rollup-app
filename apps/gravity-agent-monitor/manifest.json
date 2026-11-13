@@ -18,8 +18,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://productivity-component-alternate-awareness.trycloudflare.com",
-      "defaultForAdmin": "https://productivity-component-alternate-awareness.trycloudflare.com"
+      "default": "https://prevent-springs-easy-supporting.trycloudflare.com",
+      "defaultForAdmin": "https://prevent-springs-easy-supporting.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",

@@ -3,7 +3,7 @@
     "name": "RollupOS \u2014 Mobile App Hub",
     "short_name": "RollupHub",
     "version": "1.0.11",
-    "updated_at": "2026-11-12T20:05:50.938100",
+    "updated_at": "2026-11-13T00:09:20.221216",
     "auth": {
       "provider": "google",
       "google_client_id": "",
@@ -41,7 +41,7 @@
               "show_admin_showcase": "true"
             },
             "gravity-agent-monitor": {
-              "primary_workstation_url": "https://productivity-component-alternate-awareness.trycloudflare.com",
+              "primary_workstation_url": "https://prevent-springs-easy-supporting.trycloudflare.com",
               "tailscale_workstation_url": "http://192.168.86.47:8765",
               "sidecar_token": "csc-gravity-admin-2026-x9f4k2"
             },
@@ -115,7 +115,7 @@
     "apk_version": "1.3.0",
     "build_hash": "6ec1e83732",
     "stamped_version": "1.0.11",
-    "ota_etag": "586fe06093"
+    "ota_etag": "b935f2a6ad"
   },
   "apps": [
     {
@@ -126,7 +126,7 @@
       "icon": "\ud83d\udef0\ufe0f",
       "accent": "#38bdf8",
       "category": "Admin & Dev Tools",
-      "version": "1.4.2",
+      "version": "1.4.1",
       "entry": "apps/gravity-agent-monitor/index.html",
       "visibility": "admin_only",
       "offline_assets": [
@@ -138,8 +138,8 @@
           "key": "primary_workstation_url",
           "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
           "type": "text",
-          "default": "https://productivity-component-alternate-awareness.trycloudflare.com",
-          "defaultForAdmin": "https://productivity-component-alternate-awareness.trycloudflare.com"
+          "default": "https://prevent-springs-easy-supporting.trycloudflare.com",
+          "defaultForAdmin": "https://prevent-springs-easy-supporting.trycloudflare.com"
         },
         {
           "key": "tailscale_workstation_url",
@@ -156,13 +156,13 @@
           "defaultForAdmin": "csc-gravity-admin-2026-x9f4k2"
         }
       ],
-      "build_hash": "8f817a86b5",
-      "stamped_version": "1.4.2",
-      "updated_at": "2026-11-12T20:05:51.067810",
+      "build_hash": "53832e546d",
+      "stamped_version": "1.4.1",
+      "updated_at": "2026-11-13T00:09:20.348211",
       "manual_pdf": "manuals/gravity-agent-monitor_User_Manual.pdf",
       "manual_html": "manuals/gravity-agent-monitor_User_Manual.html",
-      "manual_source_hash": "8f817a86b5",
-      "manual_updated_at": "2026-11-12T20:05:52.921147"
+      "manual_source_hash": "53832e546d",
+      "manual_updated_at": "2026-11-13T00:09:22.441450"
     },
     {
       "id": "fantasy-manager",
@@ -342,13 +342,13 @@
           "defaultForAdmin": "true"
         }
       ],
-      "build_hash": "27063d768f",
+      "build_hash": "aa6dd5c5b0",
       "stamped_version": "6.0.0",
-      "updated_at": "2026-11-12T20:05:51.067810",
+      "updated_at": "2026-11-13T00:09:20.348211",
       "manual_pdf": "manuals/shd-div2-intel_User_Manual.pdf",
       "manual_html": "manuals/shd-div2-intel_User_Manual.html",
-      "manual_source_hash": "27063d768f",
-      "manual_updated_at": "2026-11-12T20:05:53.913501"
+      "manual_source_hash": "aa6dd5c5b0",
+      "manual_updated_at": "2026-11-13T00:09:23.501766"
     },
     {
       "id": "sapphire-companion",

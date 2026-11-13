@@ -80,6 +80,9 @@
       <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-resync" aria-pressed="false" onclick="toggleResyncSweep()" title="Start a full Stash/Slot Re-Sync Sweep to flag deleted/deconstructed items for 1-click cleanup">
         🔄 Stash Re-Sync Sweep
       </button>
+      <button type="button" class="btn btn-outline btn-xs" id="btn-scanner-equipped" aria-pressed="false" onclick="toggleEquippedBuildCapture()" title="Hover your 6 equipped armor slots + weapon in-game to stream your currently worn build into the Workbench &amp; ISAC Build Doctor (Global Hotkey: F6)">
+        🩺 Scan Equipped (F6)
+      </button>
       <span class="badge" id="scanner-session-counts" title="Session ★ Auto-Saves &amp; Zero-DB Ephemeral Previews">★ 0 Saved • 0 Previews</span>
     </div>
 
@@ -122,6 +125,8 @@
         </div>
       </aside>
     </div>
+
+    <div class="equipped-capture-strip hidden" id="equipped-capture-strip"></div>
   </section>
 
   <!-- SECONDARY BATCH UPLOAD & MANUAL SHORTHAND DISCLOSURE -->
@@ -376,8 +381,14 @@
           <button class="btn btn-outline btn-xs" onclick="autoBalanceWorkbenchChcMods()" title="Auto-select CHC vs CHD mods to reach 60% CHC without wasting stats">🎯 Auto-Cap 60% CHC</button>
         </div>
 
+        <!-- PINNED BASELINE BEFORE/AFTER COMPARISON BAR -->
+        <div class="wb-baseline-bar" id="wb-baseline-bar"></div>
+
         <!-- 6-SLOT INTERACTIVE CARDS GRID -->
         <div class="wb-slots-grid" id="wb-slots-grid"></div>
+
+        <!-- ISAC BUILD DOCTOR & 1-2 PIECE OPTIMIZER -->
+        <section class="build-doctor-panel" id="wb-build-doctor-panel"></section>
 
         <!-- WORKBENCH NOTES & KNOWLEDGE DOSSIER -->
         <div class="wb-notes-box">

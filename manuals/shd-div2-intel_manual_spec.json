@@ -7,10 +7,10 @@
   "accent": "#ff6b00",
   "category": "Gaming & Tactical Tools",
   "version": "6.0.0",
-  "build_hash": "27063d768f",
+  "build_hash": "aa6dd5c5b0",
   "visibility": "restricted",
-  "updated_at": "2026-11-12T20:05:51.067810",
-  "generated_at": "2026-11-12 20:05",
+  "updated_at": "2026-11-13T00:09:20.348211",
+  "generated_at": "2026-11-13 00:09",
   "tagline": "100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver & Expertise 413/500 Tracker",
   "quickstart": [
     {
@@ -90,18 +90,7 @@
     "apps/shd-div2-intel/app.js"
   ],
   "newly_added_buttons": [
-    "\ud83c\udfaf Build Matrix 20",
-    "\ud83d\udee0\ufe0f Loadout Workbench 1",
-    "\u231a SHD 2793",
-    "\u23f8\ufe0f Pause (F8)",
-    "\u2605 Starred Only (F7)",
-    "\ud83d\udcf8 Force Save (F9)",
-    "\ud83d\udd0a Audio: ON",
-    "\ud83d\udda5\ufe0f Game Window Only",
-    "\ud83d\udd04 Stash Re-Sync Sweep",
-    "+ Save to Armory",
-    "\u270f\ufe0f Edit",
-    "\ud83d\uddd1\ufe0f Delete"
+    "\ud83e\ude7a Scan Equipped (F6)"
   ],
   "ai_release_note": null,
   "inspected": {
@@ -114,7 +103,8 @@
       "styles.css"
     ],
     "tabs": [
-      "live-scanner-hud"
+      "live-scanner-hud",
+      "wb-build-doctor-panel"
     ],
     "headings": [
       "\ud83c\udfc6 Endgame Meta Archetypes",
@@ -184,6 +174,10 @@
         "action": "toggleResyncSweep()"
       },
       {
+        "label": "\ud83e\ude7a Scan Equipped (F6)",
+        "action": "toggleEquippedBuildCapture()"
+      },
+      {
         "label": "+ Save to Armory",
         "action": "commitHoveredEphemeralItem()"
       },
@@ -198,10 +192,6 @@
       {
         "label": "\ud83d\udcf8 Scan Screenshots",
         "action": "document.getElementById('img-upload-input').click()"
-      },
-      {
-        "label": "\ud83c\udfa5 Scan Stash Video",
-        "action": "document.getElementById('vid-upload-input').click()"
       }
     ],
     "modals": [

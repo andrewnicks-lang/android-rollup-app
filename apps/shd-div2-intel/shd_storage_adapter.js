@@ -962,6 +962,819 @@
     };
   }
 
+  const CURATED_FARM_CANDIDATES_JS = {
+    MASK: [
+      { item_name: "Coyote's Mask", brand: "Coyote's Mask", rarity: 'EXOTIC', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Pack Instincts' },
+      { item_name: 'Catharsis', brand: 'Catharsis', rarity: 'EXOTIC', core: 'ARMOR', minors: ['ARMOR_REGEN', 'HAZARD_PROTECTION'], talent: 'Vicious Cycle' },
+      { item_name: 'Vile', brand: 'Vile', rarity: 'EXOTIC', core: 'SKILL_TIER', minors: ['STATUS_EFFECTS', 'HAZARD_PROTECTION'], talent: 'Toxic Delivery' },
+      { item_name: 'The Catalyst', brand: 'The Catalyst', rarity: 'EXOTIC', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Catalytic Reaction' },
+      { item_name: 'Punch Drunk', brand: 'Douglas & Harding', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['HEADSHOT_DAMAGE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Chill Out', brand: 'Gila Guard', rarity: 'NAMED_HIGH_END', core: 'ARMOR', minors: ['ARMOR_REGEN', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Česká Mask', brand: 'Česká Výroba s.r.o.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Lengmo Mask', brand: 'Lengmo', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Empress Mask', brand: 'Empress International', rarity: 'HIGH_END', core: 'SKILL_TIER', minors: ['SKILL_DAMAGE', 'SKILL_HASTE'], talent: '' },
+    ],
+    BACKPACK: [
+      { item_name: 'Memento', brand: 'Memento', rarity: 'EXOTIC', core: 'TRIPLE_CORE', minors: ['CRITICAL_HIT_CHANCE'], talent: 'Kill Confirmed' },
+      { item_name: 'NinjaBike Messenger Backpack', brand: 'NinjaBike Messenger Backpack', rarity: 'EXOTIC', core: 'TRIPLE_CORE', minors: ['CRITICAL_HIT_CHANCE'], talent: 'Resourceful' },
+      { item_name: 'Backbone', brand: 'Lengmo', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Perfect Unstoppable Force' },
+      { item_name: 'The Gift', brand: 'Providence Defense', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Perfect Vigilance' },
+      { item_name: 'Matador', brand: 'Walker, Harris & Co.', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Perfect Adrenaline Rush' },
+      { item_name: 'Force Multiplier', brand: 'Hana-U Corporation', rarity: 'NAMED_HIGH_END', core: 'SKILL_TIER', minors: ['SKILL_DAMAGE', 'SKILL_HASTE'], talent: 'Perfect Combined Arms' },
+      { item_name: 'Liquid Engineer', brand: 'Belstone Armory', rarity: 'NAMED_HIGH_END', core: 'ARMOR', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Perfect Bloodsucker' },
+      { item_name: 'Grupo Sombra Backpack', brand: 'Grupo Sombra S.A.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Vigilance' },
+      { item_name: 'Česká Backpack', brand: 'Česká Výroba s.r.o.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Unstoppable Force' },
+    ],
+    CHEST: [
+      { item_name: 'The Sacrifice', brand: 'Providence Defense', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Perfect Glass Cannon' },
+      { item_name: 'Chainkiller', brand: 'Walker, Harris & Co.', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['HEADSHOT_DAMAGE', 'WEAPON_HANDLING'], talent: 'Perfect Headhunter' },
+      { item_name: 'Closer', brand: 'Uzina Getica', rarity: 'NAMED_HIGH_END', core: 'ARMOR', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Perfect Spotter' },
+      { item_name: "Caesar's Guard", brand: 'Empress International', rarity: 'NAMED_HIGH_END', core: 'SKILL_TIER', minors: ['SKILL_DAMAGE', 'SKILL_HASTE'], talent: 'Perfectly Skilled' },
+      { item_name: 'Česká Chest', brand: 'Česká Výroba s.r.o.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Obliterate' },
+      { item_name: 'Grupo Sombra Chest', brand: 'Grupo Sombra S.A.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Obliterate' },
+      { item_name: 'Lengmo Chest', brand: 'Lengmo', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Glass Cannon' },
+      { item_name: 'Petrov Chest', brand: 'Petrov Defense Group', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Obliterate' },
+    ],
+    GLOVES: [
+      { item_name: "Contractor's Gloves", brand: 'Petrov Defense Group', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['DAMAGE_TO_ARMOR', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'BTSU Datagloves', brand: 'BTSU Datagloves', rarity: 'EXOTIC', core: 'SKILL_TIER', minors: ['SKILL_HASTE', 'SKILL_REPAIR'], talent: 'Transference Overclock' },
+      { item_name: 'Grupo Sombra Gloves', brand: 'Grupo Sombra S.A.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Česká Gloves', brand: 'Česká Výroba s.r.o.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Lengmo Gloves', brand: 'Lengmo', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Empress Gloves', brand: 'Empress International', rarity: 'HIGH_END', core: 'SKILL_TIER', minors: ['SKILL_DAMAGE', 'SKILL_HASTE'], talent: '' },
+    ],
+    HOLSTER: [
+      { item_name: "Picaro's Holster", brand: 'Brazos de Arcabuz', rarity: 'NAMED_HIGH_END', core: 'ARMOR', minors: ['CRITICAL_HIT_DAMAGE', 'WEAPON_DAMAGE'], talent: '' },
+      { item_name: 'Waveform', brand: 'Waveform', rarity: 'EXOTIC', core: 'SKILL_TIER', minors: ['SKILL_DAMAGE', 'SKILL_HASTE'], talent: 'Alternating Current' },
+      { item_name: "Dodge City Gunslinger's Holster", brand: "Dodge City Gunslinger's Holster", rarity: 'EXOTIC', core: 'WEAPON_DAMAGE', minors: ['HEADSHOT_DAMAGE', 'WEAPON_HANDLING'], talent: 'Quick Draw' },
+      { item_name: "Centurion's Scabbard", brand: "Centurion's Scabbard", rarity: 'EXOTIC', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: 'Standard Issue' },
+      { item_name: 'Česká Holster', brand: 'Česká Výroba s.r.o.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Grupo Sombra Holster', brand: 'Grupo Sombra S.A.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Lengmo Holster', brand: 'Lengmo', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+    ],
+    KNEEPADS: [
+      { item_name: "Fox's Prayer", brand: 'Overlord Armaments', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['DTTOOC', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Turmoil', brand: 'Česká Výroba s.r.o.', rarity: 'NAMED_HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: "Emperor's Guard", brand: 'Murakami Industries', rarity: 'NAMED_HIGH_END', core: 'ARMOR', minors: ['ARMOR_REGEN', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Grupo Sombra Kneepads', brand: 'Grupo Sombra S.A.', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Lengmo Kneepads', brand: 'Lengmo', rarity: 'HIGH_END', core: 'WEAPON_DAMAGE', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+      { item_name: 'Belstone Kneepads', brand: 'Belstone Armory', rarity: 'HIGH_END', core: 'ARMOR', minors: ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'], talent: '' },
+    ],
+  };
+
+  function normalizeWorkbenchSlotJS(slot, rawEntry, canonicalDb) {
+    const s = rawEntry ? { ...rawEntry } : {};
+    const rawBrand = String(s.brand || s.brand_or_set || s.item_name || 'Unknown').trim();
+    const rawName = String(s.item_name || s.display_name || rawBrand).trim();
+    const lookupName = NAMED_ITEM_PARENT_BRAND[rawName.toLowerCase()] ? rawName : rawBrand;
+    let parentBrand = resolveParentBrandJS(lookupName, canonicalDb);
+    if (parentBrand === lookupName && rawBrand && rawBrand !== lookupName) {
+      parentBrand = resolveParentBrandJS(rawBrand, canonicalDb);
+    }
+
+    const coreAttr = s.core_attribute || {};
+    let cType = String(s.core_type || coreAttr.type || 'WEAPON_DAMAGE').toUpperCase();
+    if (coreAttr.triple_core || rawName.toLowerCase().includes('memento') || rawName.toLowerCase().includes('ninjabike')) {
+      cType = 'TRIPLE_CORE';
+    }
+    const cVal = Number(s.core_val != null ? s.core_val : (coreAttr.value || CORE_MAX[cType] || 15.0));
+
+    const rawMinors = s.minor_attributes || s.minors || [];
+    const normMinors = [];
+    for (const m of rawMinors) {
+      if (!m || typeof m !== 'object') continue;
+      const mT = String(m.type || m.stat || '').toUpperCase();
+      if (!mT || mT === 'NONE') continue;
+      const mV = Number(m.value != null ? m.value : (m.val != null ? m.val : (MINOR_MAX[mT] || 10.0)));
+      normMinors.push({ type: mT, value: mV });
+    }
+
+    const talentStr = typeof s.talent === 'object' && s.talent ? String(s.talent.name || '').trim() : String(s.talent || '').trim();
+    let rarity = String(s.rarity || '').toUpperCase();
+    if (!rarity) {
+      if (isExoticItemJS(rawName, canonicalDb) || isExoticItemJS(parentBrand, canonicalDb)) rarity = 'EXOTIC';
+      else if (isGearSetBrandJS(parentBrand, canonicalDb)) rarity = 'GEAR_SET';
+      else if (NAMED_ITEM_PARENT_BRAND[rawName.toLowerCase()]) rarity = 'NAMED_HIGH_END';
+      else rarity = 'HIGH_END';
+    }
+    const maxMinors = (rarity === 'GEAR_SET' || rawName.toLowerCase().includes('memento') || rawName.toLowerCase().includes('ninjabike')) ? 1 : 2;
+    return {
+      status: s.item_id ? 'OWNED' : 'THEORYCRAFT',
+      item_id: s.item_id || null,
+      display_name: rawName,
+      item_name: rawName,
+      brand: parentBrand,
+      raw_brand: rawBrand,
+      rarity,
+      core_type: cType,
+      core_val: cVal,
+      minor_attributes: normMinors.slice(0, maxMinors),
+      talent: talentStr,
+    };
+  }
+
+  function evaluateSlotMapBallisticsJS(slotMap, pseudoBuild, canonicalDb, weaponExpertise = 27, weaponTalentOverride = null, gearMods = null) {
+    const allSlots = ['MASK', 'BACKPACK', 'CHEST', 'GLOVES', 'HOLSTER', 'KNEEPADS'];
+    const bCores = { RED: 0, BLUE: 0, YELLOW: 0 };
+    const bBrands = {};
+    for (const slot of allSlots) {
+      const entry = slotMap[slot] || {};
+      const brand = entry.brand || 'Unknown';
+      const rawLow = String(entry.item_name || entry.display_name || brand).toLowerCase();
+      const cType = String(entry.core_type || 'WEAPON_DAMAGE').toUpperCase();
+      if (cType === 'TRIPLE_CORE' || rawLow.includes('memento') || rawLow.includes('ninjabike')) {
+        bCores.RED += 1;
+        bCores.BLUE += 1;
+        bCores.YELLOW += 1;
+      } else if (cType === 'ARMOR') bCores.BLUE += 1;
+      else if (cType === 'SKILL_TIER') bCores.YELLOW += 1;
+      else bCores.RED += 1;
+      bBrands[brand] = (bBrands[brand] || 0) + 1;
+    }
+    const bal = computeLoadoutBallisticsJS(pseudoBuild, slotMap, bCores, bBrands, canonicalDb, weaponExpertise, weaponTalentOverride, gearMods);
+    return { bal, bCores, bBrands };
+  }
+
+  function detectLoadoutIntentJS(slotMap, cores, ballistics, primaryWeapon = '', specialization = 'Gunner', canonicalDb = null) {
+    const effBrands = ballistics.effective_brands || {};
+    const wNameLow = String(primaryWeapon || ballistics.weapon_name || '').toLowerCase();
+    const wClass = String(ballistics.weapon_class || 'AR').toUpperCase();
+    const chestTal = String((slotMap.CHEST || {}).talent || '').trim();
+    const bpTal = String((slotMap.BACKPACK || {}).talent || '').trim();
+    const red = Number(cores.RED || 0);
+    const blue = Number(cores.BLUE || 0);
+    const yellow = Number(ballistics.effective_yellow_tiers != null ? ballistics.effective_yellow_tiers : (cores.YELLOW || 0));
+
+    const minorCounts = {};
+    for (const sv of Object.values(slotMap)) {
+      for (const m of sv.minor_attributes || []) {
+        const mt = String(m.type || '').toUpperCase();
+        if (mt) minorCounts[mt] = (minorCounts[mt] || 0) + 1;
+      }
+    }
+    const hsdMinors = minorCounts.HEADSHOT_DAMAGE || 0;
+    const skillDmgMinors = minorCounts.SKILL_DAMAGE || 0;
+    const statusMinors = minorCounts.STATUS_EFFECTS || 0;
+    const repairMinors = minorCounts.SKILL_REPAIR || 0;
+
+    let roleCode = 'RED_CRIT_DPS';
+    let roleLabel = '🔴 All-Red Crit Weapon DPS';
+    let solverRole = 'RED_DPS';
+    let intentSummary = `Pure multiplicative Crit Weapon DPS build (${red}R / ${blue}B / ${yellow}Y) focused on reaching 60% CHC, stacking CHD/DTTOOC/DTA, and minimizing Heroic & Raid Boss TTK.`;
+
+    if (wNameLow.includes('pestilence') || ((effBrands['Lengmo'] || 0) >= 3 && wClass === 'LMG')) {
+      roleCode = 'PESTILENCE_LMG_TICK';
+      roleLabel = '☣️ Pestilence / LMG Sustained Tick DPS';
+      intentSummary = `Sustained LMG & Plague tick scaling (${red}R / ${blue}B / ${yellow}Y). Maximizes Weapon Damage, DTA, DTTOOC, TWD, and Amplified multipliers because Pestilence ticks ignore Crit.`;
+    } else if (wClass === 'MMR' || chestTal.toLowerCase().includes('headhunter') || String(ballistics.weapon_talent || '').toLowerCase().includes('determined') || (effBrands['Hotshot'] || 0) >= 2 || hsdMinors >= 4) {
+      roleCode = 'HEADSHOT_DETERMINED_MMR';
+      roleLabel = '🎯 One-Shot Headshot / Marksman';
+      intentSummary = `Chain-headshot sniper architecture (${red}R / ${blue}B / ${yellow}Y) leveraging Headshot Damage + Headhunter / Determined multipliers.`;
+    } else if ((effBrands['Eclipse Protocol'] || 0) >= 3 || (statusMinors >= 3 && yellow >= 4) || (effBrands['Vile'] || 0) >= 1) {
+      roleCode = 'STATUS_CC';
+      roleLabel = '☣️ Status Effect / Crowd Control';
+      solverRole = 'CROWD_CONTROL';
+      intentSummary = `Skill-tier Status / Crowd Control build (${yellow} Yellow Tiers) designed to lock down rooms and propagate Burn/Bleed/Foam ticks.`;
+    } else if ((effBrands['Future Initiative'] || 0) >= 3 || repairMinors >= 3 || (blue >= 4 && (effBrands['Foundry Bulwark'] || 0) >= 3)) {
+      roleCode = 'TANK_HEALER_SUPPORT';
+      roleLabel = '🛡️ Team Support / Tank / Healer';
+      solverRole = 'TECH_TANK';
+      intentSummary = `Frontline sustain or team-buff support (${red}R / ${blue}B / ${yellow}Y) prioritizing survivability, Repair Skills, or Foundry shield durability.`;
+    } else if (yellow >= 4 || skillDmgMinors >= 3 || (effBrands['Empress International'] || 0) >= 2 || (effBrands['Refactor'] || 0) >= 3) {
+      roleCode = 'SKILL_DAMAGE';
+      roleLabel = '⚡ Skill Damage / Capacitor Hybrid';
+      solverRole = 'SKILL_DPS';
+      intentSummary = `Turret/Drone or Skill Damage engine (${yellow} Yellow Tiers) pairing Skill Tier scaling with Capacitor / Combined Arms / In Sync amplification.`;
+    } else if (blue >= 2 || (effBrands['Heartbreaker'] || 0) >= 3 || (effBrands["Hunter's Fury"] || 0) >= 3 || Object.values(slotMap).some(sv => String(sv.item_name || '').toLowerCase().includes('memento'))) {
+      roleCode = 'BRUISER_TECH_TANK';
+      roleLabel = '🔵/🔴 Bruiser / Run & Gun Hybrid';
+      solverRole = 'TECH_TANK';
+      intentSummary = `Close-to-mid-range Bruiser (${red}R / ${blue}B / ${yellow}Y) balancing Shield/Armor survivability with Crit DPS and momentum stacks.`;
+    }
+
+    const synergies = [];
+    if ((effBrands["Striker's Battlegear"] || 0) >= 4) synergies.push("Striker's 4pc Gamble stacks (+15% RoF + Amp)");
+    if ((effBrands['Heartbreaker'] || 0) >= 4) synergies.push('Heartbreaker 4pc Pulsed Bonus Armor + Amp');
+    if ((effBrands["Hunter's Fury"] || 0) >= 4) synergies.push("Hunter's Fury 4pc CQC Amp + AoK");
+    if ((effBrands['Lengmo'] || 0) >= 3 && wClass === 'LMG') synergies.push('Lengmo 3pc +30% LMG Damage unlocked');
+    if ((effBrands['Petrov Defense Group'] || 0) >= 1 && wClass === 'LMG') synergies.push('Petrov +10% LMG Damage active');
+    if ((effBrands['Fenris Group AB'] || 0) >= 1 && wClass === 'AR') synergies.push('Fenris +10% AR Damage active');
+    if ((effBrands['Česká Výroba s.r.o.'] || 0) >= 1) synergies.push('Česká +8% Crit Chance active');
+    if ((effBrands['Grupo Sombra S.A.'] || 0) >= 1) synergies.push('Grupo +13% Crit Damage active');
+    if (ballistics.has_ninjabike) synergies.push('NinjaBike +1 Brand/Set Wildcard active');
+    if (Object.values(slotMap).some(sv => String(sv.item_name || '').toLowerCase().includes('coyote'))) synergies.push("Coyote's Mask group Crit aura active");
+    if (Object.values(slotMap).some(sv => String(sv.item_name || '').toLowerCase().includes('memento'))) synergies.push('Memento Triple-Core + Kill Confirmed active');
+    if (Object.values(slotMap).some(sv => String(sv.item_name || '').toLowerCase().includes('contractor'))) synergies.push("Contractor's Gloves +8% DTA");
+    if (Object.values(slotMap).some(sv => String(sv.item_name || '').toLowerCase().includes("fox's prayer"))) synergies.push("Fox's Prayer +8% DTTOOC");
+    if (chestTal) synergies.push(`Chest Talent: ${chestTal}`);
+    if (bpTal) synergies.push(`Backpack Talent: ${bpTal}`);
+
+    const warnings = [];
+    const rawChc = Number(ballistics.raw_uncapped_chc_pct != null ? ballistics.raw_uncapped_chc_pct : ballistics.chc_pct || 0);
+    const cappedChc = Number(ballistics.chc_pct || 0);
+    if (rawChc > 60.5) {
+      warnings.push({
+        severity: 'WARN',
+        code: 'CHC_OVERCAP',
+        title: `CHC Overcap Waste (${rawChc.toFixed(1)}% raw -> capped at 60%)`,
+        detail: `You are wasting ${(rawChc - 60.0).toFixed(1)}% Critical Hit Chance above Division 2's 60% hard cap.`,
+        fix_hint: 'Swap CHC Gear Mods to +12% CHD or recalibrate a CHC minor roll to CHD/DTTOOC.',
+      });
+    } else if (['RED_CRIT_DPS', 'BRUISER_TECH_TANK', 'PESTILENCE_LMG_TICK'].includes(roleCode) && cappedChc < 48.0) {
+      warnings.push({
+        severity: 'WARN',
+        code: 'CHC_UNDERCAP',
+        title: `Low Crit Chance (${cappedChc.toFixed(1)}% / 60% Cap)`,
+        detail: 'Crit multipliers lose significant average DPS below ~50% CHC.',
+        fix_hint: 'Equip +6% CHC Gear Mods, add 1pc Česká (+8% CHC), or roll CHC onto minor attributes.',
+      });
+    }
+
+    for (const [bName, cnt] of Object.entries(effBrands)) {
+      if (!bName || bName === 'Unknown' || isExoticItemJS(bName, canonicalDb)) continue;
+      if (isGearSetBrandJS(bName, canonicalDb)) {
+        if (cnt === 3) {
+          warnings.push({
+            severity: 'WARN',
+            code: 'INCOMPLETE_GEARSET_3PC',
+            title: `Incomplete 3pc ${bName} (Missing 4pc Keystone)`,
+            detail: `3 pieces of ${bName} miss the 4-piece set talent unless NinjaBike Backpack is equipped.`,
+            fix_hint: `Add a 4th ${bName} piece or drop to 2pc + High-End pieces.`,
+          });
+        }
+      } else if (cnt >= 4) {
+        warnings.push({
+          severity: 'WARN',
+          code: 'BRAND_OVERFLOW_4PC',
+          title: `Wasted ${cnt}pc ${bName} (Max Brand Bonus is 3pc)`,
+          detail: `High-End Brand Sets only grant bonuses at 1/2/3 pieces — piece #${cnt} adds zero set bonus.`,
+          fix_hint: `Replace 1 ${bName} piece with Contractor's Gloves, Fox's Prayer, Coyote's Mask, or Grupo/Česká.`,
+        });
+      }
+    }
+
+    if ((effBrands['Fenris Group AB'] || 0) >= 1 && wClass !== 'AR') {
+      warnings.push({
+        severity: 'WARN',
+        code: 'WRONG_WEAPON_BRAND',
+        title: `Fenris (+10% AR DMG) Active With ${wClass} Equipped`,
+        detail: `Fenris 1pc only buffs Assault Rifles, so your primary ${primaryWeapon || wClass} gets 0% from it.`,
+        fix_hint: 'Switch weapon to an AR or swap Fenris for your weapon class brand.',
+      });
+    }
+
+    for (const [slotKey, tVal] of [['CHEST', chestTal], ['BACKPACK', bpTal]]) {
+      const sObj = slotMap[slotKey] || {};
+      if (!tVal && !isExoticItemJS(sObj.item_name || '', canonicalDb)) {
+        warnings.push({
+          severity: 'INFO',
+          code: `MISSING_${slotKey}_TALENT`,
+          title: `No ${slotKey.charAt(0) + slotKey.slice(1).toLowerCase()} Talent Configured`,
+          detail: `Your ${slotKey.toLowerCase()} slot currently shows no talent bonus in ballistics.`,
+          fix_hint: `Assign or recalibrate an active damage/utility talent on ${slotKey.toLowerCase()}.`,
+        });
+      }
+    }
+
+    return {
+      detected_role_code: roleCode,
+      detected_role_label: roleLabel,
+      solver_role: solverRole,
+      intent_summary: intentSummary,
+      specialization,
+      primary_weapon: primaryWeapon || ballistics.weapon_name || '',
+      active_synergies: synergies.slice(0, 8),
+      diagnostic_warnings: warnings.slice(0, 6),
+    };
+  }
+
+  function computeBallisticsDeltaJS(candBal, baseBal) {
+    const baseSust = Math.max(1.0, Number(baseBal.sustained_dps || 1.0));
+    const baseBurst = Math.max(1.0, Number(baseBal.burst_dps || 1.0));
+    const baseArmor = Math.max(1.0, Number(baseBal.total_armor || 1.0));
+    const sustDiff = Number(candBal.sustained_dps || 0) - Number(baseBal.sustained_dps || 0);
+    const burstDiff = Number(candBal.burst_dps || 0) - Number(baseBal.burst_dps || 0);
+    const armorDiff = Number(candBal.total_armor || 0) - Number(baseBal.total_armor || 0);
+    const regenDiff = Number(candBal.armor_regen_per_sec || 0) - Number(baseBal.armor_regen_per_sec || 0);
+    const ttkDiff = Math.round((Number(candBal.ttk_heroic_named_sec || 0) - Number(baseBal.ttk_heroic_named_sec || 0)) * 100) / 100;
+    return {
+      sustained_dps_before: Number(baseBal.sustained_dps || 0),
+      sustained_dps_after: Number(candBal.sustained_dps || 0),
+      sustained_dps_delta: sustDiff,
+      sustained_dps_pct: Math.round((sustDiff / baseSust) * 1000) / 10,
+      burst_dps_before: Number(baseBal.burst_dps || 0),
+      burst_dps_after: Number(candBal.burst_dps || 0),
+      burst_dps_delta: burstDiff,
+      burst_dps_pct: Math.round((burstDiff / baseBurst) * 1000) / 10,
+      per_bullet_delta: Number(candBal.per_bullet_dmg || 0) - Number(baseBal.per_bullet_dmg || 0),
+      ttk_heroic_before_sec: Number(baseBal.ttk_heroic_named_sec || 0),
+      ttk_heroic_after_sec: Number(candBal.ttk_heroic_named_sec || 0),
+      ttk_heroic_delta_sec: ttkDiff,
+      armor_before: Number(baseBal.total_armor || 0),
+      armor_after: Number(candBal.total_armor || 0),
+      armor_delta: armorDiff,
+      armor_pct: Math.round((armorDiff / baseArmor) * 1000) / 10,
+      regen_delta: regenDiff,
+      chc_before: Number(baseBal.chc_pct || 0),
+      chc_after: Number(candBal.chc_pct || 0),
+      chd_before: Number(baseBal.chd_pct || 0),
+      chd_after: Number(candBal.chd_pct || 0),
+      yellow_before: Number(baseBal.effective_yellow_tiers || 0),
+      yellow_after: Number(candBal.effective_yellow_tiers || 0),
+    };
+  }
+
+  function scoreBallisticsForGoalJS(candBal, baseBal, goalMode, detectedRoleCode, candSlots = null) {
+    const delta = computeBallisticsDeltaJS(candBal, baseBal);
+    let gm = String(goalMode || 'AUTO').toUpperCase();
+    if (gm === 'AUTO') {
+      if (['BRUISER_TECH_TANK', 'TANK_HEALER_SUPPORT'].includes(detectedRoleCode)) gm = 'BRUISER_SURVIVABILITY';
+      else if (['SKILL_DAMAGE', 'STATUS_CC'].includes(detectedRoleCode)) gm = 'SKILL_HYBRID';
+      else gm = 'MAX_DPS';
+    }
+    let skillMinorScore = 0.0;
+    if (candSlots && gm === 'SKILL_HYBRID') {
+      for (const sv of Object.values(candSlots)) {
+        for (const m of sv.minor_attributes || []) {
+          if (['SKILL_DAMAGE', 'SKILL_HASTE', 'STATUS_EFFECTS', 'SKILL_REPAIR'].includes(String(m.type || '').toUpperCase())) {
+            skillMinorScore += 2.5;
+          }
+        }
+      }
+    }
+    if (gm === 'MAX_DPS') return Math.round(((0.68 * delta.sustained_dps_pct) + (0.32 * delta.burst_dps_pct) + (0.04 * delta.armor_pct)) * 100) / 100;
+    if (gm === 'BRUISER_SURVIVABILITY') {
+      const regenBonus = (delta.regen_delta / 15000.0) * 6.0;
+      return Math.round(((0.52 * delta.sustained_dps_pct) + (0.18 * delta.burst_dps_pct) + (0.38 * delta.armor_pct) + regenBonus) * 100) / 100;
+    }
+    if (gm === 'SKILL_HYBRID') {
+      const yDiff = delta.yellow_after - delta.yellow_before;
+      return Math.round(((0.45 * delta.sustained_dps_pct) + (yDiff * 12.0) + skillMinorScore + (0.08 * delta.armor_pct)) * 100) / 100;
+    }
+    return delta.sustained_dps_pct;
+  }
+
+  function autoSelectModsForLoadoutJS(pseudoBuild, slotMap, canonicalDb, weaponExpertise, weaponTalent, goalMode, detectedRoleCode) {
+    const gm = String(goalMode || 'AUTO').toUpperCase();
+    if (gm === 'SKILL_HYBRID' || (gm === 'AUTO' && ['SKILL_DAMAGE', 'STATUS_CC'].includes(detectedRoleCode))) {
+      return ['MOD_SKILL_HASTE', 'MOD_SKILL_HASTE', 'MOD_SKILL_HASTE'];
+    }
+    if (gm === 'AUTO' && detectedRoleCode === 'HEADSHOT_DETERMINED_MMR') {
+      return ['MOD_HSD', 'MOD_HSD', 'MOD_HSD'];
+    }
+    const { bal: probeBal } = evaluateSlotMapBallisticsJS(slotMap, pseudoBuild, canonicalDb, weaponExpertise, weaponTalent, ['MOD_CHD', 'MOD_CHD', 'MOD_CHD']);
+    const rawChc = Number(probeBal.raw_uncapped_chc_pct != null ? probeBal.raw_uncapped_chc_pct : probeBal.chc_pct || 0);
+    const deficit = Math.max(0.0, 58.0 - rawChc);
+    const chcMods = deficit <= 0.5 ? 0 : Math.min(3, Math.max(0, Math.ceil(deficit / 6.0)));
+    if (gm === 'BRUISER_SURVIVABILITY' || (gm === 'AUTO' && detectedRoleCode === 'TANK_HEALER_SUPPORT')) {
+      const rem = 3 - chcMods;
+      if (detectedRoleCode === 'TANK_HEALER_SUPPORT') return [...Array(chcMods).fill('MOD_CHC'), ...Array(rem).fill('MOD_PFE')];
+      const pfeCnt = rem >= 2 ? 1 : 0;
+      const chdCnt = Math.max(0, rem - pfeCnt);
+      return [...Array(chcMods).fill('MOD_CHC'), ...Array(chdCnt).fill('MOD_CHD'), ...Array(pfeCnt).fill('MOD_PFE')];
+    }
+    return [...Array(chcMods).fill('MOD_CHC'), ...Array(3 - chcMods).fill('MOD_CHD')];
+  }
+
+  function toWbSlotPayloadJS(normSlot) {
+    return {
+      item_id: normSlot.item_id || null,
+      brand: normSlot.brand || 'Unknown',
+      item_name: normSlot.item_name || normSlot.display_name || normSlot.brand || 'Piece',
+      rarity: normSlot.rarity || 'HIGH_END',
+      core_type: normSlot.core_type || 'WEAPON_DAMAGE',
+      core_val: normSlot.core_val != null ? normSlot.core_val : 15.0,
+      minors: (normSlot.minor_attributes || []).map(m => ({ type: m.type, val: Number(m.value != null ? m.value : (m.val || 0)) })),
+      talent: normSlot.talent || '',
+    };
+  }
+
+  function describeItemChangesJS(baseSlot, candItem, goalMode, detectedRoleCode, canonicalDb) {
+    const norm = normalizeWorkbenchSlotJS(candItem.slot || 'MASK', candItem, canonicalDb);
+    if (norm.rarity === 'EXOTIC') return [norm, 'Exotic (Fixed Rolls)'];
+
+    const coreObj = candItem.core_attribute || {};
+    const minorsRaw = candItem.minor_attributes || [];
+    const talObj = candItem.talent || {};
+    const coreRecal = Boolean(coreObj.recal || coreObj.is_recalibrated);
+    const minorRecals = minorsRaw.map(m => Boolean(m.recal || m.is_recalibrated));
+    const talRecal = Boolean(talObj.recal || talObj.is_recalibrated);
+    const isVirgin = !coreRecal && !minorRecals.some(Boolean) && !talRecal;
+
+    let desiredCore = (goalMode === 'SKILL_HYBRID' || (goalMode === 'AUTO' && ['SKILL_DAMAGE', 'STATUS_CC'].includes(detectedRoleCode))) ? 'SKILL_TIER' : 'WEAPON_DAMAGE';
+    if (goalMode === 'BRUISER_SURVIVABILITY' && baseSlot.core_type === 'ARMOR') desiredCore = 'ARMOR';
+
+    const slotUp = String(candItem.slot || '').toUpperCase();
+    if (['CHEST', 'BACKPACK'].includes(slotUp) && !talObj.is_perfect && norm.rarity !== 'GEAR_SET') {
+      const curTal = norm.talent.toLowerCase();
+      const goodTals = slotUp === 'CHEST'
+        ? ['obliterate', 'glass cannon', 'spotter', 'headhunter', 'focus', 'intimidate', 'kinetic momentum']
+        : ['vigilance', 'unstoppable force', 'companion', 'composure', 'combined arms', 'wicked', 'bloodsucker'];
+      if (!goodTals.some(gt => curTal.includes(gt)) && (isVirgin || talRecal)) {
+        const targetTal = goalMode === 'SKILL_HYBRID'
+          ? (slotUp === 'CHEST' ? 'Kinetic Momentum' : 'Combined Arms')
+          : (slotUp === 'CHEST' ? 'Obliterate' : 'Vigilance');
+        norm.talent = targetTal;
+        return [norm, `Wrench Recal Talent -> ${targetTal}`];
+      }
+    }
+
+    if (norm.core_type !== desiredCore && (isVirgin || coreRecal)) {
+      norm.core_type = desiredCore;
+      norm.core_val = CORE_MAX[desiredCore] || 15.0;
+      return [norm, `Wrench Recal Core -> ${desiredCore.replace(/_/g, ' ')}`];
+    }
+
+    const prefMinors = desiredCore === 'SKILL_TIER'
+      ? ['SKILL_DAMAGE', 'SKILL_HASTE', 'STATUS_EFFECTS']
+      : ['CRITICAL_HIT_DAMAGE', 'CRITICAL_HIT_CHANCE', 'DTTOOC', 'DAMAGE_TO_ARMOR', 'HEADSHOT_DAMAGE'];
+    for (let idx = 0; idx < norm.minor_attributes.length; idx++) {
+      const mType = norm.minor_attributes[idx].type;
+      const canRecal = isVirgin || Boolean(minorRecals[idx]);
+      if (canRecal && !prefMinors.includes(mType)) {
+        const existingTypes = new Set(norm.minor_attributes.filter((_, j) => j !== idx).map(x => x.type));
+        const newM = prefMinors.find(pm => !existingTypes.has(pm)) || prefMinors[0];
+        norm.minor_attributes[idx] = { type: newM, value: MINOR_MAX[newM] || 12.0 };
+        return [norm, `Wrench Recal Minor #${idx + 1} -> Max ${newM.replace(/_/g, ' ')}`];
+      }
+    }
+    return [norm, 'Equip as-is'];
+  }
+
+  function analyzeActiveLoadoutJS(loadout, ownedItems = [], canonicalDb = null, goalMode = 'AUTO') {
+    const db = canonicalDb || getSeedData()?.canonical_db || {};
+    const allSlots = ['MASK', 'BACKPACK', 'CHEST', 'GLOVES', 'HOLSTER', 'KNEEPADS'];
+    const rawSlots = (loadout && (loadout.slots || loadout.slot_items)) || {};
+    const baseSlotMap = {};
+    for (const slot of allSlots) {
+      baseSlotMap[slot] = normalizeWorkbenchSlotJS(slot, rawSlots[slot], db);
+    }
+
+    const pWeap = String((loadout && ((loadout.weapons || {}).primary || loadout.primary_weapon)) || "St. Elmo's Engine");
+    const spec = String((loadout && loadout.specialization) || 'Gunner');
+    const wExp = Number((loadout && loadout.weapon_expertise) != null ? loadout.weapon_expertise : 27);
+    const wTal = (loadout && loadout.weapon_talent) || null;
+    const curMods = Array.isArray(loadout && loadout.gear_mods) && loadout.gear_mods.length === 3
+      ? [...loadout.gear_mods]
+      : ['MOD_CHD', 'MOD_CHD', 'MOD_CHD'];
+
+    const probeBuild = {
+      name: (loadout && loadout.name) || 'Active Build',
+      role: (loadout && (loadout.archetype || loadout.role)) || 'RED_DPS',
+      specialization: spec,
+      primary_weapons: [pWeap],
+    };
+    const { bal: probeBal, bCores: probeCores } = evaluateSlotMapBallisticsJS(baseSlotMap, probeBuild, db, wExp, wTal, curMods);
+    let intent = detectLoadoutIntentJS(baseSlotMap, probeCores, probeBal, pWeap, spec, db);
+    const pseudoBuild = { ...probeBuild, role: intent.solver_role };
+    const { bal: baseBal, bCores: baseCores } = evaluateSlotMapBallisticsJS(baseSlotMap, pseudoBuild, db, wExp, wTal, curMods);
+    intent = detectLoadoutIntentJS(baseSlotMap, baseCores, baseBal, pWeap, spec, db);
+    const detectedRoleCode = intent.detected_role_code;
+
+    const itemsById = {};
+    const ownedMods = [];
+    for (const it of ownedItems || []) {
+      if (it.item_id) itemsById[it.item_id] = it;
+      if (inferItemCategoryJS(it) === 'GEAR_MOD') ownedMods.push(it);
+    }
+
+    const countExotics = sMap => Object.values(sMap).filter(sv => sv.rarity === 'EXOTIC' || isExoticItemJS(sv.item_name || sv.brand, db)).length;
+
+    // Track 1: Zero-Swap Quick Wins
+    const quickWins = [];
+    const optMods = autoSelectModsForLoadoutJS(pseudoBuild, baseSlotMap, db, wExp, wTal, goalMode, detectedRoleCode);
+    if (JSON.stringify(optMods) !== JSON.stringify(curMods)) {
+      const { bal: modBal } = evaluateSlotMapBallisticsJS(baseSlotMap, pseudoBuild, db, wExp, wTal, optMods);
+      const modScore = scoreBallisticsForGoalJS(modBal, baseBal, goalMode, detectedRoleCode, baseSlotMap);
+      const modDelta = computeBallisticsDeltaJS(modBal, baseBal);
+      if (modScore > 0.1 || Number(baseBal.raw_uncapped_chc_pct || 0) > 60.5) {
+        const modLabels = { MOD_CHC: '+6% CHC', MOD_CHD: '+12% CHD', MOD_HSD: '+10% HSD', MOD_PFE: '+12% PFE', MOD_SKILL_HASTE: '+12% Skill Haste', MOD_REPAIR_SKILLS: '+20% Repair' };
+        quickWins.push({
+          rec_id: 'qw_mods_optimal',
+          track: 'quick_wins',
+          swap_count: 0,
+          action_type: 'GEAR_MODS',
+          badge: '🔌 3x GEAR MODS',
+          slots_changed: ['MODS'],
+          headline: 'Rebalance 3x Gear Mods -> ' + optMods.map(m => modLabels[m] || m).join(' / '),
+          why_it_helps: `Eliminates CHC overcap waste or fills crit deficit, shifting CHC ${modDelta.chc_before}% -> ${modDelta.chc_after}% and CHD ${modDelta.chd_before}% -> ${modDelta.chd_after}%${ownedMods.length ? ` (You own ${ownedMods.length} Gear Mods)` : ''}.`,
+          tinker_notes: 'Zero gear swaps required — swap Mask/Chest/Backpack Gear Mods.',
+          score: Math.max(0.5, modScore),
+          replacement_slots: {},
+          recommended_gear_mods: optMods,
+          delta_metrics: modDelta,
+        });
+      }
+    }
+
+    for (const slot of allSlots) {
+      const curS = baseSlotMap[slot];
+      if (curS.rarity === 'EXOTIC') continue;
+      const ownedRef = curS.item_id ? itemsById[curS.item_id] : null;
+      let coreRecal = false, minorRecals = curS.minor_attributes.map(() => false), talRecal = false, isVirgin = true, isPerfTal = curS.rarity === 'NAMED_HIGH_END';
+      if (ownedRef) {
+        const cObj = ownedRef.core_attribute || {};
+        const mList = ownedRef.minor_attributes || [];
+        const tObj = ownedRef.talent || {};
+        coreRecal = Boolean(cObj.recal || cObj.is_recalibrated);
+        minorRecals = mList.map(m => Boolean(m.recal || m.is_recalibrated));
+        talRecal = Boolean(tObj.recal || tObj.is_recalibrated);
+        isVirgin = !coreRecal && !minorRecals.some(Boolean) && !talRecal;
+        isPerfTal = Boolean(tObj.is_perfect);
+      }
+      let bestQw = null;
+      const tryRecal = (simEntry, label, reason, recalId) => {
+        const simMap = { ...baseSlotMap, [slot]: simEntry };
+        const simMods = autoSelectModsForLoadoutJS(pseudoBuild, simMap, db, wExp, wTal, goalMode, detectedRoleCode);
+        const { bal: simBal } = evaluateSlotMapBallisticsJS(simMap, pseudoBuild, db, wExp, wTal, simMods);
+        const sc = scoreBallisticsForGoalJS(simBal, baseBal, goalMode, detectedRoleCode, simMap);
+        if (sc > 0.35 && (!bestQw || sc > bestQw.score)) {
+          bestQw = {
+            rec_id: recalId,
+            track: 'quick_wins',
+            swap_count: 0,
+            action_type: 'WRENCH_RECAL',
+            badge: `🔧 WRENCH RECAL (${slot})`,
+            slots_changed: [slot],
+            headline: label,
+            why_it_helps: reason,
+            tinker_notes: `Recalibrate ${slot} at Tinkering Bench + auto-balance Gear Mods.`,
+            score: sc,
+            replacement_slots: { [slot]: toWbSlotPayloadJS(simEntry) },
+            recommended_gear_mods: simMods,
+            delta_metrics: computeBallisticsDeltaJS(simBal, baseBal),
+          };
+        }
+      };
+
+      for (const candCore of ['WEAPON_DAMAGE', 'ARMOR', 'SKILL_TIER']) {
+        if (candCore !== curS.core_type && (isVirgin || coreRecal)) {
+          const simE = JSON.parse(JSON.stringify(curS));
+          simE.core_type = candCore;
+          simE.core_val = CORE_MAX[candCore] || 15.0;
+          tryRecal(simE, `Recalibrate ${slot} Core -> Max ${candCore.replace(/_/g, ' ')}`, `Aligns ${slot} core with your target goal.`, `qw_core_${slot}_${candCore}`);
+        }
+      }
+      const candMinors = ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE', 'HEADSHOT_DAMAGE', 'SKILL_DAMAGE', 'ARMOR_REGEN'];
+      for (let mIdx = 0; mIdx < curS.minor_attributes.length; mIdx++) {
+        if (!(isVirgin || minorRecals[mIdx])) continue;
+        const curMt = curS.minor_attributes[mIdx].type;
+        const otherMts = new Set(curS.minor_attributes.filter((_, j) => j !== mIdx).map(x => x.type));
+        for (const cm of candMinors) {
+          if (cm === curMt || otherMts.has(cm)) continue;
+          const simE = JSON.parse(JSON.stringify(curS));
+          simE.minor_attributes[mIdx] = { type: cm, value: MINOR_MAX[cm] || 10.0 };
+          tryRecal(simE, `Recalibrate ${slot} Minor #${mIdx + 1} -> ${cm.replace(/_/g, ' ')}`, `Replaces ${curMt.replace(/_/g, ' ')} with max-roll ${cm.replace(/_/g, ' ')}.`, `qw_minor_${slot}_${mIdx}_${cm}`);
+        }
+      }
+      if (['CHEST', 'BACKPACK'].includes(slot) && curS.rarity !== 'GEAR_SET' && !isPerfTal && (isVirgin || talRecal)) {
+        const talPool = slot === 'CHEST' ? ['Obliterate', 'Glass Cannon', 'Spotter', 'Headhunter', 'Focus'] : ['Vigilance', 'Unstoppable Force', 'Companion', 'Wicked'];
+        for (const cTal of talPool) {
+          if (curS.talent.toLowerCase().includes(cTal.toLowerCase())) continue;
+          const simE = JSON.parse(JSON.stringify(curS));
+          simE.talent = cTal;
+          tryRecal(simE, `Recalibrate ${slot} Talent -> ${cTal}`, `Unlocks stronger ${cTal} scaling.`, `qw_tal_${slot}_${cTal.toLowerCase().replace(/\s+/g, '_')}`);
+        }
+      }
+      if (bestQw) quickWins.push(bestQw);
+    }
+    quickWins.sort((a, b) => b.score - a.score);
+
+    // Track 2: Owned Armory 1-Piece & 2-Piece Swaps
+    const ownedBySlot = { MASK: [], BACKPACK: [], CHEST: [], GLOVES: [], HOLSTER: [], KNEEPADS: [] };
+    const onePieceOwned = [];
+    for (const it of ownedItems || []) {
+      const cat = inferItemCategoryJS(it);
+      const slotUp = String(it.slot || '').toUpperCase();
+      if (cat !== 'ARMOR' || !ownedBySlot[slotUp]) continue;
+      if (baseSlotMap[slotUp].item_id && it.item_id === baseSlotMap[slotUp].item_id) continue;
+
+      const normRaw = normalizeWorkbenchSlotJS(slotUp, it, db);
+      const [normTink, tinkNote] = describeItemChangesJS(baseSlotMap[slotUp], it, goalMode, detectedRoleCode, db);
+      const variants = [[normRaw, 'Equip owned piece as-is']];
+      if (tinkNote !== 'Equip as-is' && JSON.stringify(normTink) !== JSON.stringify(normRaw)) variants.push([normTink, tinkNote]);
+
+      let bestVar = null;
+      for (const [vSlot, vNote] of variants) {
+        const simMap = { ...baseSlotMap, [slotUp]: vSlot };
+        if (countExotics(simMap) > 1) continue;
+        const simMods = autoSelectModsForLoadoutJS(pseudoBuild, simMap, db, wExp, wTal, goalMode, detectedRoleCode);
+        const { bal: simBal } = evaluateSlotMapBallisticsJS(simMap, pseudoBuild, db, wExp, wTal, simMods);
+        const sc = scoreBallisticsForGoalJS(simBal, baseBal, goalMode, detectedRoleCode, simMap);
+        if (!bestVar || sc > bestVar.sc) {
+          bestVar = { vSlot, vNote, sc, deltaM: computeBallisticsDeltaJS(simBal, baseBal), simMods };
+        }
+      }
+      if (bestVar) {
+        ownedBySlot[slotUp].push(bestVar);
+        if (bestVar.sc > 0.3) {
+          const dm = bestVar.deltaM;
+          onePieceOwned.push({
+            rec_id: `owned_1pc_${slotUp}_${bestVar.vSlot.item_id || bestVar.vSlot.item_name}`,
+            track: 'owned',
+            swap_count: 1,
+            action_type: 'OWNED_1PC_SWAP',
+            badge: `🎒 1-PIECE OWNED (${slotUp})`,
+            slots_changed: [slotUp],
+            headline: `Swap ${slotUp}: ${baseSlotMap[slotUp].item_name} -> ${bestVar.vSlot.item_name}`,
+            why_it_helps: `Owned Armory piece (${bestVar.vSlot.brand}) yields ${dm.sustained_dps_pct >= 0 ? '+' : ''}${dm.sustained_dps_pct}% Sustained DPS and ${dm.ttk_heroic_delta_sec >= 0 ? '+' : ''}${dm.ttk_heroic_delta_sec}s Heroic TTK.`,
+            tinker_notes: bestVar.vNote,
+            score: bestVar.sc,
+            replacement_slots: { [slotUp]: toWbSlotPayloadJS(bestVar.vSlot) },
+            recommended_gear_mods: bestVar.simMods,
+            delta_metrics: dm,
+          });
+        }
+      }
+    }
+
+    const topOwnedPerSlot = {};
+    const bestSingleBySlot = {};
+    for (const s of allSlots) {
+      const sorted = [...ownedBySlot[s]].sort((a, b) => b.sc - a.sc);
+      const picked = [];
+      const seenBr = new Set();
+      for (const c of sorted) {
+        if (!seenBr.has(c.vSlot.brand) || picked.length < 2) {
+          picked.push(c);
+          seenBr.add(c.vSlot.brand);
+        }
+        if (picked.length >= 4) break;
+      }
+      topOwnedPerSlot[s] = picked;
+      bestSingleBySlot[s] = Math.max(0, ...onePieceOwned.filter(x => x.slots_changed[0] === s).map(x => x.score));
+    }
+
+    const twoPieceOwned = [];
+    for (let i = 0; i < allSlots.length; i++) {
+      const s1 = allSlots[i];
+      for (let j = i + 1; j < allSlots.length; j++) {
+        const s2 = allSlots[j];
+        for (const c1 of topOwnedPerSlot[s1]) {
+          for (const c2 of topOwnedPerSlot[s2]) {
+            const simMap = { ...baseSlotMap, [s1]: c1.vSlot, [s2]: c2.vSlot };
+            if (countExotics(simMap) > 1) continue;
+            const simMods = autoSelectModsForLoadoutJS(pseudoBuild, simMap, db, wExp, wTal, goalMode, detectedRoleCode);
+            const { bal: simBal } = evaluateSlotMapBallisticsJS(simMap, pseudoBuild, db, wExp, wTal, simMods);
+            const sc = scoreBallisticsForGoalJS(simBal, baseBal, goalMode, detectedRoleCode, simMap);
+            if (sc > Math.max(bestSingleBySlot[s1], bestSingleBySlot[s2]) + 0.5) {
+              const dm = computeBallisticsDeltaJS(simBal, baseBal);
+              twoPieceOwned.push({
+                rec_id: `owned_2pc_${s1}_${s2}_${c1.vSlot.item_id}_${c2.vSlot.item_id}`,
+                track: 'owned',
+                swap_count: 2,
+                action_type: 'OWNED_2PC_COMBO',
+                badge: `🎒 2-PIECE COMBO (${s1} + ${s2})`,
+                slots_changed: [s1, s2],
+                headline: `Combo Swap: ${c1.vSlot.item_name} (${s1}) + ${c2.vSlot.item_name} (${s2})`,
+                why_it_helps: `Synergistic 2-piece swap delivers ${dm.sustained_dps_pct >= 0 ? '+' : ''}${dm.sustained_dps_pct}% Sustained DPS (${dm.armor_pct >= 0 ? '+' : ''}${dm.armor_pct}% Armor) — stronger than swapping either piece alone.`,
+                tinker_notes: `${s1}: ${c1.vNote} | ${s2}: ${c2.vNote}`,
+                score: sc,
+                replacement_slots: { [s1]: toWbSlotPayloadJS(c1.vSlot), [s2]: toWbSlotPayloadJS(c2.vSlot) },
+                recommended_gear_mods: simMods,
+                delta_metrics: dm,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    const ownedFinal = [];
+    const seenOwnedSigs = new Set();
+    for (const rec of [...onePieceOwned, ...twoPieceOwned].sort((a, b) => b.score - a.score)) {
+      const sig = Object.entries(rec.replacement_slots).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}:${v.item_id || v.item_name}`).join('|');
+      if (seenOwnedSigs.has(sig)) continue;
+      seenOwnedSigs.add(sig);
+      ownedFinal.push(rec);
+      if (ownedFinal.length >= 6) break;
+    }
+
+    // Track 3: Canonical Farm Targets
+    const activeBrands = Object.keys(baseBal.effective_brands || {}).filter(b => b && b !== 'Unknown' && !isExoticItemJS(b, db));
+    const farmBySlot = { MASK: [], BACKPACK: [], CHEST: [], GLOVES: [], HOLSTER: [], KNEEPADS: [] };
+    const onePieceFarm = [];
+
+    const lookupDropPool = (itemName, brand) => {
+      const targets = [String(itemName || '').toLowerCase(), String(brand || '').toLowerCase()];
+      for (const [, entry] of [...iterCanonicalEntriesJS(db.named_items), ...iterCanonicalEntriesJS(db.exotics)]) {
+        const en = String(entry.name || '').toLowerCase();
+        if (en && targets.some(t => t && (t === en || t.includes(en) || en.includes(t)))) {
+          return [String(entry.drop_pool || 'COUNTDOWN_OPEN_WORLD'), String(entry.acquisition_hint || '')];
+        }
+      }
+      return ['COUNTDOWN_OPEN_WORLD', ''];
+    };
+
+    for (const slot of allSlots) {
+      const pool = [...(CURATED_FARM_CANDIDATES_JS[slot] || [])];
+      for (const ab of activeBrands) {
+        const isGs = isGearSetBrandJS(ab, db);
+        if (!pool.some(p => p.brand.toLowerCase() === ab.toLowerCase())) {
+          pool.push({
+            item_name: `${ab} ${slot.charAt(0) + slot.slice(1).toLowerCase()}`,
+            brand: ab,
+            rarity: isGs ? 'GEAR_SET' : 'HIGH_END',
+            core: goalMode === 'SKILL_HYBRID' ? 'SKILL_TIER' : 'WEAPON_DAMAGE',
+            minors: isGs ? ['CRITICAL_HIT_DAMAGE'] : ['CRITICAL_HIT_CHANCE', 'CRITICAL_HIT_DAMAGE'],
+            talent: (!isGs && ['CHEST', 'BACKPACK'].includes(slot)) ? (slot === 'CHEST' ? 'Obliterate' : 'Vigilance') : '',
+          });
+        }
+      }
+      const curLow = baseSlotMap[slot].item_name.toLowerCase();
+      for (const scSpec of pool) {
+        if (scSpec.item_name.toLowerCase() === curLow) continue;
+        const candNorm = normalizeWorkbenchSlotJS(slot, {
+          item_name: scSpec.item_name,
+          brand: scSpec.brand,
+          rarity: scSpec.rarity,
+          core_type: scSpec.core,
+          core_val: CORE_MAX[scSpec.core] || 15.0,
+          minors: scSpec.minors.map(m => ({ type: m, val: MINOR_MAX[m] || 10.0 })),
+          talent: scSpec.talent || '',
+        }, db);
+        const simMap = { ...baseSlotMap, [slot]: candNorm };
+        if (countExotics(simMap) > 1) continue;
+        const simMods = autoSelectModsForLoadoutJS(pseudoBuild, simMap, db, wExp, wTal, goalMode, detectedRoleCode);
+        const { bal: simBal } = evaluateSlotMapBallisticsJS(simMap, pseudoBuild, db, wExp, wTal, simMods);
+        const sc = scoreBallisticsForGoalJS(simBal, baseBal, goalMode, detectedRoleCode, simMap);
+        const [dropPool, acqHint] = lookupDropPool(scSpec.item_name, scSpec.brand);
+        farmBySlot[slot].push({ candNorm, dropPool, sc });
+        if (sc > 0.6) {
+          const dm = computeBallisticsDeltaJS(simBal, baseBal);
+          onePieceFarm.push({
+            rec_id: `farm_1pc_${slot}_${scSpec.item_name.toLowerCase().replace(/\s+/g, '_')}`,
+            track: 'farm_targets',
+            swap_count: 1,
+            action_type: 'FARM_1PC_BIS',
+            badge: `🎯 FARM 1-PIECE (${slot})`,
+            slots_changed: [slot],
+            headline: `Target ${scSpec.item_name} (${slot}) over ${baseSlotMap[slot].item_name}`,
+            why_it_helps: `BiS canonical piece improves Sustained DPS by ${dm.sustained_dps_pct >= 0 ? '+' : ''}${dm.sustained_dps_pct}% (${dm.ttk_heroic_delta_sec >= 0 ? '+' : ''}${dm.ttk_heroic_delta_sec}s TTK).`,
+            tinker_notes: acqHint || `Acquisition: ${dropPool.replace(/_/g, ' ')}`,
+            drop_pool: dropPool,
+            score: sc,
+            replacement_slots: { [slot]: toWbSlotPayloadJS(candNorm) },
+            recommended_gear_mods: simMods,
+            delta_metrics: dm,
+          });
+        }
+      }
+    }
+
+    const topFarmPerSlot = {};
+    const bestFarmSingle = {};
+    for (const s of allSlots) {
+      topFarmPerSlot[s] = [...farmBySlot[s]].sort((a, b) => b.sc - a.sc).slice(0, 3);
+      bestFarmSingle[s] = Math.max(0, ...onePieceFarm.filter(x => x.slots_changed[0] === s).map(x => x.score));
+    }
+    const twoPieceFarm = [];
+    for (let i = 0; i < allSlots.length; i++) {
+      const s1 = allSlots[i];
+      for (let j = i + 1; j < allSlots.length; j++) {
+        const s2 = allSlots[j];
+        for (const f1 of topFarmPerSlot[s1]) {
+          for (const f2 of topFarmPerSlot[s2]) {
+            const simMap = { ...baseSlotMap, [s1]: f1.candNorm, [s2]: f2.candNorm };
+            if (countExotics(simMap) > 1) continue;
+            const simMods = autoSelectModsForLoadoutJS(pseudoBuild, simMap, db, wExp, wTal, goalMode, detectedRoleCode);
+            const { bal: simBal } = evaluateSlotMapBallisticsJS(simMap, pseudoBuild, db, wExp, wTal, simMods);
+            const sc = scoreBallisticsForGoalJS(simBal, baseBal, goalMode, detectedRoleCode, simMap);
+            if (sc > Math.max(bestFarmSingle[s1], bestFarmSingle[s2]) + 1.2) {
+              const dm = computeBallisticsDeltaJS(simBal, baseBal);
+              twoPieceFarm.push({
+                rec_id: `farm_2pc_${s1}_${s2}_${f1.candNorm.item_name}_${f2.candNorm.item_name}`.toLowerCase().replace(/\s+/g, '_'),
+                track: 'farm_targets',
+                swap_count: 2,
+                action_type: 'FARM_2PC_COMBO',
+                badge: `🎯 FARM 2-PC COMBO (${s1} + ${s2})`,
+                slots_changed: [s1, s2],
+                headline: `2-Piece Upgrade: ${f1.candNorm.item_name} (${s1}) + ${f2.candNorm.item_name} (${s2})`,
+                why_it_helps: `Combined 2-slot upgrade gains ${dm.sustained_dps_pct >= 0 ? '+' : ''}${dm.sustained_dps_pct}% Sustained DPS (${dm.armor_pct >= 0 ? '+' : ''}${dm.armor_pct}% Armor).`,
+                tinker_notes: `${s1}: ${f1.dropPool.replace(/_/g, ' ')} • ${s2}: ${f2.dropPool.replace(/_/g, ' ')}`,
+                drop_pool: f1.dropPool !== 'COUNTDOWN_OPEN_WORLD' ? f1.dropPool : f2.dropPool,
+                score: sc,
+                replacement_slots: { [s1]: toWbSlotPayloadJS(f1.candNorm), [s2]: toWbSlotPayloadJS(f2.candNorm) },
+                recommended_gear_mods: simMods,
+                delta_metrics: dm,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      goal_mode: String(goalMode || 'AUTO').toUpperCase(),
+      intent,
+      baseline_ballistics: baseBal,
+      recommended_gear_mods: optMods,
+      zero_swap_quick_wins: quickWins.slice(0, 6),
+      owned_armory_swaps: ownedFinal,
+      farm_target_upgrades: [...onePieceFarm, ...twoPieceFarm].sort((a, b) => b.score - a.score).slice(0, 5),
+    };
+  }
+
   function evaluateAllBuildsJS(ownedItems, customBuildsList = [], savedLoadouts = []) {
     const seed = getSeedData() || {};
     const canonicalDb = seed.canonical_db || {};
@@ -2069,12 +2882,50 @@
       return { state: buildLocalPlatformState() };
     },
 
+    async toggleEquippedCapture(active = null, clearExisting = false) {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/equipped/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active, clear_existing: Boolean(clearExisting) }),
+        });
+        return await res.json();
+      }
+      return { enabled: false, state: 'OFFLINE_PORTABLE', equipped_capture: { active: false, captured_slots: {}, armor_count: 0, weapons_captured: [] } };
+    },
+
+    async clearEquippedCapture() {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        const res = await fetch('/api/scanner/equipped/clear', { method: 'POST' });
+        return await res.json();
+      }
+      return { enabled: false, state: 'OFFLINE_PORTABLE', equipped_capture: { active: false, captured_slots: {}, armor_count: 0, weapons_captured: [] } };
+    },
+
+    async optimizeWorkbenchLoadout(loadout, goalMode = 'AUTO') {
+      if (Adapter.getMode() === 'FASTAPI_PC' && _activeProfile.userId === 'admin') {
+        try {
+          const res = await fetch('/api/workbench/optimize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ loadout, goal_mode: goalMode || 'AUTO' }),
+          });
+          if (res.ok) return await res.json();
+        } catch (err) {
+          console.warn('Server workbench optimize fallback to JS:', err);
+        }
+      }
+      const st = await Adapter.fetchState();
+      return analyzeActiveLoadoutJS(loadout, st.inventory || [], st.canonical || {}, goalMode);
+    },
+
     evaluateAllBuildsJS,
     snapShorthandToItemJS,
     resolveParentBrandJS,
     formatTargetPieceNameJS,
     classifyItemArchetypeJS,
     computeLoadoutBallisticsJS,
+    analyzeActiveLoadoutJS,
     iterCanonicalEntriesJS,
     normalizeWeaponEntryJS,
     inferItemCategoryJS,
