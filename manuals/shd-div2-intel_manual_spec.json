@@ -9,8 +9,8 @@
   "version": "6.0.0",
   "build_hash": "aa6dd5c5b0",
   "visibility": "restricted",
-  "updated_at": "2026-11-13T00:09:20.348211",
-  "generated_at": "2026-11-13 00:09",
+  "updated_at": "2026-11-13T00:10:05.191303",
+  "generated_at": "2026-11-13 00:10",
   "tagline": "100% EAC-Safe Division 2 Armory, 6-Slot Theorycraft Workbench, Build Solver & Expertise 413/500 Tracker",
   "quickstart": [
     {
@@ -221,29 +221,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "53daf0c",
-        "date": "2026-10-28",
-        "subject": "Auto-reconcile local work on DESKTOP-UHI3BO3 before pulling origin/main"
+        "sha": "62742f80b",
+        "date": "2026-11-12",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-12 22:20)"
       },
       {
-        "sha": "fe98244",
-        "date": "2026-10-26",
-        "subject": "RollupOS v1.1.0 + CSC Site Discovery v2.0.0 (2026-10-26 15:13)"
+        "sha": "47487557e",
+        "date": "2026-11-12",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-12 20:06)"
       },
       {
-        "sha": "9ac185f",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 22:19)"
+        "sha": "bcdeb1250",
+        "date": "2026-11-11",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-11 22:50)"
       },
       {
-        "sha": "22d612c",
-        "date": "2026-10-24",
-        "subject": "RollupOS Hub & Mini-App sync (2026-10-24 19:59)"
+        "sha": "252d73946",
+        "date": "2026-11-11",
+        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-11 22:37)"
       },
       {
-        "sha": "75878e4",
-        "date": "2026-10-24",
-        "subject": "Initial publish: RollupOS Multi-User Android Hub & Mini-Apps"
+        "sha": "574869541",
+        "date": "2026-11-11",
+        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-11-11 13:19)"
       }
     ]
   }
