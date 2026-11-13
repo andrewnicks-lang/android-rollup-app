@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-11-13T16:40:08.471337",
+  "updated_at": "2026-11-13T16:41:56.687788",
   "hostname": "NicksAndrew",
-  "active_tunnel_url": "https://retained-humanity-avoiding-controls.trycloudflare.com",
+  "active_tunnel_url": "https://communications-honor-agricultural-boolean.trycloudflare.com",
   "primary_lan_url": "http://10.0.0.91:8765",
   "office_wifi_drop_lan_url": "http://10.0.0.91:8766",
   "work_lan_url": "http://10.0.0.91:8765",
@@ -9,7 +9,7 @@
   "nodes": [
     {
       "name": "NicksAndrew (HTTPS Tunnel)",
-      "url": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+      "url": "https://communications-honor-agricultural-boolean.trycloudflare.com"
     },
     {
       "name": "DESKTOP-UHI3BO3 (HTTPS Tunnel)",

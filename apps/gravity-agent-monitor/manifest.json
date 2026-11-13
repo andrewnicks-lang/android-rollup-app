@@ -18,8 +18,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://retained-humanity-avoiding-controls.trycloudflare.com",
-      "defaultForAdmin": "https://retained-humanity-avoiding-controls.trycloudflare.com"
+      "default": "https://communications-honor-agricultural-boolean.trycloudflare.com",
+      "defaultForAdmin": "https://communications-honor-agricultural-boolean.trycloudflare.com"
     },
     {
       "key": "tailscale_workstation_url",
