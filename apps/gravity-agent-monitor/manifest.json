@@ -18,8 +18,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://communications-honor-agricultural-boolean.trycloudflare.com",
-      "defaultForAdmin": "https://communications-honor-agricultural-boolean.trycloudflare.com"
+      "default": "http://10.0.0.91:8765",
+      "defaultForAdmin": "http://10.0.0.91:8765"
     },
     {
       "key": "tailscale_workstation_url",

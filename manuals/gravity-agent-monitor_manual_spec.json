@@ -6,11 +6,11 @@
   "icon": "\ud83d\udef0\ufe0f",
   "accent": "#38bdf8",
   "category": "Admin & Dev Tools",
-  "version": "1.4.1",
-  "build_hash": "de4f844146",
+  "version": "1.4.2",
+  "build_hash": "fb84b332fb",
   "visibility": "admin_only",
-  "updated_at": "2026-11-13T16:41:56.848924",
-  "generated_at": "2026-11-13 16:41",
+  "updated_at": "2026-11-25T20:00:47.450153",
+  "generated_at": "2026-11-25 20:00",
   "tagline": "Real-Time Multi-Workstation Antigravity Telemetry, Trajectory Reader & Live 2-Way AgentAPI Dispatch",
   "quickstart": [
     {
@@ -71,8 +71,8 @@
       "key": "primary_workstation_url",
       "label": "Primary Workstation Sidecar URL (HTTPS Tunnel or LAN)",
       "type": "text",
-      "default": "https://communications-honor-agricultural-boolean.trycloudflare.com",
-      "defaultForAdmin": "https://communications-honor-agricultural-boolean.trycloudflare.com"
+      "default": "http://10.0.0.91:8765",
+      "defaultForAdmin": "http://10.0.0.91:8765"
     },
     {
       "key": "tailscale_workstation_url",
@@ -214,29 +214,29 @@
     ],
     "recent_commits": [
       {
-        "sha": "1beedfc5d",
+        "sha": "4ea42f93b",
+        "date": "2026-11-13",
+        "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-11-13 16:42)"
+      },
+      {
+        "sha": "a6b991ab8",
         "date": "2026-11-13",
         "subject": "Auto-sync pre-merge (NICKSANDREW/PeerBump_DESKTOP-UHI3BO3-Reloaded - 2026-11-13 00:11)"
       },
       {
-        "sha": "47487557e",
+        "sha": "11df92e18",
         "date": "2026-11-12",
         "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-12 20:06)"
       },
       {
-        "sha": "190b03901",
+        "sha": "b1ab30d71",
         "date": "2026-11-08",
         "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-08 16:44)"
       },
       {
-        "sha": "f59bffa96",
+        "sha": "1f760eebb",
         "date": "2026-11-06",
         "subject": "Auto-sync (NICKSANDREW/TaskComplete - 2026-11-06 11:24)"
-      },
-      {
-        "sha": "a5c88850f",
-        "date": "2026-11-06",
-        "subject": "Auto-sync (DESKTOP-UHI3BO3/TaskComplete - 2026-11-06 11:24)"
       }
     ]
   }
